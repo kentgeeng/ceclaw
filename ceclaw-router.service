@@ -1,0 +1,16 @@
+[Unit]
+Description=CECLAW Inference Router
+After=network.target
+
+[Service]
+Type=simple
+User=zoe_ai
+WorkingDirectory=/home/zoe_ai/ceclaw
+ExecStart=/home/zoe_ai/ceclaw/.venv/bin/python3 -m router.main
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/zoe_ai/.ceclaw/router.log
+StandardError=append:/home/zoe_ai/.ceclaw/router.log
+
+[Install]
+WantedBy=multi-user.target
