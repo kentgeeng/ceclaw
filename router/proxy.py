@@ -29,7 +29,7 @@ async def _try_local(
     if not backend:
         return None
 
-    url = f"{backend.base_url.rstrip('/')}/{path.lstrip('/')}"
+    clean_path = path.lstrip("/"); clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path; url = f"{backend.base_url.rstrip(chr(47))}/{clean_path}"
     timeout = config.inference.timeout_local_ms / 1000
 
     try:
@@ -66,7 +66,7 @@ async def _try_cloud(
             logger.debug(f"[cloud] {provider.provider}: no API key, skip")
             continue
 
-        url = f"{provider.resolved_base_url().rstrip('/')}/{path.lstrip('/')}"
+        clean_path = path.lstrip("/"); clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path; url = f"{provider.resolved_base_url().rstrip(chr(47))}/{clean_path}"
         cloud_headers = dict(headers)
         cloud_headers["Authorization"] = f"Bearer {key}"
         # Anthropic 用不同 header
