@@ -1,42 +1,13 @@
 version: 1
-egress:
-  default: deny
-  rules:
-    ceclaw_router:
-      name: ceclaw_router
-      endpoints:
+network_policies:
+  ceclaw_router:
+    endpoints:
       - host: host.openshell.internal
         port: 8000
         access: full
-    clawhub:
-      endpoints:
-      - host: clawhub.com
-        port: 443
-        protocol: rest
-        tls: terminate
-        enforcement: enforce
-        rules:
-        - allow:
-            method: '*'
-            path: /**
-    github:
-      endpoints:
-      - host: github.com
-        port: 443
-        access: full
-      - host: api.github.com
-        port: 443
-        access: full
-    npm:
-      endpoints:
-      - host: registry.npmjs.org
-        port: 443
-        access: full
-    pypi:
-      endpoints:
-      - host: pypi.org
-        port: 443
-        access: full
-      - host: files.pythonhosted.org
-        port: 443
-        access: full
+        allowed_ips:
+          - 172.17.0.1
+    binaries:
+      - path: /usr/bin/curl
+      - path: /usr/bin/node
+      - path: /usr/local/bin/openclaw
