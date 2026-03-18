@@ -1,0 +1,14 @@
+[project]
+name = "ceclaw-router"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "httpx",
+    "uvicorn",
+    "pyyaml",
+    "pydantic",
+]
+
+[project.scripts]
+ceclaw-router = "router.main:main"
