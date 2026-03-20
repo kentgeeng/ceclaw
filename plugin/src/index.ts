@@ -50,6 +50,7 @@ export function register(api: any) {
 
   api.configureProvider?.({ id: "local", baseUrl, apiKey: "ceclaw-local", api: "openai-completions" });
 
+  /* TEMP DISABLED
   api.registerCommand?.("ceclaw", {
     description: "CECLAW management commands",
     subcommands: {
@@ -67,4 +68,5 @@ export function register(api: any) {
       },
     },
   });
+  */
 }

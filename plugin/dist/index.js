@@ -76,22 +76,23 @@ function register(api) {
         console.log("");
     });
     api.configureProvider?.({ id: "local", baseUrl, apiKey: "ceclaw-local", api: "openai-completions" });
+    /* TEMP DISABLED
     api.registerCommand?.("ceclaw", {
-        description: "CECLAW management commands",
-        subcommands: {
-            status: {
-                description: "Show CECLAW Router status",
-                handler: async () => {
-                    try {
-                        const resp = await fetch(baseUrl.replace("/v1", "/ceclaw/status"));
-                        const data = await resp.json();
-                        console.log(JSON.stringify(data, null, 2));
-                    }
-                    catch (e) {
-                        console.error("Cannot reach CECLAW Router:", e);
-                    }
-                },
-            },
+      description: "CECLAW management commands",
+      subcommands: {
+        status: {
+          description: "Show CECLAW Router status",
+          handler: async () => {
+            try {
+              const resp = await fetch(baseUrl.replace("/v1", "/ceclaw/status"));
+              const data = await resp.json();
+              console.log(JSON.stringify(data, null, 2));
+            } catch (e) {
+              console.error("Cannot reach CECLAW Router:", e);
+            }
+          },
         },
+      },
     });
+    */
 }
