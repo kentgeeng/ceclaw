@@ -1,7 +1,7 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.3.3  
+**版本**: 0.3.4  
 **作者**: Kent (總工)  
 **日期**: 2026-03-21  
 **狀態**: Alpha — P1~P3 完成，P4 multi-backend 開發中
@@ -293,6 +293,14 @@ inference:
 
 ⚠️ 安全原則：測試用 API key、隔離 sandbox、安裝前確認 skill 來源（ClawHavoc 事件：820+ 惡意 skill 已被清除，仍需驗證）
 
+### Phase 8 — UX 升級
+> 前置條件：P4~P7 全部完成 + P6 drop-in 驗證通過
+
+- [ ] `ceclaw onboard` 升級為 one-click installer（對齊 NemoClaw `nemoclaw.sh` 體驗）
+- [ ] `ceclaw doctor` 診斷指令（自動檢查 Router / GB10 / sandbox / CoreDNS 狀態）
+- [ ] 自動引導 policy approve 流程（坑#12 UX 解法）
+- [ ] session 自動管理（坑#13 UX 解法，自動開新 session 或清歷史）
+
 ---
 
 ## 7. 已知限制
@@ -351,4 +359,4 @@ CECLAW   = Secure + Sovereign Inference
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.3.3 | 日期: 2026-03-21*
+*總工: Kent | 版本: 0.3.4 | 日期: 2026-03-21*

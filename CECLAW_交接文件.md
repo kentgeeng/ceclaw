@@ -281,6 +281,14 @@ def route(query, tokens):
 - [ ] B 級 — 有網路需求（次優先，15個）
 - [ ] C 級 — 功能補完（25個）
 
+### P8（UX 升級）
+> 前置條件：P4~P7 全部完成 + P6 drop-in 驗證通過才啟動
+
+- [ ] `ceclaw onboard` UX 升級（one-click installer，對齊 NemoClaw 體驗）
+- [ ] `ceclaw doctor` 診斷指令（一鍵檢查環境，降低 debug 門檻）
+- [ ] 自動引導 policy approve 流程（解坑#12 UX，無法自動 approve 但可引導用戶）
+- [ ] session 自動管理（解坑#13 UX，清歷史或自動開新 session）
+
 ---
 
 ## 8. 關鍵指令速查
@@ -403,5 +411,5 @@ nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free --format=csv
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.4 | 日期: 2026-03-21*  
-*P1✅ P2✅ B方案✅ P3✅ 燒機進行中 | 下一步: P4 multi-backend | commit: eb17d1c*
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.5 | 日期: 2026-03-21*  
+*P1✅ P2✅ B方案✅ P3✅ 燒機進行中 | 下一步: P4 multi-backend | commit: 595dda7*
