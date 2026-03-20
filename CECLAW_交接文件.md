@@ -22,7 +22,7 @@
 - hostname: `gx10` / IP: `192.168.1.91`
 - User: `zoe_gb`
 - llama-server: port **8001**，無 auth
-- 模型: MiniMax-M2.5-UD-Q3_K_XL (GGUF)
+- 模型: MiniMax-M2.5-UD-Q3_K_XL (GGUF)，228B 參數
 - alias: `minimax`
 - 啟動: `~/start_llama.sh`（`--parallel 2`）
 - 備份: `~/ceclaw/backup/start_llama.sh.bak`
@@ -34,46 +34,52 @@
 - Sandbox image: `ghcr.io/kentgeeng/ceclaw-sandbox:latest`（已推上 ghcr.io）
 - `host.openshell.internal` = NV 寫死解析到 `172.17.0.1`（Docker bridge，不可改）
 
+### Ollama（本地快速推論）
+- 安裝版本: 0.17.0
+- endpoint: `http://127.0.0.1:11434`
+- 已下載模型：
+  - `qwen2.5:7b` — 4.7GB，熱啟動 0.19s，fast 路徑
+  - `qwen3:8b` — 5.2GB，熱啟動 1.3s（`think:false`），backup 路徑
+  - `qwen3:14b` — 9.3GB，熱啟動 3.8s，可選
+  - `qwen2.5-coder:32b` — 19GB，offload，較慢
+- ⚠️ **VRAM 注意**：qwen2.5:7b + qwen3:8b 同時常駐 = 9.9GB，加系統 + Router + K3s 可能偏緊，開工前先確認實際用量
+
 ---
 
 ## 2. CECLAW 專案位置
 
 ```
 ~/ceclaw/
-├── .venv/                    # Python venv（已裝 fastapi/httpx/uvicorn/pyyaml/pydantic）
-├── .gitignore
-├── pyproject.toml
+├── .venv/                    # Python venv
 ├── ceclaw-router.service     # systemd service（已 enable）
 ├── ceclaw_monitor.sh         # ✅ 監控腳本（crontab 每5分鐘執行）
 ├── ceclaw.py                 # ✅ ceclaw CLI v0.1.0（symlink: /usr/local/bin/ceclaw）
 ├── backup/
 │   └── start_llama.sh.bak   # GB10 啟動腳本備份
 ├── router/
-│   ├── __init__.py
-│   ├── config.py             # ✅ 完成
-│   ├── backends.py           # ✅ 完成
+│   ├── config.py             # ✅ 完成（待 P4 擴充 multi-backend schema）
+│   ├── backends.py           # ✅ 完成（待 P4 加 Ollama adapter）
 │   ├── proxy.py              # ✅ 完成
 │   └── main.py               # ✅ 完成
-├── plugin/                   # TypeScript openclaw plugin
-│   ├── src/index.ts          # ✅ 完成（registerCommand 暫時 disabled，見坑#5，Phase 5 待修）
+├── plugin/
+│   ├── src/index.ts          # ✅ 完成（registerCommand disabled，坑#5）
 │   ├── dist/index.js         # ✅ 已編譯
 │   ├── openclaw.plugin.json  # ✅ 已加 configSchema
-│   ├── package.json          # ✅ 已修正（name/巢狀/dependencies）
-│   └── tsconfig.json
+│   └── package.json          # ✅ 已修正
 ├── sandbox/
 │   ├── Dockerfile            # ✅ 完成
-│   └── ceclaw-start.sh       # ✅ 已修轉義 bug（heredoc + os.environ）
+│   └── ceclaw-start.sh       # ✅ 已修轉義 bug
 └── config/
-    └── ceclaw-policy.yaml    # ✅ 格式正確，正常運作
+    └── ceclaw-policy.yaml    # ✅ 格式正確
 ```
 
 ### 設定檔
 ```
-~/.ceclaw/ceclaw.yaml         # Router 設定檔（master，不在 repo，不可直接修改）
-~/.ceclaw/router.log          # Router log（logrotate 已設定，daily rotate 7）
-~/.ceclaw/monitor.log         # 監控 log（logrotate 已設定）
-~/nemoclaw-config/restore-coredns.sh  # CoreDNS 修復腳本
-/etc/logrotate.d/ceclaw-router        # logrotate 設定
+~/.ceclaw/ceclaw.yaml         # Router 設定檔（master，不在 repo）
+~/.ceclaw/router.log          # Router log（logrotate daily rotate 7）
+~/.ceclaw/monitor.log         # 監控 log
+~/nemoclaw-config/restore-coredns.sh
+/etc/logrotate.d/ceclaw-router
 ```
 
 ---
@@ -81,178 +87,176 @@
 ## 3. 已完成的功能 ✅
 
 ### CECLAW Inference Router（核心）
-- **監聽**: `0.0.0.0:8000`
-- **端點**:
-  - `GET  /v1/models` — 列出本地後端模型
-  - `POST /v1/chat/completions` — 推論（proxy 到本地或雲端）
-  - `POST /v1/completions` — 推論
-  - `GET  /ceclaw/status` — 狀態查詢
-  - `POST /ceclaw/reload` — 熱重載設定
-- **功能**: 零硬編碼、後端健康檢查（30s）、本地優先、雲端降級、SIGHUP 熱重載
-- **Systemd**: 已 enable，開機自啟
-- **燒機**: 3500 輪全鏈路，3500/3500 HTTP 200，avg 1842ms ✅
+- FastAPI，systemd，開機自啟
+- 本地優先 + 雲端降級，60s timeout
+- **燒機**: 3500 輪 100%（avg 1842ms），99999 輪燒機進行中
 
-### P2 Plugin 整合測試 ✅（commit: 6ebea02）
-- openclaw TUI 顯示 `local/minimax` ✅
-- MiniMax 回應正常 ✅
-- Router log 確認流量 `gb10-llama → 200` ✅
-
+### P2 Plugin 整合 ✅（commit: 6ebea02）
 ### B方案 rebuild image ✅（commit: 2dfab79）
-- 5 個 image bug 全部修正 ✅
-- timeout_local_ms 調高到 60000 ✅
-- 重建 sandbox 驗證通過（不需要手動 Step 12）✅
-
 ### P3 CoreDNS 持久化 ✅（commit: 1bffd63）
-- `ceclaw-coredns.service` 開機自動 patch
-
-### 運維基礎設施 ✅（commit: 70175b6）
-- `ceclaw_monitor.sh` — Router + GB10 + sandbox 存活監控
-- crontab 每5分鐘自動執行
-- logrotate — router.log + monitor.log，daily rotate 7
-- GB10 `start_llama.sh` 備份至 `~/ceclaw/backup/`
-
+### P3 監控 + logrotate + GB10備份 ✅（commit: 70175b6）
 ### P3 ceclaw CLI v0.1.0 ✅（commit: c412038）
-- `ceclaw status` — Router + GB10 + sandbox 三項狀態一覽
-- `ceclaw connect` — 連入 sandbox
-- `ceclaw logs` — tail Router log
-- `ceclaw start` — 檢查服務並提示修復指令
-- `ceclaw stop` — 刪 sandbox（Router 不動）
-- `ceclaw onboard` — 建 sandbox + 提示 approve policy
-- 所有 URL 從 `~/.ceclaw/ceclaw.yaml` 讀取，零硬編碼
-- symlink: `/usr/local/bin/ceclaw` → `/home/zoe_ai/ceclaw/ceclaw.py`
+- `ceclaw status/connect/logs/start/stop/onboard`
+- 所有 URL 從 ceclaw.yaml 讀取，零硬編碼
+- symlink: `/usr/local/bin/ceclaw`
+
+### 文件更新 ✅（commit: eb17d1c, fdd87c4）
 
 ---
 
 ## 4. 啟動方式
 
-重建 sandbox 後只需兩步：
-
-**Terminal 1（gateway）：**
 ```bash
+# Terminal 1
 openshell sandbox connect ceclaw-agent
-# 自動執行 ceclaw-start
 # 看到 [gateway] agent model: local/minimax = 成功
-```
 
-**Terminal 2（TUI）：**
-```bash
+# Terminal 2
 openshell sandbox connect ceclaw-agent
 openclaw tui
-# 底部看到 local/minimax，發訊息確認回應
 ```
-
-不需要手動設定 openclaw.json。
 
 ---
 
 ## 5. 關鍵技術知識（踩坑記錄）
 
-> ⚠️ **坑#10 最重要，繼任者請優先閱讀。改 baseUrl 或清 proxy 環境變數是錯誤解法，會讓問題更複雜。**
+> ⚠️ **坑#10 最重要，繼任者請優先閱讀。**
 
-**坑#1**: `/opt/ceclaw` 是唯讀的，不能在 sandbox 內直接修改。需要 `cp -r /opt/ceclaw ~/ceclaw-plugin` 後修改再安裝。
+**坑#1**: `/opt/ceclaw` 唯讀，需 cp 出來修改。
 
-**坑#2**: `openclaw plugins install` 讀 `package.json` 的 `openclaw.extensions`，必須是巢狀格式：
-```json
-"openclaw": {
-  "extensions": ["./dist/index.js"]
-}
-```
-不是 flat key `"openclaw.extensions": [...]`
+**坑#2**: `openclaw.extensions` 必須巢狀格式。
 
-**坑#3**: sandbox 擋外網，`npm install` 會失敗（E403 npmjs.org）。需清空 `dependencies`/`devDependencies`，dist 已編譯不需要重裝。
+**坑#3**: sandbox 擋外網，npm install 會 E403。
 
-**坑#4**: `openclaw.plugin.json` 必須有 `configSchema` 欄位，否則 gateway 報 `config is invalid`。
+**坑#4**: `openclaw.plugin.json` 必須有 `configSchema`。
 
-**坑#5**: `registerCommand` 在 openclaw 內部觸發 `TypeError: Cannot read properties of undefined (reading 'trim')`。已暫時 disable。Phase 5 待修。
+**坑#5**: `registerCommand` TypeError，已 disable，Phase 5 待修。
 
-**坑#6**: plugin `name`（package.json）、manifest `id`（openclaw.plugin.json）、安裝目錄名 三者必須一致，都是 `ceclaw`。
+**坑#6**: plugin name/id/目錄名三者必須一致。
 
-**坑#7**: `ceclaw-start.sh` 裡 python3 -c 字串中 `\${ROUTER_HOST}` 在 image build 時反斜線被吃掉，執行時炸 `NameError`。修法：改用 heredoc（`python3 << 'PYEOF' ... PYEOF`）+ `os.environ.get()` 讀變數。
+**坑#7**: `ceclaw-start.sh` 轉義 bug，用 heredoc + os.environ 修正。
 
-**坑#8**: openclaw gateway 在 container 內不能用 systemd，必須前景執行 `openclaw gateway`。不能用 `openclaw gateway restart`。
+**坑#8**: openclaw gateway 必須前景執行，不能 systemd。
 
-**坑#9**: MiniMax 冷啟動慢，Router `timeout_local_ms: 30000` 太短會先 503。已調高到 60000，解決冷啟動超時問題。
+**坑#9**: MiniMax 冷啟動慢，timeout 已調高到 60000。
 
-> ⚠️ **坑#10（關鍵）**: openclaw 使用 undici `EnvHttpProxyAgent`（experimental），即使設定 `no_proxy`、清掉 `HTTP_PROXY`、改 `baseUrl` 為 IP，HTTP 請求仍可能 Connection error。根本原因是 undici experimental 版本行為不可靠。**正確做法**：保持 `baseUrl: http://host.openshell.internal:8000/v1` + `api: openai-completions`，讓請求走 proxy → iptables FORWARD → Router。**絕對不要試圖改 baseUrl 為 IP 或清 proxy 環境變數來繞過。**
+> ⚠️ **坑#10（關鍵）**: openclaw undici `EnvHttpProxyAgent` experimental，不要改 baseUrl 為 IP 或清 proxy 環境變數。保持 `baseUrl: http://host.openshell.internal:8000/v1` + `api: openai-completions`。
 
-**坑#11（已確認無解）**: openclaw TUI 底部顯示格式為 `provider/model_id`（如 `local/minimax`），寫死在 openclaw 內部，無法從 `openclaw.json` 的 `name` 欄位覆蓋。除非 fork openclaw 原始碼否則無法改變。`local/minimax` 對使用者來說已夠清楚，不影響使用體驗。
+**坑#11（無解）**: TUI 底部 `local/minimax` 寫死，無法改。
 
-**坑#12（已確認無解）**: OpenShell auto-approve policy 無法從 CLI 實作。`openshell` 沒有任何 approve 相關指令，pending rules 必須透過 TUI 手動按 `A`。這是 OpenShell 的安全設計，刻意要求人工審核，不是 bug，不要試圖繞過。
+**坑#12（無解）**: OpenShell auto-approve 無 CLI 指令，安全設計。
 
-### 傳檔案進 sandbox 的方法
-sandbox 只開放 port 8000，傳法：
-```bash
-# pop-os：停 Router，用 port 8000 開 HTTP server
-sudo systemctl stop ceclaw-router
-cd /要傳的目錄 && python3 -m http.server 8000
-
-# sandbox：curl 下載
-curl -s http://host.openshell.internal:8000/檔名 -o /目標路徑
-
-# pop-os：傳完後重啟 Router（不要忘！）
-sudo systemctl start ceclaw-router
-```
-
-### OpenShell Policy 正確格式
-```yaml
-version: 1
-network_policies:
-  ceclaw_router:
-    endpoints:
-      - host: host.openshell.internal
-        port: 8000
-        access: full
-        allowed_ips:
-          - 172.17.0.1      # NV 寫死，不可改
-    binaries:
-      - path: /usr/bin/curl
-      - path: /usr/bin/node
-      - path: /usr/local/bin/openclaw
-```
-
-- `network_policies` 是 map，不是 list（不要用 `-`）
-- 必須指定 `binaries` + `allowed_ips`，缺一不可
-
-### iptables 網路穿透（已持久化）
-```bash
-sudo iptables -I FORWARD -s 172.20.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
-sudo iptables -I FORWARD -s 10.42.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
-sudo iptables -I FORWARD -s 10.200.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
-sudo iptables -t nat -A POSTROUTING -s 172.20.0.0/16 -d 172.17.0.1 -j MASQUERADE
-sudo iptables -t nat -A POSTROUTING -s 10.42.0.0/16 -d 172.17.0.1 -j MASQUERADE
-sudo ufw allow from 172.20.0.0/16 to any port 8000
-```
-
-### CoreDNS（P3 已持久化）
-```bash
-# 手動修復（若需要）
-bash ~/nemoclaw-config/restore-coredns.sh
-# 開機由 ceclaw-coredns.service 自動處理
-```
+**坑#13**: openclaw TUI 預設用 `main` session，歷史累積後 replay 造成 Connection error。解法：清空 session 檔案或用 `--session fresh-$(date +%s)` 開新 session。長期解法 P4/P5 處理。
 
 ---
 
-## 6. TODO List
+## 6. P4 設計（下個對話第一件事）
 
-### P3 完成
-- [x] `ceclaw` CLI v0.1.0（commit: c412038）
-- [x] CoreDNS 持久化（commit: 1bffd63）
-- [x] 監控腳本 + logrotate（commit: 70175b6）
-- [✗] TUI 底部顯示名稱 — **無法實作**，openclaw 內部限制，見坑#11
-- [✗] 自動 Approve policy — **無法實作**，OpenShell 安全設計，見坑#12
+### 背景
+目前 Router 只支援 `llama.cpp` 一個後端。P4 要加 Ollama 支援，實現 multi-backend + smart routing。
 
-### P4
-- [ ] 多後端支援（vLLM / Ollama / SGLang）
+### 本地模型評估結果
+
+| 模型 | 速度 | 能力 | 用途 |
+|------|------|------|------|
+| qwen2.5:7b | 0.19s | 快但題型識別弱 | fast 路徑 |
+| qwen3:8b | 1.3s（think:false）| 能力強，懂題型 | backup 路徑 |
+| GB10 MiniMax | 1.8s | 最強 | 主力 |
+
+⚠️ **關鍵發現**：qwen2.5:7b 把「圓湖怪獸數學題」當生存題回答，qwen3:8b 正確識別為數學問題。能力差距在題型識別，不只是速度。
+
+### ceclaw.yaml 新 schema（待實作）
+```yaml
+inference:
+  strategy: smart-routing        # 新增策略
+  timeout_local_ms: 60000
+
+  local:
+    backends:
+      - name: gb10-llama         # 現有，主力
+        type: llama.cpp
+        base_url: http://192.168.1.91:8001/v1
+        priority: 2
+        models:
+          - id: minimax
+            alias: default
+            context_window: 32768
+
+      - name: ollama-fast        # 新增
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 1
+        model: qwen2.5:7b
+        use_for: [simple_query]
+
+      - name: ollama-backup      # 新增
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 3
+        model: qwen3:8b
+        options:
+          think: false
+        use_for: [fallback]
+```
+
+### Smart Routing 邏輯
+```python
+def needs_reasoning(query):
+    keywords = {
+        # 中文
+        "證明", "推導", "如何逃脫", "最優解",
+        "為什麼", "分析", "比較", "策略",
+        # English
+        "prove", "derive", "escape", "optimal",
+        "why", "analyze", "compare", "strategy",
+        "reasoning", "explain", "how to", "solve"
+    }
+    return any(kw in query.lower() for kw in keywords)
+
+def route(query, tokens):
+    if tokens < 80 and not needs_reasoning(query):
+        return "ollama-fast"      # qwen2.5:7b
+    if is_healthy("gb10-llama"):
+        return "gb10-llama"       # MiniMax 主力
+    if is_healthy("ollama-backup"):
+        return "ollama-backup"    # qwen3:8b 備援
+    return "cloud"                # 雲端最後防線
+```
+
+### P4 開工順序
+1. `curl http://127.0.0.1:11434/api/tags` 確認 Ollama 可達
+2. `nvidia-smi` 確認 VRAM 用量，決定是否同時常駐兩個 Ollama 模型
+3. ceclaw.yaml schema 擴充（前置，其他都依賴這個）
+4. Ollama adapter（router/backends.py）
+5. Backend health check 更新
+6. Smart routing 實作
+7. 燒機驗證
+
+---
+
+## 7. TODO List
+
+### P4（下個對話）
+- [ ] VRAM 確認（開工前）
+- [ ] ceclaw.yaml schema 擴充
+- [ ] Ollama adapter
+- [ ] Backend health check
+- [ ] Smart routing
+- [ ] 多後端燒機驗證
 
 ### P5
-- [ ] 雲端降級完整測試
+- [ ] Chain Audit Log（hash chain）
 - [ ] Streaming 完整測試
-- [ ] `registerCommand` bug 修正（坑#5）
-- [ ] Chain Audit Log（hash chain，不跑節點）
+- [ ] 雲端降級完整測試
+- [ ] registerCommand bug（坑#5）
+- [ ] session 持久化（坑#13 長期解法）
+
+### P6
+- [ ] NemoClaw drop-in 相容性驗證
 
 ---
 
-## 7. 關鍵指令速查
+## 8. 關鍵指令速查
 
 ```bash
 # CECLAW CLI
@@ -267,13 +271,11 @@ ceclaw onboard
 sudo systemctl status ceclaw-router
 sudo systemctl restart ceclaw-router
 tail -f ~/.ceclaw/router.log
-tail -f ~/.ceclaw/monitor.log
 
-# Router 測試
-curl -s http://localhost:8000/ceclaw/status | python3 -m json.tool
-
-# GB10 測試
-curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
+# Ollama
+ollama list
+curl http://127.0.0.1:11434/api/tags
+ollama run qwen2.5:7b "hi"
 
 # 監控
 bash ~/ceclaw/ceclaw_monitor.sh
@@ -284,17 +286,10 @@ openshell sandbox create --name ceclaw-agent \
   --from ghcr.io/kentgeeng/ceclaw-sandbox:latest \
   --policy ~/ceclaw/config/ceclaw-policy.yaml --keep
 openshell sandbox connect ceclaw-agent
-openshell sandbox delete ceclaw-agent
-openshell term   # TUI，按 r 看 pending rules，A approve all
+openshell term
 
-# sandbox 內
-openclaw tui
-
-# CoreDNS restore（手動）
+# CoreDNS restore
 bash ~/nemoclaw-config/restore-coredns.sh
-
-# Plugin 重新編譯
-cd ~/ceclaw/plugin && npm run build
 
 # GB10 備份
 scp zoe_gb@192.168.1.91:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
@@ -302,9 +297,9 @@ scp zoe_gb@192.168.1.91:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
 
 ---
 
-## 8. 設定檔內容
+## 9. 設定檔內容
 
-### `~/.ceclaw/ceclaw.yaml`（master，不在 repo，不可直接修改）
+### `~/.ceclaw/ceclaw.yaml`（master，不在 repo）
 ```yaml
 version: 1
 router:
@@ -343,75 +338,31 @@ inference:
 
 ---
 
-## 9. Debug SOP
+## 10. Debug SOP
 
-### 推論失敗時
-1. `curl http://localhost:8000/ceclaw/status` — Router 活著？
-2. `curl http://192.168.1.91:8001/v1/models` — GB10 活著？
-3. sandbox 內：`curl -v http://host.openshell.internal:8000/ceclaw/status`
-4. TUI：`openshell term` → 選 ceclaw-agent → `r` 看 pending rules → `A` approve
-5. `tail -f ~/.ceclaw/router.log`
-6. ⚠️ 若 Connection error → **不要**改 baseUrl 或清 proxy，見坑#10
-
-### 重開機後恢復步驟
-```bash
-# 1. CoreDNS（若 ceclaw-coredns.service 未自啟）
-bash ~/nemoclaw-config/restore-coredns.sh
-
-# 2. Router 確認（systemd 自啟）
-sudo systemctl status ceclaw-router
-
-# 3. 重建 sandbox
-openshell sandbox create --name ceclaw-agent \
-  --from ghcr.io/kentgeeng/ceclaw-sandbox:latest \
-  --policy ~/ceclaw/config/ceclaw-policy.yaml --keep
-
-# 4. 進 sandbox，自動跑 ceclaw-start
-# 看到 [gateway] agent model: local/minimax = 完成
-```
+1. `ceclaw status` — 三項狀態一覽
+2. `curl http://localhost:8000/ceclaw/status` — Router 詳細
+3. `curl http://192.168.1.91:8001/v1/models` — GB10
+4. sandbox 內：`curl -v http://host.openshell.internal:8000/ceclaw/status`
+5. `openshell term` → ceclaw-agent → `r` → `A`
+6. `tail -f ~/.ceclaw/router.log`
+7. ⚠️ Connection error → **不要**改 baseUrl，見坑#10
+8. TUI 一堆 Connection error → 清 session 歷史，見坑#13
 
 ---
 
-## 10. 運維
+## 11. 運維
 
-### 監控
 ```bash
-# 手動執行
-bash ~/ceclaw/ceclaw_monitor.sh
-
-# crontab（已設定，每5分鐘自動執行）
+# 監控（每5分鐘自動）
 */5 * * * * bash ~/ceclaw/ceclaw_monitor.sh
 
-# 查看監控 log
-tail -f ~/.ceclaw/monitor.log
+# logrotate
+/etc/logrotate.d/ceclaw-router — daily rotate 7
+
+# VRAM 監控
+nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free --format=csv
 ```
-
-### Log 管理
-```
-/etc/logrotate.d/ceclaw-router  — daily rotate 7，compress
-涵蓋：~/.ceclaw/router.log + ~/.ceclaw/monitor.log
-```
-
-### 備份
-```bash
-# GB10 start_llama.sh 備份
-scp zoe_gb@192.168.1.91:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
-
-# 重要設定檔（手動備份）
-cp ~/.ceclaw/ceclaw.yaml ~/ceclaw/backup/ceclaw.yaml.bak
-cp ~/nemoclaw-config/restore-coredns.sh ~/ceclaw/backup/
-```
-
----
-
-## 11. 注意事項
-
-1. **零硬編碼原則**：任何 IP/port/model name/key 不得寫死在程式碼，全部讀設定檔
-2. **每步 commit**：`git add -A && git commit -m "..."`
-3. **不改 master files**：`~/.ceclaw/ceclaw.yaml` 是 master，不在 repo
-4. **SOP-002**：每次動手前先說意圖，等 Kent 確認
-5. **不停 Router 傳檔**：用 http server 傳檔後記得 `sudo systemctl start ceclaw-router`
-6. **坑#10**：Connection error 時不要改 baseUrl 或清 proxy，正確路徑是 proxy → iptables → Router
 
 ---
 
@@ -425,5 +376,5 @@ cp ~/nemoclaw-config/restore-coredns.sh ~/ceclaw/backup/
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.2 | 日期: 2026-03-20*  
-*P1 ✅ P2 ✅ B方案 ✅ P3 ✅ 燒機3500輪✅ | 下一步: P4 多後端 | commit: c412038*
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.3 | 日期: 2026-03-21*  
+*P1✅ P2✅ B方案✅ P3✅ 燒機進行中 | 下一步: P4 multi-backend | commit: eb17d1c*
