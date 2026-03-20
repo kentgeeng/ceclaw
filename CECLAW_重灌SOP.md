@@ -3,7 +3,7 @@
 
 **預估時間**: 1~2 小時（不含模型下載）  
 **適用**: pop-os 重灌或全新機器  
-**SOP 版本**: 1.3 | **日期**: 2026-03-20
+**SOP 版本**: 1.4 | **日期**: 2026-03-20
 
 ---
 
@@ -66,7 +66,7 @@ curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
 # 預期看到 minimax model
 ```
 
-`~/start_llama.sh` 內容（GB10 上，若遺失需重建）：
+`~/start_llama.sh` 內容（GB10 上）：
 ```bash
 #!/bin/bash
 /home/zoe_gb/llama.cpp/build/bin/llama-server \
@@ -77,6 +77,12 @@ curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
   --n-gpu-layers 99 \
   --threads 20 \
   --temp 0.3 --top-p 0.95 --top-k 40 --min-p 0.01 --jinja
+```
+
+⚠️ 若 GB10 上此檔案遺失，從 pop-os 備份還原：
+```bash
+scp ~/ceclaw/backup/start_llama.sh.bak zoe_gb@192.168.1.91:~/start_llama.sh
+ssh zoe_gb@192.168.1.91 "chmod +x ~/start_llama.sh"
 ```
 
 ---
@@ -194,6 +200,31 @@ bash ~/nemoclaw-config/restore-coredns.sh
 
 ---
 
+## Step 8b：設定監控與 logrotate
+
+```bash
+# 複製監控腳本（已在 repo 裡）
+chmod +x ~/ceclaw/ceclaw_monitor.sh
+
+# 加入 crontab
+(crontab -l 2>/dev/null; echo "*/5 * * * * bash ~/ceclaw/ceclaw_monitor.sh") | crontab -
+
+# 設定 logrotate
+sudo tee /etc/logrotate.d/ceclaw-router << 'EOF'
+/home/zoe_ai/.ceclaw/router.log
+/home/zoe_ai/.ceclaw/monitor.log
+{
+    daily
+    rotate 7
+    compress
+    missingok
+    notifempty
+}
+EOF
+```
+
+---
+
 ## Step 9：確認 Sandbox Policy
 
 ```bash
@@ -227,6 +258,7 @@ openshell sandbox create \
   --from ghcr.io/kentgeeng/ceclaw-sandbox:latest \
   --policy ~/ceclaw/config/ceclaw-policy.yaml \
   --keep
+# --keep 保留 sandbox 狀態（policy approved 記錄），避免每次重建都要重新 approve
 
 # 另開 terminal 確認
 openshell sandbox list
@@ -244,10 +276,10 @@ openshell term
 在 TUI 裡：
 1. Tab 切到 **Sandboxes** 面板
 2. `j/k` 選到 ceclaw-agent → `Enter`
-3. 按 `r` 看 pending rules
-4. 按 `A` **Approve All**
+3. 按 `r` 看 Network Rules
+4. 若有 pending（黃色）rules → 按 `A` **Approve All**
 
-若沒有 pending rules 表示 policy 已自動生效，跳過此步。
+⚠️ 新建 sandbox 後第一次連線時，sandbox 內的程序（node、openclaw 等）嘗試對外連線才會產生 pending rules。需先進 sandbox 跑 `ceclaw-start`，再回到 TUI 按 `A` approve。**不是「沒有 pending rules = 自動生效」，而是「還沒有程序嘗試連線 = 還沒產生 rules」。**
 
 ---
 
@@ -255,13 +287,13 @@ openshell term
 
 **B方案已完成，sandbox 自動設定 openclaw，不需要手動設定。**
 
-進 sandbox（自動執行 ceclaw-start）：
-
-**Terminal 1：**
+**Terminal 1（進 sandbox，自動執行 ceclaw-start）：**
 ```bash
 openshell sandbox connect ceclaw-agent
 # 看到: [gateway] agent model: local/minimax = 成功
 ```
+
+若出現 403 Forbidden → 回 openshell term Approve policy（見 Step 11）
 
 **Terminal 2：**
 ```bash
@@ -278,6 +310,26 @@ tail -f ~/.ceclaw/router.log
 ```
 
 ✅ 三項全中 = 全通
+
+---
+
+## Step 13：備份關鍵檔案
+
+```bash
+mkdir -p ~/ceclaw/backup
+
+# GB10 啟動腳本
+scp zoe_gb@192.168.1.91:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
+
+# Router 設定
+cp ~/.ceclaw/ceclaw.yaml ~/ceclaw/backup/ceclaw.yaml.bak
+
+# CoreDNS 腳本
+cp ~/nemoclaw-config/restore-coredns.sh ~/ceclaw/backup/
+
+echo "備份完成"
+ls -la ~/ceclaw/backup/
+```
 
 ---
 
@@ -309,11 +361,12 @@ openshell sandbox create \
 - OpenShell proxy **寫死** `host.openshell.internal` → `172.17.0.1`，CoreDNS 改不了它
 - Sandbox 在 K3s (172.20.x)，跨網段到 host (172.17.0.1) 需要 iptables FORWARD + MASQUERADE
 - Policy 必須同時有 `allowed_ips: [172.17.0.1]` + `binaries` proxy 才放行
-- 新 sandbox 的 pending rules 需要 TUI 手動 Approve 一次
+- 新 sandbox 需要程序實際嘗試連線後才產生 pending rules，再 TUI Approve
 - openclaw gateway 在 container 內不能用 systemd，必須前景執行
 - MiniMax 冷啟動慢，timeout_local_ms 設 60000 避免冷啟動失敗
+- ⚠️ Connection error 時不要改 baseUrl 或清 proxy，見交接文件坑#10
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*SOP 版本: 1.3 | 日期: 2026-03-20*
+*SOP 版本: 1.4 | 日期: 2026-03-20*

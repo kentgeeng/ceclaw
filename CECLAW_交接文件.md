@@ -25,6 +25,7 @@
 - 模型: MiniMax-M2.5-UD-Q3_K_XL (GGUF)
 - alias: `minimax`
 - 啟動: `~/start_llama.sh`（`--parallel 2`）
+- 備份: `~/ceclaw/backup/start_llama.sh.bak`
 
 ### OpenShell（沙盒系統）
 - K3s in Docker container (ID 每次重建會變)
@@ -43,6 +44,9 @@
 ├── .gitignore
 ├── pyproject.toml
 ├── ceclaw-router.service     # systemd service（已 enable）
+├── ceclaw_monitor.sh         # ✅ 監控腳本（crontab 每5分鐘執行）
+├── backup/
+│   └── start_llama.sh.bak   # GB10 啟動腳本備份
 ├── router/
 │   ├── __init__.py
 │   ├── config.py             # ✅ 完成
@@ -50,7 +54,7 @@
 │   ├── proxy.py              # ✅ 完成
 │   └── main.py               # ✅ 完成
 ├── plugin/                   # TypeScript openclaw plugin
-│   ├── src/index.ts          # ✅ 完成（registerCommand 暫時 disabled，見坑#5）
+│   ├── src/index.ts          # ✅ 完成（registerCommand 暫時 disabled，見坑#5，Phase 5 待修）
 │   ├── dist/index.js         # ✅ 已編譯
 │   ├── openclaw.plugin.json  # ✅ 已加 configSchema
 │   ├── package.json          # ✅ 已修正（name/巢狀/dependencies）
@@ -65,8 +69,10 @@
 ### 設定檔
 ```
 ~/.ceclaw/ceclaw.yaml         # Router 設定檔（master，不在 repo，不可直接修改）
-~/.ceclaw/router.log          # Router log
+~/.ceclaw/router.log          # Router log（logrotate 已設定，daily rotate 7）
+~/.ceclaw/monitor.log         # 監控 log（logrotate 已設定）
 ~/nemoclaw-config/restore-coredns.sh  # CoreDNS 修復腳本
+/etc/logrotate.d/ceclaw-router        # logrotate 設定
 ```
 
 ---
@@ -83,29 +89,30 @@
   - `POST /ceclaw/reload` — 熱重載設定
 - **功能**: 零硬編碼、後端健康檢查（30s）、本地優先、雲端降級、SIGHUP 熱重載
 - **Systemd**: 已 enable，開機自啟
-- **燒機**: 200 輪 sandbox → Router → GB10，200/200 HTTP 200 ✅
+- **燒機**: 3500 輪全鏈路，3500/3500 HTTP 200，avg 1842ms ✅
 
-### P2 Plugin 整合測試 ✅（2026-03-20，commit: 6ebea02）
+### P2 Plugin 整合測試 ✅（commit: 6ebea02）
 - openclaw TUI 顯示 `local/minimax` ✅
 - MiniMax 回應正常 ✅
 - Router log 確認流量 `gb10-llama → 200` ✅
 
-### B方案 rebuild image ✅（2026-03-20，commit: 2dfab79）
+### B方案 rebuild image ✅（commit: 2dfab79）
 - 5 個 image bug 全部修正 ✅
-- npm run build → docker build → docker push ✅
-- 重建 sandbox 驗證通過 ✅（不需要手動 Step 12）
 - timeout_local_ms 調高到 60000 ✅
+- 重建 sandbox 驗證通過（不需要手動 Step 12）✅
 
 ### P3 CoreDNS 持久化 ✅（commit: 1bffd63）
 - `ceclaw-coredns.service` 開機自動 patch
 
-### Sandbox Image
-- `ghcr.io/kentgeeng/ceclaw-sandbox:latest`（已推上 ghcr.io，public）
-- 重建 sandbox 後自動執行 `ceclaw-start`，無需手動設定
+### 運維基礎設施 ✅（commit: 70175b6）
+- `ceclaw_monitor.sh` — Router + GB10 + sandbox 存活監控
+- crontab 每5分鐘自動執行
+- logrotate — router.log + monitor.log，daily rotate 7
+- GB10 `start_llama.sh` 備份至 `~/ceclaw/backup/`
 
 ---
 
-## 4. 啟動方式（B方案完成後）
+## 4. 啟動方式
 
 重建 sandbox 後只需兩步：
 
@@ -129,6 +136,8 @@ openclaw tui
 
 ## 5. 關鍵技術知識（踩坑記錄）
 
+> ⚠️ **坑#10 最重要，繼任者請優先閱讀。改 baseUrl 或清 proxy 環境變數是錯誤解法，會讓問題更複雜。**
+
 **坑#1**: `/opt/ceclaw` 是唯讀的，不能在 sandbox 內直接修改。需要 `cp -r /opt/ceclaw ~/ceclaw-plugin` 後修改再安裝。
 
 **坑#2**: `openclaw plugins install` 讀 `package.json` 的 `openclaw.extensions`，必須是巢狀格式：
@@ -143,7 +152,7 @@ openclaw tui
 
 **坑#4**: `openclaw.plugin.json` 必須有 `configSchema` 欄位，否則 gateway 報 `config is invalid`。
 
-**坑#5**: `registerCommand` 在 openclaw 內部觸發 `TypeError: Cannot read properties of undefined (reading 'trim')`。已暫時 disable。Banner 和 provider 設定正常，只有 `openclaw ceclaw <command>` 子指令不可用。
+**坑#5**: `registerCommand` 在 openclaw 內部觸發 `TypeError: Cannot read properties of undefined (reading 'trim')`。已暫時 disable。Phase 5 待修。
 
 **坑#6**: plugin `name`（package.json）、manifest `id`（openclaw.plugin.json）、安裝目錄名 三者必須一致，都是 `ceclaw`。
 
@@ -153,7 +162,7 @@ openclaw tui
 
 **坑#9**: MiniMax 冷啟動慢，Router `timeout_local_ms: 30000` 太短會先 503。已調高到 60000，解決冷啟動超時問題。
 
-**坑#10**: openclaw 使用 undici `EnvHttpProxyAgent`（experimental），即使設定 `no_proxy` 或清掉 `HTTP_PROXY`，HTTP 請求仍可能走 OpenShell proxy（10.200.0.1:3128）或直接 Connection error。**正確做法**：保持 `baseUrl: http://host.openshell.internal:8000/v1` + `api: openai-completions`，讓請求走 proxy → iptables FORWARD → Router。不要試圖改 baseUrl 為 IP 或清 proxy 環境變數來繞過。
+> ⚠️ **坑#10（關鍵）**: openclaw 使用 undici `EnvHttpProxyAgent`（experimental），即使設定 `no_proxy`、清掉 `HTTP_PROXY`、改 `baseUrl` 為 IP，HTTP 請求仍可能 Connection error。根本原因是 undici experimental 版本行為不可靠。**正確做法**：保持 `baseUrl: http://host.openshell.internal:8000/v1` + `api: openai-completions`，讓請求走 proxy → iptables FORWARD → Router。**絕對不要試圖改 baseUrl 為 IP 或清 proxy 環境變數來繞過。**
 
 ### 傳檔案進 sandbox 的方法
 sandbox 只開放 port 8000，傳法：
@@ -198,7 +207,6 @@ sudo iptables -t nat -A POSTROUTING -s 172.20.0.0/16 -d 172.17.0.1 -j MASQUERADE
 sudo iptables -t nat -A POSTROUTING -s 10.42.0.0/16 -d 172.17.0.1 -j MASQUERADE
 sudo ufw allow from 172.20.0.0/16 to any port 8000
 ```
-已 `iptables-persistent` 持久化，重開機自動恢復。
 
 ### CoreDNS（P3 已持久化）
 ```bash
@@ -212,7 +220,8 @@ bash ~/nemoclaw-config/restore-coredns.sh
 ## 6. TODO List
 
 ### P3 剩餘
-- [ ] `ceclaw` CLI（`onboard`/`connect`/`status`）
+- [ ] `ceclaw` CLI（`onboard`/`connect`/`status`/`logs`）— 指令對齊 NemoClaw
+- [ ] TUI 底部顯示名稱（查 openclaw display name 設定）
 - [ ] 自動 Approve policy（不需要 TUI）
 
 ### P4
@@ -222,6 +231,7 @@ bash ~/nemoclaw-config/restore-coredns.sh
 - [ ] 雲端降級完整測試
 - [ ] Streaming 完整測試
 - [ ] `registerCommand` bug 修正（坑#5）
+- [ ] Chain Audit Log（hash chain，不跑節點）
 
 ---
 
@@ -232,12 +242,16 @@ bash ~/nemoclaw-config/restore-coredns.sh
 sudo systemctl status ceclaw-router
 sudo systemctl restart ceclaw-router
 tail -f ~/.ceclaw/router.log
+tail -f ~/.ceclaw/monitor.log
 
 # Router 測試
 curl -s http://localhost:8000/ceclaw/status | python3 -m json.tool
 
 # GB10 測試
 curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
+
+# 監控
+bash ~/ceclaw/ceclaw_monitor.sh
 
 # OpenShell sandbox
 openshell sandbox list
@@ -249,13 +263,16 @@ openshell sandbox delete ceclaw-agent
 openshell term   # TUI，按 r 看 pending rules，A approve all
 
 # sandbox 內
-openclaw tui              # 另開 terminal 執行
+openclaw tui
 
 # CoreDNS restore（手動）
 bash ~/nemoclaw-config/restore-coredns.sh
 
 # Plugin 重新編譯
 cd ~/ceclaw/plugin && npm run build
+
+# GB10 備份
+scp zoe_gb@192.168.1.91:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
 ```
 
 ---
@@ -309,6 +326,7 @@ inference:
 3. sandbox 內：`curl -v http://host.openshell.internal:8000/ceclaw/status`
 4. TUI：`openshell term` → 選 ceclaw-agent → `r` 看 pending rules → `A` approve
 5. `tail -f ~/.ceclaw/router.log`
+6. ⚠️ 若 Connection error → **不要**改 baseUrl 或清 proxy，見坑#10
 
 ### 重開機後恢復步驟
 ```bash
@@ -329,18 +347,50 @@ openshell sandbox create --name ceclaw-agent \
 
 ---
 
-## 10. 注意事項
+## 10. 運維
+
+### 監控
+```bash
+# 手動執行
+bash ~/ceclaw/ceclaw_monitor.sh
+
+# crontab（已設定，每5分鐘自動執行）
+*/5 * * * * bash ~/ceclaw/ceclaw_monitor.sh
+
+# 查看監控 log
+tail -f ~/.ceclaw/monitor.log
+```
+
+### Log 管理
+```
+/etc/logrotate.d/ceclaw-router  — daily rotate 7，compress
+涵蓋：~/.ceclaw/router.log + ~/.ceclaw/monitor.log
+```
+
+### 備份
+```bash
+# GB10 start_llama.sh 備份
+scp zoe_gb@192.168.1.91:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
+
+# 重要設定檔（手動備份）
+cp ~/.ceclaw/ceclaw.yaml ~/ceclaw/backup/ceclaw.yaml.bak
+cp ~/nemoclaw-config/restore-coredns.sh ~/ceclaw/backup/
+```
+
+---
+
+## 11. 注意事項
 
 1. **零硬編碼原則**：任何 IP/port/model name/key 不得寫死在程式碼，全部讀設定檔
 2. **每步 commit**：`git add -A && git commit -m "..."`
 3. **不改 master files**：`~/.ceclaw/ceclaw.yaml` 是 master，不在 repo
 4. **SOP-002**：每次動手前先說意圖，等 Kent 確認
 5. **不停 Router 傳檔**：用 http server 傳檔後記得 `sudo systemctl start ceclaw-router`
-6. **坑#10**：不要試圖改 baseUrl 為 IP 或清 proxy 環境變數，會讓問題更複雜
+6. **坑#10**：Connection error 時不要改 baseUrl 或清 proxy，正確路徑是 proxy → iptables → Router
 
 ---
 
-## 11. 相關連結
+## 12. 相關連結
 
 - OpenShell docs: https://docs.nvidia.com/openshell/latest/
 - NemoClaw GitHub: https://github.com/NVIDIA/NemoClaw
@@ -350,5 +400,5 @@ openshell sandbox create --name ceclaw-agent \
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3 | 日期: 2026-03-20*  
-*P1 ✅ P2 ✅ B方案 ✅ P3 CoreDNS ✅ | 下一步: P3 CLI → 自動 Approve | commit: 2dfab79*
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.1 | 日期: 2026-03-20*  
+*P1 ✅ P2 ✅ B方案 ✅ P3 CoreDNS ✅ 燒機3500輪✅ | 下一步: P3 CLI | commit: 70175b6*
