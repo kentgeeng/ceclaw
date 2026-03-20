@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.2.0  
+**版本**: 0.3.0  
 **作者**: Kent (總工)  
 **日期**: 2026-03-20  
-**狀態**: Alpha — P1 + P2 完成，B方案 rebuild image 進行中
+**狀態**: Alpha — P1 + P2 + B方案 + P3 CoreDNS 完成
 
 ---
 
@@ -151,7 +151,8 @@ NV 的設計有三道關卡逆著我們走：
 │                                                             │
 │  ③ Sandbox Image (ghcr.io/kentgeeng/ceclaw-sandbox)        │
 │     - 基於 NV openclaw sandbox                              │
-│     - ⚠️ 有 5 個已知問題待 B 方案 rebuild 修正             │
+│     - B方案 5 個 bug 已全部修正                             │
+│     - ceclaw-start.sh 自動設定 openclaw.json + 啟動 gateway │
 │                                                             │
 │  ④ OpenShell Policy (ceclaw/config/ceclaw-policy.yaml)     │
 │     - network_policies + allowed_ips + binaries             │
@@ -186,7 +187,7 @@ Request 進來
      │                              │
     No                         成功 ──► 回應 Client
      │                              │
-     ▼                           失敗/超時（30s）
+     ▼                           失敗/超時（60s）
 雲端降級序列：                       │
   1. Groq (GROQ_API_KEY)   ◄────────┘
   2. Anthropic (ANTHROPIC_API_KEY)
@@ -220,9 +221,10 @@ Request 進來
 | 端到端驗證 | ✅ | sandbox → Router → GB10 → 回應 |
 | Plugin 整合測試 | ✅ | openclaw TUI local/minimax 對話正常 |
 | openclaw TUI 對話 | ✅ | MiniMax 回應正常 |
-| B 方案 rebuild image | 🔄 | 5 個問題待修，下個對話執行 |
+| B方案 rebuild image | ✅ | 5 個問題全部修正，commit: 2dfab79 |
+| timeout_local_ms 60000 | ✅ | 解決冷啟動超時，commit: 2dfab79 |
+| CoreDNS 持久化 | ✅ | ceclaw-coredns.service，commit: 1bffd63 |
 | ceclaw CLI | ⬜ | P3 待開發 |
-| CoreDNS 持久化 | ⬜ | P3 待開發 |
 | 串流回應 | ⬜ | P5 待完整測試 |
 
 ### 4.2 驗證記錄
@@ -238,6 +240,11 @@ Request 進來
   openclaw tui，agent model: local/minimax
   中文對話正常，Router log gb10-llama → 200 ✅
   commit: 6ebea02
+
+2026-03-20 B方案驗證：
+  重建 sandbox，自動完成設定，不需要手動 Step 12
+  TUI 對話正常，Router log gb10-llama → 200 ✅
+  commit: 2dfab79
 ```
 
 ---
@@ -257,7 +264,7 @@ router:
 
 inference:
   strategy: local-first           # local-first | cloud-only | local-only
-  timeout_local_ms: 30000         # 本地後端超時（毫秒），建議調高到 60000
+  timeout_local_ms: 60000         # 本地後端超時（毫秒），60000 適合 MiniMax 冷啟動
 
   local:
     backends:
@@ -314,15 +321,15 @@ network_policies:
 - 端到端推論驗證
 - 燒機 200 輪
 
-### Phase 2 — Plugin 整合（✅ 完成，B方案進行中）
+### Phase 2 — Plugin 整合（✅ 完成）
 - Plugin 整合測試 ✅
 - openclaw TUI 對話測試 ✅
-- B 方案 rebuild image（修 5 個已知問題）🔄
+- B方案 rebuild image ✅（修 5 個已知問題，commit: 2dfab79）
 
-### Phase 3 — 易用性
-- `ceclaw` CLI（`onboard`/`connect`/`status`）
-- CoreDNS 持久化（systemd）
-- 自動 Approve policy（不需要 TUI）
+### Phase 3 — 易用性（部分完成）
+- CoreDNS 持久化 ✅（commit: 1bffd63）
+- `ceclaw` CLI（`onboard`/`connect`/`status`）⬜
+- 自動 Approve policy（不需要 TUI）⬜
 
 ### Phase 4 — 多後端
 - Ollama 後端支援
@@ -334,6 +341,7 @@ network_policies:
 - 雲端降級完整測試
 - 使用量統計 / 成本計算
 - 多租戶支援
+- `registerCommand` bug 修正
 
 ---
 
@@ -341,23 +349,19 @@ network_policies:
 
 | 限制 | 說明 | 計劃解法 |
 |------|------|---------|
-| CoreDNS 不持久 | 重開機後消失 | Phase 3 加到 systemd |
-| TUI 手動 Approve | 新 sandbox 需人工操作 | Phase 3 自動化 |
+| TUI 手動 Approve | 新 sandbox 需人工操作一次 | Phase 3 自動化 |
 | GB10 手動啟動 | llama-server 未設自啟 | 加 systemd service 到 GB10 |
-| MiniMax 冷啟動慢 | 第一個 request 可能 30s 超時 | timeout_local_ms 調高到 60000 |
 | registerCommand 不可用 | TypeError 待查 | Phase 5 修正 |
-| B 方案未完成 | 重建 sandbox 需手動修 plugin | 下個對話 rebuild image |
+| undici proxy 行為 | experimental，no_proxy 不可靠 | 保持走 proxy 路徑，見坑#10 |
 
 ---
 
 ## 8. 技術債
 
-1. **CoreDNS 持久化** — 重開機後需手動 `bash ~/nemoclaw-config/restore-coredns.sh`
-2. **TUI Approve** — 每次新建 sandbox 需要手動 Approve pending rules
-3. **GB10 自啟** — llama-server 需手動 SSH 啟動
-4. **B 方案 5 個 image bug** — 見交接文件第 4 節
-5. **registerCommand TypeError** — `Cannot read properties of undefined (reading 'trim')`
-6. **timeout_local_ms** — 30s 對 MiniMax 冷啟動偏短
+1. **TUI Approve** — 每次新建 sandbox 需要手動 Approve pending rules
+2. **GB10 自啟** — llama-server 需手動 SSH 啟動
+3. **registerCommand TypeError** — `Cannot read properties of undefined (reading 'trim')`
+4. **undici EnvHttpProxyAgent** — experimental，行為不穩定，長期應關注 openclaw 更新
 
 ---
 
@@ -384,4 +388,4 @@ network_policies:
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.2.0 | 日期: 2026-03-20*
+*總工: Kent | 版本: 0.3.0 | 日期: 2026-03-20*

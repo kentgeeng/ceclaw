@@ -3,7 +3,7 @@
 
 **預估時間**: 1~2 小時（不含模型下載）  
 **適用**: pop-os 重灌或全新機器  
-**SOP 版本**: 1.2 | **日期**: 2026-03-20
+**SOP 版本**: 1.3 | **日期**: 2026-03-20
 
 ---
 
@@ -109,7 +109,7 @@ router:
   reload_on_sighup: true
 inference:
   strategy: local-first
-  timeout_local_ms: 30000
+  timeout_local_ms: 60000
   local:
     backends:
       - name: gb10-llama
@@ -174,7 +174,7 @@ sudo netfilter-persistent save
 
 ## Step 8：建立 CoreDNS restore 腳本
 
-⚠️ CoreDNS 的修改不持久，重開機或重建 OpenShell 後需要重跑。
+⚠️ P3 已完成 CoreDNS 持久化（ceclaw-coredns.service），重開機自動 patch。此腳本保留供手動修復使用。
 
 ```bash
 mkdir -p ~/nemoclaw-config
@@ -251,64 +251,21 @@ openshell term
 
 ---
 
-## Step 12：Plugin 設定（B方案完成前的手動步驟）
+## Step 12：端到端驗證
 
-⚠️ **B 方案 rebuild image 完成後，此步驟自動化，可跳過。**  
-B 方案狀態請查交接文件第 4 節。
+**B方案已完成，sandbox 自動設定 openclaw，不需要手動設定。**
 
-進 sandbox：
-```bash
-openshell sandbox connect ceclaw-agent
-```
-
-設定 gateway mode：
-```bash
-openclaw config set gateway.mode local
-```
-
-設定 local provider 和 agent model：
-```bash
-python3 -c "
-import json, os
-path = os.path.expanduser('~/.openclaw/openclaw.json')
-try:
-    with open(path) as f:
-        c = json.load(f)
-except:
-    c = {}
-c.setdefault('models', {}).setdefault('providers', {})['local'] = {
-    'baseUrl': 'http://host.openshell.internal:8000/v1',
-    'apiKey': 'ceclaw-local',
-    'api': 'openai-completions',
-    'models': [{'id': 'minimax', 'name': 'CECLAW Local', 'contextWindow': 131072, 'maxTokens': 8192, 'cost': {'input': 0, 'output': 0, 'cacheRead': 0, 'cacheWrite': 0}, 'reasoning': False, 'input': ['text']}]
-}
-c.setdefault('agents', {}).setdefault('defaults', {})['model'] = {'primary': 'local/minimax'}
-with open(path, 'w') as f:
-    json.dump(c, f, indent=2)
-print('Done')
-"
-```
-
-確認：
-```bash
-cat /sandbox/.openclaw/openclaw.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('agents',{}).get('defaults',{}))"
-# 預期: {'workspace': '...', 'model': {'primary': 'local/minimax'}}
-```
-
----
-
-## Step 13：端到端驗證
-
-在 sandbox 內（另開 terminal 一個跑 gateway，一個跑 TUI）：
+進 sandbox（自動執行 ceclaw-start）：
 
 **Terminal 1：**
 ```bash
-openclaw gateway
-# 確認看到: [gateway] agent model: local/minimax
+openshell sandbox connect ceclaw-agent
+# 看到: [gateway] agent model: local/minimax = 成功
 ```
 
 **Terminal 2：**
 ```bash
+openshell sandbox connect ceclaw-agent
 openclaw tui
 # 底部應顯示: local/minimax | tokens ?/131k
 # 發訊息，確認 MiniMax 有回應
@@ -327,7 +284,7 @@ tail -f ~/.ceclaw/router.log
 ## 重開機後恢復（不需重灌時）
 
 ```bash
-# 1. CoreDNS restore（每次重開機後執行）
+# 1. CoreDNS（P3 已持久化，若未自啟手動跑）
 bash ~/nemoclaw-config/restore-coredns.sh
 
 # 2. Router 已 systemd 自啟，確認
@@ -342,7 +299,7 @@ openshell sandbox create \
   --from ghcr.io/kentgeeng/ceclaw-sandbox:latest \
   --policy ~/ceclaw/config/ceclaw-policy.yaml --keep
 
-# 5. ⚠️ B方案未完成前，進 sandbox 執行 Step 12 手動設定
+# 5. 進 sandbox，自動執行 ceclaw-start，無需手動設定
 ```
 
 ---
@@ -354,9 +311,9 @@ openshell sandbox create \
 - Policy 必須同時有 `allowed_ips: [172.17.0.1]` + `binaries` proxy 才放行
 - 新 sandbox 的 pending rules 需要 TUI 手動 Approve 一次
 - openclaw gateway 在 container 內不能用 systemd，必須前景執行
-- MiniMax 冷啟動慢，第一個 request 可能超時，屬正常
+- MiniMax 冷啟動慢，timeout_local_ms 設 60000 避免冷啟動失敗
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*SOP 版本: 1.2 | 日期: 2026-03-20*
+*SOP 版本: 1.3 | 日期: 2026-03-20*
