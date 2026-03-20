@@ -2,7 +2,8 @@
 ## 從零開始到端到端通的完整步驟
 
 **預估時間**: 1~2 小時（不含模型下載）  
-**適用**: pop-os 重灌或全新機器
+**適用**: pop-os 重灌或全新機器  
+**SOP 版本**: 1.2 | **日期**: 2026-03-20
 
 ---
 
@@ -26,7 +27,6 @@ cat ~/.ssh/id_ed25519.pub
 
 ### Docker login ghcr.io（推 image 時需要）
 ```bash
-# 用 GitHub Personal Access Token（需要 write:packages 權限）
 echo "YOUR_GITHUB_TOKEN" | docker login ghcr.io -u kentgeeng --password-stdin
 ```
 
@@ -36,8 +36,6 @@ echo "YOUR_GITHUB_TOKEN" | docker login ghcr.io -u kentgeeng --password-stdin
 
 ```bash
 curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh
-# 或用 uv：
-# uv tool install -U openshell
 
 # 確認
 openshell --version
@@ -49,7 +47,6 @@ openshell --version
 ## Step 2：啟動 OpenShell Gateway
 
 ```bash
-# 第一次啟動，建立本地 gateway
 openshell gateway start
 
 # 確認
@@ -62,10 +59,8 @@ openshell gateway list
 ## Step 3：GB10 啟動 llama-server
 
 ```bash
-# SSH 到 GB10 啟動推論服務
 ssh zoe_gb@192.168.1.91 "nohup ~/start_llama.sh > ~/llama.log 2>&1 &"
 
-# 等 30 秒後確認
 sleep 30
 curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
 # 預期看到 minimax model
@@ -93,7 +88,6 @@ cd ~
 git clone git@github.com:kentgeeng/ceclaw.git
 cd ceclaw
 
-# 建立 Python venv
 python3 -m venv .venv
 source .venv/bin/activate
 pip install fastapi httpx uvicorn pyyaml pydantic
@@ -148,10 +142,7 @@ EOF
 ## Step 6：部署 Router systemd service
 
 ```bash
-# 複製 service 檔（從 repo 來的）
 sudo cp ~/ceclaw/ceclaw-router.service /etc/systemd/system/
-
-# 啟動並設開機自啟
 sudo systemctl daemon-reload
 sudo systemctl enable ceclaw-router
 sudo systemctl start ceclaw-router
@@ -166,13 +157,9 @@ curl -s http://localhost:8000/ceclaw/status | python3 -m json.tool
 
 ## Step 7：設定 iptables 網路穿透
 
-OpenShell sandbox 在 K3s (172.20.x) 需要能連到 host Router (172.17.0.1:8000)。
-
 ```bash
-# 安裝持久化工具（安裝時選「是」儲存現有規則）
 sudo apt install iptables-persistent -y
 
-# 加入規則
 sudo iptables -I FORWARD -s 172.20.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
 sudo iptables -I FORWARD -s 10.42.0.0/16  -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
 sudo iptables -I FORWARD -s 10.200.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
@@ -180,7 +167,6 @@ sudo iptables -t nat -A POSTROUTING -s 172.20.0.0/16 -d 172.17.0.1 -j MASQUERADE
 sudo iptables -t nat -A POSTROUTING -s 10.42.0.0/16  -d 172.17.0.1 -j MASQUERADE
 sudo ufw allow from 172.20.0.0/16 to any port 8000
 
-# 持久化（重開機後自動恢復）
 sudo netfilter-persistent save
 ```
 
@@ -195,9 +181,7 @@ mkdir -p ~/nemoclaw-config
 
 cat > ~/nemoclaw-config/restore-coredns.sh << 'EOF'
 #!/bin/bash
-# 動態取得 K3s container ID（每次重建都不同）
 CONTAINER=$(docker ps --format "{{.ID}}" | head -1)
-
 docker exec $CONTAINER kubectl patch configmap coredns -n kube-system --type merge \
   -p '{"data":{"NodeHosts":"172.17.0.1 inference.local\n172.17.0.1 host.openshell.internal\n"}}'
 docker exec $CONTAINER kubectl rollout restart deployment/coredns -n kube-system
@@ -213,7 +197,6 @@ bash ~/nemoclaw-config/restore-coredns.sh
 ## Step 9：確認 Sandbox Policy
 
 ```bash
-# policy 已在 repo 裡，確認內容正確
 cat ~/ceclaw/config/ceclaw-policy.yaml
 ```
 
@@ -234,26 +217,6 @@ network_policies:
       - path: /usr/local/bin/openclaw
 ```
 
-若不存在則建立：
-```bash
-mkdir -p ~/ceclaw/config
-cat > ~/ceclaw/config/ceclaw-policy.yaml << 'EOF'
-version: 1
-network_policies:
-  ceclaw_router:
-    endpoints:
-      - host: host.openshell.internal
-        port: 8000
-        access: full
-        allowed_ips:
-          - 172.17.0.1
-    binaries:
-      - path: /usr/bin/curl
-      - path: /usr/bin/node
-      - path: /usr/local/bin/openclaw
-EOF
-```
-
 ---
 
 ## Step 10：建立 Sandbox
@@ -265,7 +228,7 @@ openshell sandbox create \
   --policy ~/ceclaw/config/ceclaw-policy.yaml \
   --keep
 
-# 指令可能停在這裡，屬正常。另開 terminal 確認：
+# 另開 terminal 確認
 openshell sandbox list
 # 預期: ceclaw-agent   Ready
 ```
@@ -274,7 +237,6 @@ openshell sandbox list
 
 ## Step 11：Approve Policy（TUI）
 
-另開一個 terminal：
 ```bash
 openshell term
 ```
@@ -289,22 +251,76 @@ openshell term
 
 ---
 
-## Step 12：端到端驗證
+## Step 12：Plugin 設定（B方案完成前的手動步驟）
 
-在 sandbox 內：
+⚠️ **B 方案 rebuild image 完成後，此步驟自動化，可跳過。**  
+B 方案狀態請查交接文件第 4 節。
+
+進 sandbox：
 ```bash
-# 狀態確認
-curl -s http://host.openshell.internal:8000/ceclaw/status | python3 -m json.tool
-# 預期: backends.gb10-llama: true
-
-# 推論測試
-curl -s http://host.openshell.internal:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"minimax","messages":[{"role":"user","content":"hi"}],"max_tokens":20}'
-# 預期: choices[0].message.content 有內容
+openshell sandbox connect ceclaw-agent
 ```
 
-✅ 看到 MiniMax 回應 = 全通
+設定 gateway mode：
+```bash
+openclaw config set gateway.mode local
+```
+
+設定 local provider 和 agent model：
+```bash
+python3 -c "
+import json, os
+path = os.path.expanduser('~/.openclaw/openclaw.json')
+try:
+    with open(path) as f:
+        c = json.load(f)
+except:
+    c = {}
+c.setdefault('models', {}).setdefault('providers', {})['local'] = {
+    'baseUrl': 'http://host.openshell.internal:8000/v1',
+    'apiKey': 'ceclaw-local',
+    'api': 'openai-completions',
+    'models': [{'id': 'minimax', 'name': 'CECLAW Local', 'contextWindow': 131072, 'maxTokens': 8192, 'cost': {'input': 0, 'output': 0, 'cacheRead': 0, 'cacheWrite': 0}, 'reasoning': False, 'input': ['text']}]
+}
+c.setdefault('agents', {}).setdefault('defaults', {})['model'] = {'primary': 'local/minimax'}
+with open(path, 'w') as f:
+    json.dump(c, f, indent=2)
+print('Done')
+"
+```
+
+確認：
+```bash
+cat /sandbox/.openclaw/openclaw.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('agents',{}).get('defaults',{}))"
+# 預期: {'workspace': '...', 'model': {'primary': 'local/minimax'}}
+```
+
+---
+
+## Step 13：端到端驗證
+
+在 sandbox 內（另開 terminal 一個跑 gateway，一個跑 TUI）：
+
+**Terminal 1：**
+```bash
+openclaw gateway
+# 確認看到: [gateway] agent model: local/minimax
+```
+
+**Terminal 2：**
+```bash
+openclaw tui
+# 底部應顯示: local/minimax | tokens ?/131k
+# 發訊息，確認 MiniMax 有回應
+```
+
+**pop-os 確認 Router 有流量：**
+```bash
+tail -f ~/.ceclaw/router.log
+# 應看到: [local] gb10-llama → 200
+```
+
+✅ 三項全中 = 全通
 
 ---
 
@@ -325,6 +341,8 @@ openshell sandbox create \
   --name ceclaw-agent \
   --from ghcr.io/kentgeeng/ceclaw-sandbox:latest \
   --policy ~/ceclaw/config/ceclaw-policy.yaml --keep
+
+# 5. ⚠️ B方案未完成前，進 sandbox 執行 Step 12 手動設定
 ```
 
 ---
@@ -335,8 +353,10 @@ openshell sandbox create \
 - Sandbox 在 K3s (172.20.x)，跨網段到 host (172.17.0.1) 需要 iptables FORWARD + MASQUERADE
 - Policy 必須同時有 `allowed_ips: [172.17.0.1]` + `binaries` proxy 才放行
 - 新 sandbox 的 pending rules 需要 TUI 手動 Approve 一次
+- openclaw gateway 在 container 內不能用 systemd，必須前景執行
+- MiniMax 冷啟動慢，第一個 request 可能超時，屬正常
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*SOP 版本: 1.1 | 日期: 2026-03-19*
+*SOP 版本: 1.2 | 日期: 2026-03-20*

@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.1.0  
+**版本**: 0.2.0  
 **作者**: Kent (總工)  
-**日期**: 2026-03-19  
-**狀態**: Alpha — 端到端驗證通過，Plugin 整合進行中
+**日期**: 2026-03-20  
+**狀態**: Alpha — P1 + P2 完成，B方案 rebuild image 進行中
 
 ---
 
@@ -77,7 +77,6 @@ NV 的設計有三道關卡逆著我們走：
 ╔══════════════════════════════════════════════════════════════╗
 ║  NemoClaw 架構                                               ║
 ╠══════════════════════════════════════════════════════════════╣
-║                                                              ║
 ║  ┌─────────────────────────────────────┐                    ║
 ║  │  OpenShell Sandbox (K3s pod)        │                    ║
 ║  │  ┌──────────┐                       │                    ║
@@ -88,18 +87,15 @@ NV 的設計有三道關卡逆著我們走：
 ║  │  │  OpenShell Proxy (3128)   │      │                    ║
 ║  │  └────────────┬──────────────┘      │                    ║
 ║  └───────────────┼─────────────────────┘                    ║
-║                  │ HTTPS                                     ║
 ║                  ▼                                           ║
 ║         ┌────────────────┐                                   ║
 ║         │  NVIDIA Cloud  │                                   ║
-║         │  (nemotron 等) │                                   ║
 ║         └────────────────┘                                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
 ╔══════════════════════════════════════════════════════════════╗
 ║  CECLAW 架構                                                 ║
 ╠══════════════════════════════════════════════════════════════╣
-║                                                              ║
 ║  ┌─────────────────────────────────────┐                    ║
 ║  │  OpenShell Sandbox (K3s pod)        │                    ║
 ║  │  10.42.0.x                          │                    ║
@@ -120,11 +116,6 @@ NV 的設計有三道關卡逆著我們走：
 ║  ┌───────────────▼─────────────────────┐                    ║
 ║  │  CECLAW Inference Router :8000      │                    ║
 ║  │  (FastAPI, systemd, pop-os host)    │                    ║
-║  │                                     │                    ║
-║  │  Strategy: local-first              │                    ║
-║  │  ┌─────────────┐ ┌───────────────┐  │                    ║
-║  │  │ 健康檢查    │ │ 熱重載 SIGHUP │  │                    ║
-║  │  └─────────────┘ └───────────────┘  │                    ║
 ║  └──────────┬──────────────────────────┘                    ║
 ║             │                                               ║
 ║     ┌───────┴────────────────────┐                         ║
@@ -134,8 +125,7 @@ NV 的設計有三道關卡逆著我們走：
 ║  │  GB10 :8001  │    │  Cloud Fallback              │       ║
 ║  │  MiniMax     │    │  Groq → Anthropic            │       ║
 ║  │  M2.5 GGUF   │    │  → OpenAI → NVIDIA          │       ║
-║  │  llama.cpp   │    └─────────────────────────────┘       ║
-║  └──────────────┘                                           ║
+║  └──────────────┘    └─────────────────────────────┘       ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
@@ -149,35 +139,27 @@ NV 的設計有三道關卡逆著我們走：
 ┌─────────────────────────────────────────────────────────────┐
 │                    CECLAW 系統元件                           │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
 │  ① CECLAW Inference Router (ceclaw/router/)                │
-│     - FastAPI + uvicorn                                     │
-│     - 監聽 0.0.0.0:8000                                    │
-│     - 本地優先 + 雲端降級                                   │
-│     - 後端健康檢查 (30s interval)                           │
-│     - SIGHUP 熱重載                                         │
+│     - FastAPI + uvicorn，監聽 0.0.0.0:8000                 │
+│     - 本地優先 + 雲端降級，30s 健康檢查，SIGHUP 熱重載     │
 │     - systemd 管理，開機自啟                                │
 │                                                             │
 │  ② CECLAW Plugin (ceclaw/plugin/)                          │
 │     - TypeScript, openclaw plugin v1                        │
-│     - Banner: CECLAW registered                             │
 │     - 設定 local provider → Router                          │
-│     - 內建於 sandbox image                                  │
+│     - ⚠️ registerCommand 暫時 disabled（待修）             │
 │                                                             │
 │  ③ Sandbox Image (ghcr.io/kentgeeng/ceclaw-sandbox)        │
 │     - 基於 NV openclaw sandbox                              │
-│     - 包含 CECLAW plugin                                    │
-│     - ceclaw-start.sh 啟動腳本                              │
+│     - ⚠️ 有 5 個已知問題待 B 方案 rebuild 修正             │
 │                                                             │
 │  ④ OpenShell Policy (ceclaw/config/ceclaw-policy.yaml)     │
 │     - network_policies + allowed_ips + binaries             │
 │     - 放行 host.openshell.internal:8000                     │
 │                                                             │
 │  ⑤ GB10 推論機                                             │
-│     - llama.cpp llama-server                                │
-│     - MiniMax-M2.5-UD-Q3_K_XL                              │
+│     - llama.cpp llama-server，MiniMax-M2.5-UD-Q3_K_XL      │
 │     - 192.168.1.91:8001                                     │
-│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -204,7 +186,7 @@ Request 進來
      │                              │
     No                         成功 ──► 回應 Client
      │                              │
-     ▼                           失敗/超時
+     ▼                           失敗/超時（30s）
 雲端降級序列：                       │
   1. Groq (GROQ_API_KEY)   ◄────────┘
   2. Anthropic (ANTHROPIC_API_KEY)
@@ -216,41 +198,6 @@ Request 進來
      │
      ▼
 全部失敗 → 503 Service Unavailable
-```
-
-### 3.4 網路拓撲
-
-```
-IP 位址分配：
-┌────────────────────────────────────────────┐
-│ pop-os (主機)                               │
-│   eth0:    192.168.1.210 (LAN)             │
-│   docker0: 172.17.0.1   (Docker bridge)   │
-│   br-xxx:  172.18.0.1   (OpenShell bridge)│
-│   br-xxx:  172.20.0.1   (K3s bridge)      │
-├────────────────────────────────────────────┤
-│ K3s container (OpenShell)                  │
-│   IP: 172.20.0.2                           │
-│   內含 K3s cluster:                        │
-│     node IP:  10.42.0.1                   │
-│     pod CIDR: 10.42.0.0/24               │
-├────────────────────────────────────────────┤
-│ ceclaw-agent pod                           │
-│   IP: 10.42.0.x                           │
-│   gateway: 10.200.0.1 (OpenShell proxy)   │
-├────────────────────────────────────────────┤
-│ GB10 推論機                                │
-│   IP: 192.168.1.91                        │
-│   llama-server: :8001                     │
-└────────────────────────────────────────────┘
-
-關鍵路由：
-  sandbox (10.42.0.x)
-    → proxy (10.200.0.1:3128)
-    → [policy 放行]
-    → iptables FORWARD
-    → host (172.17.0.1:8000)  ← Router 在這裡
-    → GB10 (192.168.1.91:8001)
 ```
 
 ---
@@ -271,28 +218,26 @@ IP 位址分配：
 | iptables 穿透 | ✅ | 持久化 |
 | Sandbox Image | ✅ | 推上 ghcr.io public |
 | 端到端驗證 | ✅ | sandbox → Router → GB10 → 回應 |
-| CECLAW Plugin | 🔄 | 已編譯，整合測試進行中 |
-| openclaw TUI 對話 | ⬜ | 待測試 |
-| ceclaw CLI | ⬜ | 待開發 |
-| 串流回應 | ⬜ | 待完整測試 |
+| Plugin 整合測試 | ✅ | openclaw TUI local/minimax 對話正常 |
+| openclaw TUI 對話 | ✅ | MiniMax 回應正常 |
+| B 方案 rebuild image | 🔄 | 5 個問題待修，下個對話執行 |
+| ceclaw CLI | ⬜ | P3 待開發 |
+| CoreDNS 持久化 | ⬜ | P3 待開發 |
+| 串流回應 | ⬜ | P5 待完整測試 |
 
 ### 4.2 驗證記錄
 
 ```
-2026-03-19 驗證結果：
+2026-03-19 端到端驗證：
+  sandbox → Router → GB10 推論：HTTP 200，MiniMax 回應 ✅
 
-sandbox → Router → GB10 推論測試：
-  Request:  POST /v1/chat/completions
-            {"model":"minimax","messages":[{"role":"user","content":"hi"}],"max_tokens":20}
-  
-  Response: HTTP 200
-            {"choices":[{"finish_reason":"length","index":0,
-              "message":{"role":"assistant",
-              "content":"","reasoning_content":"The user has simply said hi..."}}],
-             "model":"minimax","usage":{"completion_tokens":20,"prompt_tokens":39}}
-  
-  延遲: ~800ms (首 token)
-  狀態: ✅ PASS
+2026-03-20 燒機：
+  200 輪 sandbox curl，200/200 HTTP 200 ✅
+
+2026-03-20 Plugin 整合測試：
+  openclaw tui，agent model: local/minimax
+  中文對話正常，Router log gb10-llama → 200 ✅
+  commit: 6ebea02
 ```
 
 ---
@@ -305,24 +250,24 @@ sandbox → Router → GB10 推論測試：
 version: 1                        # 必填，目前只有 1
 
 router:
-  listen_host: "0.0.0.0"         # Router 監聽位址
-  listen_port: 8000               # Router 監聽 port
-  tls: false                      # TLS（目前不支援）
-  reload_on_sighup: true          # SIGHUP 熱重載
+  listen_host: "0.0.0.0"
+  listen_port: 8000
+  tls: false
+  reload_on_sighup: true
 
 inference:
   strategy: local-first           # local-first | cloud-only | local-only
-  timeout_local_ms: 30000         # 本地後端超時（毫秒）
+  timeout_local_ms: 30000         # 本地後端超時（毫秒），建議調高到 60000
 
   local:
     backends:
-      - name: gb10-llama          # 後端名稱（任意）
-        type: llama.cpp           # 後端類型：llama.cpp | ollama | vllm
+      - name: gb10-llama
+        type: llama.cpp           # llama.cpp | ollama | vllm
         base_url: http://192.168.1.91:8001/v1
         models:
-          - id: minimax           # model id（對外暴露的名稱）
-            alias: default        # 別名
-            context_window: 32768 # context 長度
+          - id: minimax
+            alias: default
+            context_window: 32768
 
   cloud_fallback:
     enabled: true
@@ -346,14 +291,14 @@ inference:
 ```yaml
 version: 1
 network_policies:
-  ceclaw_router:                  # 規則名稱（任意）
+  ceclaw_router:
     endpoints:
-      - host: host.openshell.internal   # NV proxy 寫死解析到 172.17.0.1
+      - host: host.openshell.internal
         port: 8000
-        access: full             # full | read | write
+        access: full
         allowed_ips:
-          - 172.17.0.1           # 必填！對應 DNS 解析結果
-    binaries:                    # 必填！指定哪些 binary 可以用此規則
+          - 172.17.0.1           # 必填，對應 DNS 解析結果
+    binaries:                    # 必填，指定哪些 binary 可以用此規則
       - path: /usr/bin/curl
       - path: /usr/bin/node
       - path: /usr/local/bin/openclaw
@@ -367,17 +312,15 @@ network_policies:
 - Inference Router
 - OpenShell sandbox 網路穿透
 - 端到端推論驗證
+- 燒機 200 輪
 
-### Phase 2 — Plugin 整合（🔄 進行中）
-- Plugin 整合測試
-- openclaw TUI 對話測試
-- Banner 確認
+### Phase 2 — Plugin 整合（✅ 完成，B方案進行中）
+- Plugin 整合測試 ✅
+- openclaw TUI 對話測試 ✅
+- B 方案 rebuild image（修 5 個已知問題）🔄
 
 ### Phase 3 — 易用性
-- `ceclaw` CLI
-  - `ceclaw onboard` — 一鍵設定新機器
-  - `ceclaw status` — 顯示所有元件狀態
-  - `ceclaw connect` — 建立 sandbox
+- `ceclaw` CLI（`onboard`/`connect`/`status`）
 - CoreDNS 持久化（systemd）
 - 自動 Approve policy（不需要 TUI）
 
@@ -385,13 +328,11 @@ network_policies:
 - Ollama 後端支援
 - vLLM 後端支援
 - SGLang 後端支援
-- 多 GB10 負載均衡
 
 ### Phase 5 — 企業功能
 - 串流回應完整支援
 - 雲端降級完整測試
-- 使用量統計
-- 成本計算（本地 vs 雲端）
+- 使用量統計 / 成本計算
 - 多租戶支援
 
 ---
@@ -403,8 +344,9 @@ network_policies:
 | CoreDNS 不持久 | 重開機後消失 | Phase 3 加到 systemd |
 | TUI 手動 Approve | 新 sandbox 需人工操作 | Phase 3 自動化 |
 | GB10 手動啟動 | llama-server 未設自啟 | 加 systemd service 到 GB10 |
-| single sandbox | 目前只測一個 agent | Phase 4 多 sandbox |
-| 無 auth | Router 無認證機制 | Phase 5 加 API key |
+| MiniMax 冷啟動慢 | 第一個 request 可能 30s 超時 | timeout_local_ms 調高到 60000 |
+| registerCommand 不可用 | TypeError 待查 | Phase 5 修正 |
+| B 方案未完成 | 重建 sandbox 需手動修 plugin | 下個對話 rebuild image |
 
 ---
 
@@ -413,7 +355,9 @@ network_policies:
 1. **CoreDNS 持久化** — 重開機後需手動 `bash ~/nemoclaw-config/restore-coredns.sh`
 2. **TUI Approve** — 每次新建 sandbox 需要手動 Approve pending rules
 3. **GB10 自啟** — llama-server 需手動 SSH 啟動
-4. **Plugin 未整合測試** — openclaw TUI 對話流程未驗證
+4. **B 方案 5 個 image bug** — 見交接文件第 4 節
+5. **registerCommand TypeError** — `Cannot read properties of undefined (reading 'trim')`
+6. **timeout_local_ms** — 30s 對 MiniMax 冷啟動偏短
 
 ---
 
@@ -421,18 +365,9 @@ network_policies:
 
 ```
                     本地推論 ◄─────────────────► 雲端推論
-                        │                           │
-  資料不出內網 ──────────┤                           ├── 資料送外部
-                        │                           │
-  ┌─────────────────────┼───────────────────────────┼──────────┐
-  │                     │                           │          │
-  │  CECLAW ●───────────┘           NemoClaw ───────┘          │
-  │  (本地優先 + 雲端備援)           (雲端優先)                  │
-  │                                                            │
-  └────────────────────────────────────────────────────────────┘
-        高安全性                                    低安全性
-        低成本                                      高成本
-        高延遲控制                                  依賴外部
+  CECLAW ●──────────────┘           NemoClaw ───────┘
+  (本地優先 + 雲端備援)              (雲端優先)
+  高安全性 / 低成本                  低安全性 / 高成本
 ```
 
 ---
@@ -449,4 +384,4 @@ network_policies:
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 文件版本: 0.1.0 | 日期: 2026-03-19*
+*總工: Kent | 版本: 0.2.0 | 日期: 2026-03-20*
