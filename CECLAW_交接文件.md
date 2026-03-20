@@ -45,6 +45,7 @@
 ├── pyproject.toml
 ├── ceclaw-router.service     # systemd service（已 enable）
 ├── ceclaw_monitor.sh         # ✅ 監控腳本（crontab 每5分鐘執行）
+├── ceclaw.py                 # ✅ ceclaw CLI v0.1.0（symlink: /usr/local/bin/ceclaw）
 ├── backup/
 │   └── start_llama.sh.bak   # GB10 啟動腳本備份
 ├── router/
@@ -110,6 +111,16 @@
 - logrotate — router.log + monitor.log，daily rotate 7
 - GB10 `start_llama.sh` 備份至 `~/ceclaw/backup/`
 
+### P3 ceclaw CLI v0.1.0 ✅（commit: c412038）
+- `ceclaw status` — Router + GB10 + sandbox 三項狀態一覽
+- `ceclaw connect` — 連入 sandbox
+- `ceclaw logs` — tail Router log
+- `ceclaw start` — 檢查服務並提示修復指令
+- `ceclaw stop` — 刪 sandbox（Router 不動）
+- `ceclaw onboard` — 建 sandbox + 提示 approve policy
+- 所有 URL 從 `~/.ceclaw/ceclaw.yaml` 讀取，零硬編碼
+- symlink: `/usr/local/bin/ceclaw` → `/home/zoe_ai/ceclaw/ceclaw.py`
+
 ---
 
 ## 4. 啟動方式
@@ -163,6 +174,10 @@ openclaw tui
 **坑#9**: MiniMax 冷啟動慢，Router `timeout_local_ms: 30000` 太短會先 503。已調高到 60000，解決冷啟動超時問題。
 
 > ⚠️ **坑#10（關鍵）**: openclaw 使用 undici `EnvHttpProxyAgent`（experimental），即使設定 `no_proxy`、清掉 `HTTP_PROXY`、改 `baseUrl` 為 IP，HTTP 請求仍可能 Connection error。根本原因是 undici experimental 版本行為不可靠。**正確做法**：保持 `baseUrl: http://host.openshell.internal:8000/v1` + `api: openai-completions`，讓請求走 proxy → iptables FORWARD → Router。**絕對不要試圖改 baseUrl 為 IP 或清 proxy 環境變數來繞過。**
+
+**坑#11（已確認無解）**: openclaw TUI 底部顯示格式為 `provider/model_id`（如 `local/minimax`），寫死在 openclaw 內部，無法從 `openclaw.json` 的 `name` 欄位覆蓋。除非 fork openclaw 原始碼否則無法改變。`local/minimax` 對使用者來說已夠清楚，不影響使用體驗。
+
+**坑#12（已確認無解）**: OpenShell auto-approve policy 無法從 CLI 實作。`openshell` 沒有任何 approve 相關指令，pending rules 必須透過 TUI 手動按 `A`。這是 OpenShell 的安全設計，刻意要求人工審核，不是 bug，不要試圖繞過。
 
 ### 傳檔案進 sandbox 的方法
 sandbox 只開放 port 8000，傳法：
@@ -219,10 +234,12 @@ bash ~/nemoclaw-config/restore-coredns.sh
 
 ## 6. TODO List
 
-### P3 剩餘
-- [ ] `ceclaw` CLI（`onboard`/`connect`/`status`/`logs`）— 指令對齊 NemoClaw
-- [ ] TUI 底部顯示名稱（查 openclaw display name 設定）
-- [ ] 自動 Approve policy（不需要 TUI）
+### P3 完成
+- [x] `ceclaw` CLI v0.1.0（commit: c412038）
+- [x] CoreDNS 持久化（commit: 1bffd63）
+- [x] 監控腳本 + logrotate（commit: 70175b6）
+- [✗] TUI 底部顯示名稱 — **無法實作**，openclaw 內部限制，見坑#11
+- [✗] 自動 Approve policy — **無法實作**，OpenShell 安全設計，見坑#12
 
 ### P4
 - [ ] 多後端支援（vLLM / Ollama / SGLang）
@@ -238,6 +255,14 @@ bash ~/nemoclaw-config/restore-coredns.sh
 ## 7. 關鍵指令速查
 
 ```bash
+# CECLAW CLI
+ceclaw status
+ceclaw connect
+ceclaw logs
+ceclaw start
+ceclaw stop
+ceclaw onboard
+
 # Router 管理
 sudo systemctl status ceclaw-router
 sudo systemctl restart ceclaw-router
@@ -400,5 +425,5 @@ cp ~/nemoclaw-config/restore-coredns.sh ~/ceclaw/backup/
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.1 | 日期: 2026-03-20*  
-*P1 ✅ P2 ✅ B方案 ✅ P3 CoreDNS ✅ 燒機3500輪✅ | 下一步: P3 CLI | commit: 70175b6*
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.2 | 日期: 2026-03-20*  
+*P1 ✅ P2 ✅ B方案 ✅ P3 ✅ 燒機3500輪✅ | 下一步: P4 多後端 | commit: c412038*
