@@ -1,7 +1,7 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.3.2  
+**版本**: 0.3.3  
 **作者**: Kent (總工)  
 **日期**: 2026-03-21  
 **狀態**: Alpha — P1~P3 完成，P4 multi-backend 開發中
@@ -282,6 +282,16 @@ inference:
 
 ### Phase 6 — 相容性驗證
 - [ ] NemoClaw drop-in 替代驗證報告
+- [ ] 指令對照表（草稿完成，待正式驗證）
+
+### Phase 7 — OpenClaw Skill 相容性測試
+> CECLAW Router（本地 MiniMax）作為推論後端，驗證 OpenClaw skill 能否正常執行
+
+- [ ] A 級（無網路，10個）：Self-Improving Agent / Capability Evolver / Nano Pdf / Obsidian / Mcporter / Skill Creator / Openai Whisper / Model Usage / Apple Notes / Apple Reminders
+- [ ] B 級（有網路，15個）
+- [ ] C 級（功能補完，25個）
+
+⚠️ 安全原則：測試用 API key、隔離 sandbox、安裝前確認 skill 來源（ClawHavoc 事件：820+ 惡意 skill 已被清除，仍需驗證）
 
 ---
 
@@ -341,4 +351,4 @@ CECLAW   = Secure + Sovereign Inference
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.3.2 | 日期: 2026-03-21*
+*總工: Kent | 版本: 0.3.3 | 日期: 2026-03-21*

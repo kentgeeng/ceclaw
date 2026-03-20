@@ -42,7 +42,7 @@
   - `qwen3:8b` — 5.2GB，熱啟動 1.3s（`think:false`），backup 路徑
   - `qwen3:14b` — 9.3GB，熱啟動 3.8s，可選
   - `qwen2.5-coder:32b` — 19GB，offload，較慢
-- ⚠️ **VRAM 注意**：qwen2.5:7b + qwen3:8b 同時常駐 = 9.9GB，加系統 + Router + K3s 可能偏緊，開工前先確認實際用量
+- ✅ **VRAM 確認（P4）**：系統待機 446MB，qwen2.5:7b(4.7GB) + qwen3:8b(5.2GB) 合計 ~10.5GB，剩餘 ~5.7GB，兩模型可同時常駐
 
 ---
 
@@ -209,13 +209,17 @@ def needs_reasoning(query):
         # English
         "prove", "derive", "escape", "optimal",
         "why", "analyze", "compare", "strategy",
-        "reasoning", "explain", "how to", "solve"
+        "reasoning", "explain", "how to", "solve",
+        # 日文
+        "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
     }
     return any(kw in query.lower() for kw in keywords)
 
 def route(query, tokens):
-    if tokens < 80 and not needs_reasoning(query):
-        return "ollama-fast"      # qwen2.5:7b
+    if tokens > 80:
+        pass  # 長問題不賭關鍵字，直接走 main
+    elif not needs_reasoning(query):
+        return "ollama-fast"      # qwen2.5:7b（短 + 無推理需求）
     if is_healthy("gb10-llama"):
         return "gb10-llama"       # MiniMax 主力
     if is_healthy("ollama-backup"):
@@ -223,25 +227,29 @@ def route(query, tokens):
     return "cloud"                # 雲端最後防線
 ```
 
+> ⚠️ **設計決策（總工批准）**：`tokens > 80` 時不依賴關鍵字，直接走 gb10-llama。避免長問題因關鍵字未命中誤落 fast 路徑（qwen2.5:7b 能力弱）。
+
 ### P4 開工順序
 1. `curl http://127.0.0.1:11434/api/tags` 確認 Ollama 可達
-2. `nvidia-smi` 確認 VRAM 用量，決定是否同時常駐兩個 Ollama 模型
-3. ceclaw.yaml schema 擴充（前置，其他都依賴這個）
+2. `nvidia-smi` 確認 VRAM 用量（已確認 ✅）
+3. config.py 擴充 LocalBackend 新欄位（priority/model/options/use_for）
 4. Ollama adapter（router/backends.py）
 5. Backend health check 更新
 6. Smart routing 實作
 7. 燒機驗證
+8. 最後才寫入新 ceclaw.yaml（code 認識新欄位後才能更新）
 
 ---
 
 ## 7. TODO List
 
-### P4（下個對話）
-- [ ] VRAM 確認（開工前）
-- [ ] ceclaw.yaml schema 擴充
-- [ ] Ollama adapter
-- [ ] Backend health check
-- [ ] Smart routing
+### P4（進行中）
+- [x] VRAM 確認 ✅（待機 446MB，兩模型同時常駐 ~10.5GB，剩餘 5.7GB）
+- [x] config.py LocalBackend 擴充 ✅（priority/model/options/use_for，等燒機完寫入）
+- [ ] Ollama adapter（backends.py）
+- [ ] Backend health check 更新
+- [ ] Smart routing 實作
+- [ ] ceclaw.yaml 寫入新 schema（code 完成後才動）
 - [ ] 多後端燒機驗證
 
 ### P5
@@ -250,9 +258,28 @@ def route(query, tokens):
 - [ ] 雲端降級完整測試
 - [ ] registerCommand bug（坑#5）
 - [ ] session 持久化（坑#13 長期解法）
+- [ ] `ceclaw logs --follow`（對齊 NemoClaw `--follow` flag，小改動）
 
 ### P6
 - [ ] NemoClaw drop-in 相容性驗證
+- [ ] 指令對照表輸出（已完成草稿，待正式驗證）
+
+### P7（OpenClaw Skill 相容性測試）
+> 原則：測試用 API key、隔離 sandbox、安裝前確認來源
+
+- [ ] A 級 — 無網路需求（優先）
+  - [ ] Self-Improving Agent（112.9k）
+  - [ ] Capability Evolver（35k）
+  - [ ] Nano Pdf（37.7k）
+  - [ ] Obsidian（35.1k）
+  - [ ] Mcporter（28.6k）
+  - [ ] Skill Creator（25.1k）
+  - [ ] Openai Whisper（31.9k）
+  - [ ] Model Usage（20.1k）
+  - [ ] Apple Notes（16.2k）
+  - [ ] Apple Reminders（14.0k）
+- [ ] B 級 — 有網路需求（次優先，15個）
+- [ ] C 級 — 功能補完（25個）
 
 ---
 
@@ -376,5 +403,5 @@ nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free --format=csv
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.3 | 日期: 2026-03-21*  
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.4 | 日期: 2026-03-21*  
 *P1✅ P2✅ B方案✅ P3✅ 燒機進行中 | 下一步: P4 multi-backend | commit: eb17d1c*
