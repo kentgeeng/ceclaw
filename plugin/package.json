@@ -1,5 +1,5 @@
 {
-  "name": "ceclaw-plugin",
+  "name": "ceclaw",
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
@@ -7,12 +7,9 @@
     "build": "tsc",
     "dev": "tsc --watch"
   },
-  "dependencies": {
-    "js-yaml": "^4.1.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0",
-    "@types/js-yaml": "^4.0.0"
+  "dependencies": {},
+  "devDependencies": {},
+  "openclaw": {
+    "extensions": ["./dist/index.js"]
   }
 }

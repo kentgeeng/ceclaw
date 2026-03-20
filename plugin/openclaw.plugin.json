@@ -6,6 +6,7 @@
   "author": "ColdElectric",
   "license": "Apache-2.0",
   "main": "dist/index.js",
+  "configSchema": {},
   "openclaw": {
     "pluginApiVersion": "1"
   }
