@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.3.6  
+**版本**: 0.3.7  
 **作者**: Kent (總工)  
 **日期**: 2026-03-21  
-**狀態**: Alpha — P1~P4 完成，P5 進行中
+**狀態**: Alpha — P1~P5 進行中，GB10 模型切換中
 
 ---
 
@@ -101,8 +101,8 @@ NV 的設計有三道關卡逆著我們走：
 │  ⑤ GB10 推論機（主力）                                     │
 │     - llama.cpp，MiniMax-M2.5-UD-Q3_K_XL，192.168.1.91:8001│
 │                                                             │
-│  ⑥ Ollama（P4，本地快速後端）                              │
-│     - qwen2.5:7b（fast，0.19s）                             │
+│  ⑥ Ollama（P4/P5，本地快速後端）                           │
+│     - qwen3-nothink（fast，Modelfile自訂，支援tools）        │
 │     - qwen3:8b（backup，1.3s，think:false）                 │
 │     - localhost:11434                                        │
 └─────────────────────────────────────────────────────────────┘
@@ -223,10 +223,13 @@ CECLAW Smart Router 依查詢類型自動選擇最佳路徑，用戶無感知。
 | Smart routing | ✅ | 986a7b5 |
 | 關鍵字擴充（辦公室/coding/日文）| ✅ | 0c09325 |
 | 多後端燒機 200 輪 100% | ✅ | 3bac2a5 |
-| Smart Routing 20000 輪 | 🔄 跑中（100%）| - |
+| Smart Routing 20000 輪 | ✅ | - |
 | ceclaw logs --follow | ✅ | 575d488 |
 | ceclaw logs --lines | ✅ | f115bd2 |
-| Chain Audit Log | ⬜ | P5 |
+| P5 關鍵字補充（15個推理詞，三語對齊）| ✅ | 515c59a |
+| P5 Health Check 配置化（15s，/health優先）| ✅ | 65f5d89 |
+| P5 qwen3-nothink E方案（tools schema）| ✅ | 9d213b3/52aa117 |
+| Chain Audit Log | ✅ | 40ac82a |
 
 ### 4.2 驗證記錄
 
@@ -245,7 +248,13 @@ CECLAW Smart Router 依查詢類型自動選擇最佳路徑，用戶無感知。
   - "why is the sky blue" → gb10-llama → 200 ✅（avg 1255ms）
   - 16種問題 routing 100% 正確 ✅
 2026-03-21 多後端燒機 200/200 100%，ollama-fast avg=173ms，gb10-llama avg=1255ms ✅
-2026-03-21 Smart Routing 20000 輪：跑中（3583+ 輪 100%）
+2026-03-21 Smart Routing 20000 輪：20000/20000 100% ✅
+2026-03-21 P5 E方案驗證：
+  - qwen3-nothink + tools：149/149 100%，avg 1227ms ✅
+  - 不亂觸發 tool_calls ✅
+  - TUI 測試：你是誰→ollama-fast，為什麼天空是藍色→gb10-llama ✅
+2026-03-21 P5 Chain Audit Log：200輪後585條記錄，鏈完整 ✅
+2026-03-21 GB10 問題發現：MiniMax 228B reasoning OOM，換模型中
 ```
 
 ---
@@ -356,17 +365,21 @@ inference:
 - [x] Backend health check 更新 ✅
 - [x] Smart routing 實作 ✅（token threshold 移除 + 關鍵字擴充，commit: 0c09325）
 - [x] 多後端燒機驗證 ✅（commit: 3bac2a5，200輪100%）
-- [x] Smart Routing 20000 輪 🔄 跑中（100%）
+- [x] Smart Routing 20000 輪 ✅（20000/20000 100%）
 
 ### Phase 5 — 企業功能（進行中）
 - [x] `ceclaw logs --follow` ✅（commit: 575d488）
-- [x] `ceclaw logs --lines <n>` ✅（commit: f115bd2，對齊 NemoClaw `-n`）
-- [ ] session `--history-limit 20`（坑#13 UX 解法）
-- [ ] Chain Audit Log（hash chain，不跑節點，鏈式審計）
-- [ ] Streaming 完整支援
-- [ ] 雲端降級完整測試
-- [ ] registerCommand bug 修正
-- [ ] session 持久化（坑#13）
+- [x] `ceclaw logs --lines <n>` ✅（commit: f115bd2）
+- [x] 關鍵字補充（15個推理詞，三語對齊）✅（commit: 515c59a）
+- [x] Health Check 配置化（15s timeout，llama.cpp→/health，ollama→/models）✅（commit: 65f5d89）
+- [x] qwen3-nothink E方案（tools schema 偵測，fast路徑換模型）✅（commit: 9d213b3/52aa117）
+- [x] Chain Audit Log（hash chain，flock並發保護，10MB buffer）✅（commit: 40ac82a）
+- [x] Streaming 完整測試 ✅（逐chunk轉發確認）
+- [x] session `--history-limit 20` ✅（鎖定解法：`openclaw tui --history-limit 20`）
+- [ ] 雲端降級完整測試（待 API key）
+- [ ] registerCommand bug ✗（無解：openclaw 不支援此 API）
+- [ ] session 持久化（P8 再議）
+- [ ] 時間閾值方案B（rolling avg，燒機穩定後再做）
 
 ### Phase 6 — 相容性驗證
 - [ ] NemoClaw drop-in 替代驗證報告
@@ -401,7 +414,7 @@ inference:
 
 | 限制 | 說明 | 計劃解法 |
 |------|------|---------|
-| 單後端 | 目前只有 GB10 | Phase 4 多後端 |
+| MiniMax OOM | 228B reasoning 無限生成導致 KV cache 耗盡 | 換 Qwen3.5-122B（進行中）|
 | TUI 底部顯示 | openclaw 寫死 `local/minimax` | 無解，坑#11 |
 | Auto-approve | OpenShell 安全設計 | 無解，坑#12 |
 | Session replay | 歷史累積造成 Connection error | Phase 5，坑#13 |
@@ -412,10 +425,13 @@ inference:
 
 ## 8. 技術債
 
-1. **Session replay**（坑#13）— main session 歷史累積造成 Connection error
+1. **Session replay**（坑#13）— main session 歷史累積造成 Connection error，已鎖定解法
 2. **GB10 自啟** — llama-server 需手動 SSH 啟動
-3. **registerCommand TypeError**
+3. **registerCommand**（坑#5）— openclaw 不支援此 API，無解
 4. **undici EnvHttpProxyAgent** — experimental，長期關注 openclaw 更新
+5. **MiniMax reasoning OOM**（坑#14）— 228B 模型 reasoning 無限生成，換 Qwen3.5-122B 解決
+6. **qwen3-nothink reasoning 殘留** — Modelfile `/nothink` workaround 非完美，偶爾有 reasoning 輸出
+7. **difference between 冗餘** — `difference` 已包含 `difference between`，可清理
 
 ---
 
@@ -423,9 +439,10 @@ inference:
 
 | 模型 | 速度 | 題型識別 | 數學/邏輯 | 程式碼 | 用途 |
 |------|------|---------|---------|--------|------|
-| qwen2.5:7b | ⭐⭐⭐⭐⭐ 0.19s | ⭐⭐ 弱 | ⭐⭐⭐ | ⭐⭐⭐ | fast |
+| qwen3-nothink | ⭐⭐⭐ 1.2s | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | fast（tools支援）|
 | qwen3:8b | ⭐⭐⭐ 1.3s | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | backup |
-| GB10 MiniMax | ⭐⭐⭐⭐ 1.8s | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | main |
+| GB10 MiniMax 228B | ⭐⭐⭐⭐ 33s | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | main（reasoning OOM問題）|
+| Qwen3.5-122B Q4 | ⭐⭐⭐⭐ 預期快 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 未來main（下載中）|
 
 ---
 
@@ -453,4 +470,4 @@ CECLAW   = Secure + Sovereign Inference
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.3.6 | 日期: 2026-03-21*
+*總工: Kent | 版本: 0.3.7 | 日期: 2026-03-21*
