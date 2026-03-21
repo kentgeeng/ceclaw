@@ -146,7 +146,14 @@ openclaw tui
 
 **坑#12（無解）**: OpenShell auto-approve 無 CLI 指令，安全設計。
 
-**坑#13**: openclaw TUI 預設用 `main` session，歷史累積後 replay 造成 Connection error。解法：清空 session 檔案或用 `--session fresh-$(date +%s)` 開新 session。長期解法 P4/P5 處理。
+**坑#13**: openclaw TUI 預設用 `main` session，歷史累積後 replay 造成 Connection error。
+
+**正式解法（已鎖定）**：進 sandbox 後執行
+```bash
+openclaw tui --history-limit 20
+```
+備用：`--session fresh-$(date +%s)` 開新 session，或清空 `/sandbox/.openclaw/agents/main/sessions/`。  
+長期解法：P8 `session 自動管理` 再評估更優雅方案。
 
 ---
 
@@ -444,5 +451,5 @@ nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free --format=csv
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.6 | 日期: 2026-03-21*  
-*P1✅ P2✅ B方案✅ P3✅ P4✅ P5進行中 | 下一步: P5 session管理 | commit: f115bd2*
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.7 | 日期: 2026-03-21*  
+*P1✅ P2✅ B方案✅ P3✅ P4✅ P5進行中 | 下一步: P5 Chain Audit Log | commit: 68c26f9*
