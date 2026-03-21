@@ -36,6 +36,7 @@ class LocalBackend(BaseModel):
     model: Optional[str] = None        # Ollama 單模型用
     options: dict = Field(default_factory=dict)
     use_for: list[str] = Field(default_factory=list)
+    health_check_timeout_ms: int = 15000
 
 class CloudProvider(BaseModel):
     provider: str                      # groq | anthropic | openai | nvidia
