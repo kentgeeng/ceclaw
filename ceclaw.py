@@ -95,6 +95,7 @@ def cmd_connect():
     subprocess.run(["openshell", "sandbox", "connect", SANDBOX_NAME])
 
 def cmd_logs():
+    # 支援 ceclaw logs 和 ceclaw logs --follow（行為相同，對齊 NemoClaw 格式）
     log = os.path.expanduser("~/.ceclaw/router.log")
     print(f"Tailing {log}  (Ctrl+C to stop)")
     try:
@@ -214,6 +215,10 @@ if __name__ == "__main__":
         print_help()
         sys.exit(0)
     cmd = sys.argv[1]
+    # 支援 ceclaw logs --follow
+    if cmd == "logs" and len(sys.argv) > 2 and sys.argv[2] == "--follow":
+        cmd_logs()
+        sys.exit(0)
     if cmd not in COMMANDS:
         print(f"Unknown command: {cmd}")
         print_help()
