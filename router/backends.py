@@ -16,6 +16,7 @@ REASONING_KEYWORDS = {
     # 中文 — 推理/分析
     "證明", "推導", "最優解", "為什麼", "分析", "比較", "策略",
     "原理", "推理", "邏輯", "解釋", "評估", "判斷", "建議",
+    "差異", "總結", "實作", "系統設計", "架構設計", "怎麼做",
     # 中文 — 數學/科學
     "數學", "計算", "解題", "公式", "定理", "方程", "微積分",
     "統計", "機率", "線性代數", "幾何", "物理", "化學",
@@ -24,14 +25,15 @@ REASONING_KEYWORDS = {
     "市場", "競爭", "風險", "合約", "法律", "規範", "流程",
     "會議", "簡報", "摘要", "結論", "決策", "規劃", "目標",
     # 中文 — 程式/技術
-    "演算法", "複雜度", "架構", "設計", "優化", "重構",
+    "演算法", "複雜度", "架構", "優化", "重構",
     "除錯", "效能", "安全", "資料庫", "API", "部署", "測試",
     "程式", "程式碼", "函數", "類別", "繼承", "多型",
     # English — reasoning/analysis
     "prove", "derive", "optimal", "why", "analyze", "compare",
     "strategy", "reasoning", "explain", "how to", "solve",
-    "evaluate", "assess", "recommend", "justify", "design",
+    "evaluate", "assess", "recommend", "justify",
     "tradeoff", "trade-off", "pros and cons", "difference between",
+    "system design", "calculate", "difference", "summarize",
     # English — math/science
     "algorithm", "complexity", "equation", "formula", "theorem",
     "calculus", "statistics", "probability", "matrix", "proof",
@@ -46,7 +48,8 @@ REASONING_KEYWORDS = {
     "concurrency", "async", "memory leak", "race condition",
     # 日文
     "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
-    "アルゴリズム", "設計", "最適化",
+    "アルゴリズム", "システム設計", "最適化",
+    "実装", "違い", "まとめ",
 }
 
 def needs_reasoning(query: str) -> bool:
