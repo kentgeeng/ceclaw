@@ -37,6 +37,15 @@ def _extract_query_info(body: bytes) -> tuple[str, int]:
         return "", 0
 
 
+def _has_tools_in_body(body: bytes) -> bool:
+    """偵測 request body 是否含有 tools schema"""
+    try:
+        data = json.loads(body)
+        return bool(data.get("tools"))
+    except Exception:
+        return False
+
+
 async def _try_local(
     config: CECLAWConfig,
     path: str,
@@ -141,14 +150,19 @@ async def handle_inference(
 
     strategy = config.inference.strategy
     query, tokens = _extract_query_info(body)
+    has_tools = _has_tools_in_body(body)
     resp: Optional[httpx.Response] = None
     request_id = audit.new_request_id()
     backend_name = "unknown"
     audit_status = "ok"
 
     # 本地推論
+    # 含 tool schema 時跳過 smart routing，直接走強模型（qwen2.5:7b 遇到 tools 會失效）
     if strategy in ("local-first", "local-only", "smart-routing"):
-        resp = await _try_local(config, path, body, headers, query, tokens)
+        if strategy == "smart-routing" and has_tools:
+            resp = await _try_local(config, path, body, headers, query="", tokens=0)
+        else:
+            resp = await _try_local(config, path, body, headers, query, tokens)
         if resp is None:
             audit_status = "timeout"  # 本地失敗，先標記，後續若雲端成功會覆蓋
 
