@@ -53,6 +53,16 @@ async def _try_local(
     if not backend:
         return None
 
+    # Ollama 需要用本地 model 名稱，替換 request body 裡的 model 欄位
+    if backend.type == "ollama" and backend.model:
+        try:
+            import json as _json
+            data = _json.loads(body)
+            data["model"] = backend.model
+            body = _json.dumps(data).encode()
+        except Exception:
+            pass
+
     clean_path = path.lstrip("/")
     clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path
     url = f"{backend.base_url.rstrip('/')}/{clean_path}"
