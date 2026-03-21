@@ -146,6 +146,8 @@ openclaw tui
 
 **坑#12（無解）**: OpenShell auto-approve 無 CLI 指令，安全設計。
 
+**坑#14（記錄）**: MiniMax 228B 某些複雜問題 reasoning 吃完 max_tokens，content 為空。TUI 實際使用不設 max_tokens 不影響。待 llama.cpp 支援 `reasoning_effort` 後評估。
+
 **坑#13**: openclaw TUI 預設用 `main` session，歷史累積後 replay 造成 Connection error。
 
 **正式解法（已鎖定）**：進 sandbox 後執行
@@ -451,5 +453,5 @@ nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free --format=csv
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.7 | 日期: 2026-03-21*  
-*P1✅ P2✅ B方案✅ P3✅ P4✅ P5進行中 | 下一步: P5 Chain Audit Log | commit: 68c26f9*
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.8 | 日期: 2026-03-21*  
+*P1✅ P2✅ B方案✅ P3✅ P4✅ P5進行中 | 下一步: P5 registerCommand / 文件更新 | commit: 52aa117*
