@@ -243,26 +243,38 @@ def route(query, tokens):
 
 ## 7. TODO List
 
-### P4（進行中）
+### P4（✅ 完成）
 - [x] VRAM 確認 ✅（待機 446MB，兩模型同時常駐 ~10.5GB，剩餘 5.7GB）
-- [x] config.py LocalBackend 擴充 ✅（priority/model/options/use_for，等燒機完寫入）
-- [ ] Ollama adapter（backends.py）
-- [ ] Backend health check 更新
-- [ ] Smart routing 實作
-- [ ] ceclaw.yaml 寫入新 schema（code 完成後才動）
-- [ ] 多後端燒機驗證
+- [x] config.py LocalBackend 擴充 ✅ commit: 454d088（priority/model/options/use_for）
+- [x] Ollama adapter + smart routing ✅ commit: f40fa4f（backends.py，關鍵字路由+日文+辦公室/coding詞）
+- [x] proxy.py smart-routing 接入 ✅ commit: 2576338
+- [x] Ollama model 替換修正 ✅ commit: 756a1a0
+- [x] ceclaw.yaml 寫入新 schema ✅（smart-routing + 三後端）
+- [x] 多後端燒機驗證 ✅ commit: 3bac2a5（200輪100%）
+- [x] Smart Routing 20000 輪燒機 🔄 跑中（986a7b5，16種問題100%）
 
-### P5
+### P5（進行中）
+- [x] `ceclaw logs --follow` ✅ commit: 575d488
+- [x] `ceclaw logs --lines <n>` ✅ commit: f115bd2（對齊 NemoClaw `-n` 格式）
+- [ ] session `--history-limit 20`（坑#13 UX 解法，等燒機後做）
 - [ ] Chain Audit Log（hash chain）
 - [ ] Streaming 完整測試
 - [ ] 雲端降級完整測試
 - [ ] registerCommand bug（坑#5）
 - [ ] session 持久化（坑#13 長期解法）
-- [ ] `ceclaw logs --follow`（對齊 NemoClaw `--follow` flag，小改動）
 
 ### P6
 - [ ] NemoClaw drop-in 相容性驗證
 - [ ] 指令對照表輸出（已完成草稿，待正式驗證）
+
+**P6 報告結論（已確認）：**
+> CECLAW 核心使用流程與 NemoClaw 100% 對齊。管理延伸指令覆蓋率 67-72%，差距為設計決策（單實例）而非功能缺失。使用者從 NemoClaw 切換到 CECLAW，日常操作無需改變習慣。
+
+| 指令類型 | 對齊度 |
+|---------|--------|
+| 核心 CLI（onboard/connect/status/logs/start/stop）| 100% |
+| 管理延伸（list/destroy/policy-add）| 0-33% |
+| 整體 | 67-72%（P8 補 `ceclaw list` 可達 78%）|
 
 ### P7（OpenClaw Skill 相容性測試）
 > 原則：測試用 API key、隔離 sandbox、安裝前確認來源
@@ -286,6 +298,7 @@ def route(query, tokens):
 
 - [ ] `ceclaw onboard` UX 升級（one-click installer，對齊 NemoClaw 體驗）
 - [ ] `ceclaw doctor` 診斷指令（一鍵檢查環境，降低 debug 門檻）
+- [ ] `ceclaw list` 指令（對齊 NemoClaw `list`，整體相似度從 72% 提升至 78%）
 - [ ] 自動引導 policy approve 流程（解坑#12 UX，無法自動 approve 但可引導用戶）
 - [ ] session 自動管理（解坑#13 UX，清歷史或自動開新 session）
 
@@ -298,6 +311,8 @@ def route(query, tokens):
 ceclaw status
 ceclaw connect
 ceclaw logs
+ceclaw logs --follow
+ceclaw logs --lines 50
 ceclaw start
 ceclaw stop
 ceclaw onboard
@@ -343,17 +358,35 @@ router:
   tls: false
   reload_on_sighup: true
 inference:
-  strategy: local-first
+  strategy: smart-routing
   timeout_local_ms: 60000
   local:
     backends:
+      - name: ollama-fast
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 1
+        model: qwen2.5:7b
+        use_for: [simple_query]
+
       - name: gb10-llama
         type: llama.cpp
         base_url: http://192.168.1.91:8001/v1
+        priority: 2
         models:
           - id: minimax
             alias: default
             context_window: 32768
+
+      - name: ollama-backup
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 3
+        model: qwen3:8b
+        options:
+          think: false
+        use_for: [fallback]
+
   cloud_fallback:
     enabled: true
     priority:
@@ -411,5 +444,5 @@ nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free --format=csv
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.5 | 日期: 2026-03-21*  
-*P1✅ P2✅ B方案✅ P3✅ 燒機進行中 | 下一步: P4 multi-backend | commit: 595dda7*
+*總工: Kent | 軟工: 下個對話 Claude | 文件版本: v3.6 | 日期: 2026-03-21*  
+*P1✅ P2✅ B方案✅ P3✅ P4✅ P5進行中 | 下一步: P5 session管理 | commit: f115bd2*

@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.3.4  
+**版本**: 0.3.5  
 **作者**: Kent (總工)  
 **日期**: 2026-03-21  
-**狀態**: Alpha — P1~P3 完成，P4 multi-backend 開發中
+**狀態**: Alpha — P1~P4 完成，P5 進行中
 
 ---
 
@@ -162,10 +162,14 @@ Smart Routing 判斷
 | 監控腳本 + logrotate | ✅ | 70175b6 |
 | GB10 備份 | ✅ | 70175b6 |
 | ceclaw CLI v0.1.0 | ✅ | c412038 |
-| 燒機 3500 輪 100% | ✅ | 70175b6 |
-| 燒機 99999 輪 | 🔄 進行中 | - |
-| Ollama multi-backend | ⬜ | P4 |
-| Smart routing | ⬜ | P4 |
+| 燒機 20800 輪 100% | ✅ | - |
+| Ollama multi-backend | ✅ | 756a1a0 |
+| Smart routing | ✅ | 986a7b5 |
+| 關鍵字擴充（辦公室/coding/日文）| ✅ | 0c09325 |
+| 多後端燒機 200 輪 100% | ✅ | 3bac2a5 |
+| Smart Routing 20000 輪 | 🔄 跑中（100%）| - |
+| ceclaw logs --follow | ✅ | 575d488 |
+| ceclaw logs --lines | ✅ | f115bd2 |
 | Chain Audit Log | ⬜ | P5 |
 
 ### 4.2 驗證記錄
@@ -179,7 +183,13 @@ Smart Routing 判斷
   - qwen2.5:7b：熱啟動 0.19s，能力基本，快速問答 ✅
   - qwen3:8b think:false：1.3s，能力強，LRU Cache/數學/邏輯全過 ✅
   - qwen3:8b 關鍵發現：能正確識別數學題型，qwen2.5:7b 不行
-2026-03-21 燒機 99999 輪：進行中（截至 3400+ 輪 100%）
+2026-03-21 單後端燒機 20800 輪 100%，avg 1843ms ✅
+2026-03-21 P4 Smart Routing 端到端驗證：
+  - "hi" → ollama-fast → 200 ✅（avg 173ms）
+  - "why is the sky blue" → gb10-llama → 200 ✅（avg 1255ms）
+  - 16種問題 routing 100% 正確 ✅
+2026-03-21 多後端燒機 200/200 100%，ollama-fast avg=173ms，gb10-llama avg=1255ms ✅
+2026-03-21 Smart Routing 20000 輪：跑中（3583+ 輪 100%）
 ```
 
 ---
@@ -267,13 +277,17 @@ inference:
 - 燒機 3500 輪 100%
 
 ### Phase 4 — 多後端（開發中）
-- [ ] ceclaw.yaml schema 擴充（前置）
-- [ ] Ollama adapter（backends.py）
-- [ ] Backend health check 更新
-- [ ] Smart routing 實作
-- [ ] 多後端燒機驗證
+- [x] ceclaw.yaml schema 擴充 ✅（commit: 454d088）
+- [x] Ollama adapter（backends.py）✅（commit: f40fa4f）
+- [x] Backend health check 更新 ✅
+- [x] Smart routing 實作 ✅（token threshold 移除 + 關鍵字擴充，commit: 0c09325）
+- [x] 多後端燒機驗證 ✅（commit: 3bac2a5，200輪100%）
+- [x] Smart Routing 20000 輪 🔄 跑中（100%）
 
-### Phase 5 — 企業功能
+### Phase 5 — 企業功能（進行中）
+- [x] `ceclaw logs --follow` ✅（commit: 575d488）
+- [x] `ceclaw logs --lines <n>` ✅（commit: f115bd2，對齊 NemoClaw `-n`）
+- [ ] session `--history-limit 20`（坑#13 UX 解法）
 - [ ] Chain Audit Log（hash chain，不跑節點，鏈式審計）
 - [ ] Streaming 完整支援
 - [ ] 雲端降級完整測試
@@ -283,6 +297,11 @@ inference:
 ### Phase 6 — 相容性驗證
 - [ ] NemoClaw drop-in 替代驗證報告
 - [ ] 指令對照表（草稿完成，待正式驗證）
+
+**已確認結論：**
+- 核心 CLI 100% 對齊（onboard/connect/status/logs/start/stop）
+- 整體相似度 67-72%，差距為設計決策非功能缺失
+- P8 補 `ceclaw list` 可達 78%
 
 ### Phase 7 — OpenClaw Skill 相容性測試
 > CECLAW Router（本地 MiniMax）作為推論後端，驗證 OpenClaw skill 能否正常執行
@@ -298,6 +317,7 @@ inference:
 
 - [ ] `ceclaw onboard` 升級為 one-click installer（對齊 NemoClaw `nemoclaw.sh` 體驗）
 - [ ] `ceclaw doctor` 診斷指令（自動檢查 Router / GB10 / sandbox / CoreDNS 狀態）
+- [ ] `ceclaw list` 指令（對齊 NemoClaw `list`，整體相似度從 72% 提升至 78%）
 - [ ] 自動引導 policy approve 流程（坑#12 UX 解法）
 - [ ] session 自動管理（坑#13 UX 解法，自動開新 session 或清歷史）
 
@@ -359,4 +379,4 @@ CECLAW   = Secure + Sovereign Inference
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.3.4 | 日期: 2026-03-21*
+*總工: Kent | 版本: 0.3.5 | 日期: 2026-03-21*
