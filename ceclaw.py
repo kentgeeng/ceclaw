@@ -94,14 +94,18 @@ def cmd_connect():
     print(f"Connecting to sandbox: {SANDBOX_NAME}")
     subprocess.run(["openshell", "sandbox", "connect", SANDBOX_NAME])
 
-def cmd_logs():
-    # 支援 ceclaw logs 和 ceclaw logs --follow（行為相同，對齊 NemoClaw 格式）
+def cmd_logs(lines=None):
+    # 支援 ceclaw logs / --follow / --lines <n>（對齊 NemoClaw 格式）
     log = os.path.expanduser("~/.ceclaw/router.log")
-    print(f"Tailing {log}  (Ctrl+C to stop)")
-    try:
-        subprocess.run(["tail", "-f", log])
-    except KeyboardInterrupt:
-        print()
+    if lines:
+        print(f"Last {lines} lines of {log}")
+        subprocess.run(["tail", f"-{lines}", log])
+    else:
+        print(f"Tailing {log}  (Ctrl+C to stop)")
+        try:
+            subprocess.run(["tail", "-f", log])
+        except KeyboardInterrupt:
+            print()
 
 def cmd_start():
     try:
@@ -215,10 +219,17 @@ if __name__ == "__main__":
         print_help()
         sys.exit(0)
     cmd = sys.argv[1]
-    # 支援 ceclaw logs --follow
-    if cmd == "logs" and len(sys.argv) > 2 and sys.argv[2] == "--follow":
-        cmd_logs()
-        sys.exit(0)
+    # 支援 ceclaw logs --follow / --lines <n>
+    if cmd == "logs" and len(sys.argv) > 2:
+        if sys.argv[2] == "--follow":
+            cmd_logs()
+            sys.exit(0)
+        elif sys.argv[2] == "--lines" and len(sys.argv) > 3:
+            cmd_logs(lines=sys.argv[3])
+            sys.exit(0)
+        elif sys.argv[2].startswith("-n") and len(sys.argv) > 3:
+            cmd_logs(lines=sys.argv[3])
+            sys.exit(0)
     if cmd not in COMMANDS:
         print(f"Unknown command: {cmd}")
         print_help()
