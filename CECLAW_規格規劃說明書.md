@@ -1,7 +1,7 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.3.5  
+**版本**: 0.3.6  
 **作者**: Kent (總工)  
 **日期**: 2026-03-21  
 **狀態**: Alpha — P1~P4 完成，P5 進行中
@@ -140,6 +140,62 @@ Smart Routing 判斷
          → 雲端 fallback（Groq → Anthropic → OpenAI → NV）
 ```
 
+### 3.4 商業部署架構（三層推論）
+
+CECLAW 支援三層推論架構，依客戶需求彈性部署：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   客戶端 CECLAW                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  Tier 1: 本地小伺服器                                    │
+│  ├─ 部署：客戶端小型伺服器                               │
+│  ├─ 模型：Ollama / 小型 GGUF                            │
+│  ├─ 用途：快速反應 (< 0.5s)                              │
+│  ├─ 範例：問候、計算、翻譯、摘要                         │
+│  └─ 價值：零延遲、資料不離開設備                         │
+│                                                         │
+│           ↓ Smart Routing ↓                             │
+│                                                         │
+│  Tier 2: GPU 推論伺服器                                  │
+│  ├─ 部署：客戶自建 GPU 伺服器 或 租用算力                │
+│  │        （如 ColdElectric AI CDC）                    │
+│  ├─ 模型：大型 GPU 叢集（llama.cpp / vLLM）             │
+│  ├─ 用途：複雜推理、長文分析 (1-3s)                      │
+│  ├─ 範例：為什麼、分析、系統設計、研究                   │
+│  └─ 價值：深度運算、資料不出自家機房                     │
+│                                                         │
+│           ↓ Cloud Fallback ↓                            │
+│                                                         │
+│  Tier 3: 任意模型 API                                    │
+│  ├─ 部署：雲端                                           │
+│  ├─ 模型：OpenAI / Anthropic / Groq / NVIDIA            │
+│  ├─ 用途：最強能力、最新模型 (2-10s)                     │
+│  ├─ 範例：特殊任務、尖峰備援                             │
+│  └─ 價值：能力無上限、按需付費                           │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**部署彈性：**
+- 可只部署 Tier 1（純本地）
+- 可 Tier 1 + Tier 2（本地 + GPU 伺服器）
+- 可三層全開（完整智慧路由）
+
+**自動切換：**
+CECLAW Smart Router 依查詢類型自動選擇最佳路徑，用戶無感知。
+
+**商業價值對應：**
+
+| 客戶類型 | 部署模式 | 價值主張 |
+|----------|----------|----------|
+| 企業用戶 | Tier 1 + 2 + 3 | 資料主權 + 複雜能力 + 無上限備援 |
+| 學術單位 | Tier 1 + 2 | 資料不出內網 + 經費可控 |
+| 高端個人 | Tier 1 + 3 | 快速本地 + 雲端最強能力 |
+
+> 一個系統，三層推論，依需求彈性部署，自動選擇最佳路徑。
+
 ---
 
 ## 4. 已完成功能
@@ -196,7 +252,7 @@ Smart Routing 判斷
 
 ## 5. 設定檔規格
 
-### 5.1 ceclaw.yaml 現有規格
+### 5.1 ceclaw.yaml 現有規格（P4 後）
 
 ```yaml
 version: 1
@@ -206,17 +262,35 @@ router:
   tls: false
   reload_on_sighup: true
 inference:
-  strategy: local-first
+  strategy: smart-routing
   timeout_local_ms: 60000
   local:
     backends:
+      - name: ollama-fast
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 1
+        model: qwen2.5:7b
+        use_for: [simple_query]
+
       - name: gb10-llama
         type: llama.cpp
         base_url: http://192.168.1.91:8001/v1
+        priority: 2
         models:
           - id: minimax
             alias: default
             context_window: 32768
+
+      - name: ollama-backup
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 3
+        model: qwen3:8b
+        options:
+          think: false
+        use_for: [fallback]
+
   cloud_fallback:
     enabled: true
     priority:
@@ -234,7 +308,7 @@ inference:
         models: [nvidia/nemotron-3-super-120b-a12b]
 ```
 
-### 5.2 ceclaw.yaml P4 擴充規格（待實作）
+### 5.2 ceclaw.yaml P4 已實作規格
 
 ```yaml
 inference:
@@ -276,7 +350,7 @@ inference:
 - 監控, logrotate, 備份
 - 燒機 3500 輪 100%
 
-### Phase 4 — 多後端（開發中）
+### Phase 4 — 多後端（✅ 完成）
 - [x] ceclaw.yaml schema 擴充 ✅（commit: 454d088）
 - [x] Ollama adapter（backends.py）✅（commit: f40fa4f）
 - [x] Backend health check 更新 ✅
@@ -379,4 +453,4 @@ CECLAW   = Secure + Sovereign Inference
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.3.5 | 日期: 2026-03-21*
+*總工: Kent | 版本: 0.3.6 | 日期: 2026-03-21*
