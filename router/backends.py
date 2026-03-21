@@ -13,15 +13,40 @@ logger = logging.getLogger("ceclaw.backends")
 _healthy: dict[str, bool] = {}
 
 REASONING_KEYWORDS = {
-    # 中文
-    "證明", "推導", "如何逃脫", "最優解",
-    "為什麼", "分析", "比較", "策略",
-    # English
-    "prove", "derive", "escape", "optimal",
-    "why", "analyze", "compare", "strategy",
-    "reasoning", "explain", "how to", "solve",
+    # 中文 — 推理/分析
+    "證明", "推導", "最優解", "為什麼", "分析", "比較", "策略",
+    "原理", "推理", "邏輯", "解釋", "評估", "判斷", "建議",
+    # 中文 — 數學/科學
+    "數學", "計算", "解題", "公式", "定理", "方程", "微積分",
+    "統計", "機率", "線性代數", "幾何", "物理", "化學",
+    # 中文 — 辦公室/商業
+    "報告", "提案", "企劃", "預算", "財務", "成本", "效益",
+    "市場", "競爭", "風險", "合約", "法律", "規範", "流程",
+    "會議", "簡報", "摘要", "結論", "決策", "規劃", "目標",
+    # 中文 — 程式/技術
+    "演算法", "複雜度", "架構", "設計", "優化", "重構",
+    "除錯", "效能", "安全", "資料庫", "API", "部署", "測試",
+    "程式", "程式碼", "函數", "類別", "繼承", "多型",
+    # English — reasoning/analysis
+    "prove", "derive", "optimal", "why", "analyze", "compare",
+    "strategy", "reasoning", "explain", "how to", "solve",
+    "evaluate", "assess", "recommend", "justify", "design",
+    "tradeoff", "trade-off", "pros and cons", "difference between",
+    # English — math/science
+    "algorithm", "complexity", "equation", "formula", "theorem",
+    "calculus", "statistics", "probability", "matrix", "proof",
+    # English — office/business
+    "report", "proposal", "budget", "forecast", "revenue",
+    "contract", "compliance", "risk", "stakeholder", "roadmap",
+    "summary", "conclusion", "decision", "planning", "objective",
+    # English — coding/tech
+    "architecture", "refactor", "optimize", "debug", "performance",
+    "security", "database", "deploy", "testing", "implement",
+    "best practice", "design pattern", "scalability", "bottleneck",
+    "concurrency", "async", "memory leak", "race condition",
     # 日文
     "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
+    "アルゴリズム", "設計", "最適化",
 }
 
 def needs_reasoning(query: str) -> bool:
@@ -31,22 +56,25 @@ def needs_reasoning(query: str) -> bool:
 def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Optional[LocalBackend]:
     """
     Smart routing：
-    - tokens > 80 → gb10-llama（長問題不賭關鍵字）
-    - tokens <= 80 且無推理關鍵字 → ollama-fast
-    - 否則 → gb10-llama
+    - 空字串（解析失敗）→ gb10-llama（保守）
+    - 有推理關鍵字 → gb10-llama
+    - 否則 → ollama-fast
     - gb10-llama 掛 → ollama-backup
     - 全掛 → None（走雲端）
     """
     backends_by_name = {b.name: b for b in config.inference.local.backends}
 
-    if tokens <= 80 and not needs_reasoning(query):
+    if not query or needs_reasoning(query):
+        main = backends_by_name.get("gb10-llama")
+        if main and _healthy.get("gb10-llama", False):
+            return main
+    else:
         fast = backends_by_name.get("ollama-fast")
         if fast and _healthy.get("ollama-fast", False):
             return fast
-
-    main = backends_by_name.get("gb10-llama")
-    if main and _healthy.get("gb10-llama", False):
-        return main
+        main = backends_by_name.get("gb10-llama")
+        if main and _healthy.get("gb10-llama", False):
+            return main
 
     backup = backends_by_name.get("ollama-backup")
     if backup and _healthy.get("ollama-backup", False):
