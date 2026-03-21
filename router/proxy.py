@@ -10,6 +10,7 @@ from fastapi import Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from .config import CECLAWConfig, LocalBackend, CloudProvider
 from .backends import get_healthy_backend, select_backend, check_all
+from . import audit
 
 logger = logging.getLogger("ceclaw.proxy")
 
@@ -53,7 +54,6 @@ async def _try_local(
     if not backend:
         return None
 
-    # Ollama 需要用本地 model 名稱，替換 request body 裡的 model 欄位
     if backend.type == "ollama" and backend.model:
         try:
             import json as _json
@@ -71,6 +71,7 @@ async def _try_local(
     try:
         client = httpx.AsyncClient(timeout=timeout)
         resp = await client.post(url, content=body, headers=headers)
+        resp._ceclaw_backend = backend.name
         if resp.status_code in (200, 201):
             logger.info(f"[local] {backend.name} → {resp.status_code}")
             return resp
@@ -114,6 +115,7 @@ async def _try_cloud(
         try:
             client = httpx.AsyncClient(timeout=60.0)
             resp = await client.post(url, content=body, headers=cloud_headers)
+            resp._ceclaw_backend = f"cloud:{provider.provider}"
             if resp.status_code in (200, 201):
                 logger.info(f"[cloud] {provider.provider} → {resp.status_code}")
                 return resp
@@ -140,31 +142,68 @@ async def handle_inference(
     strategy = config.inference.strategy
     query, tokens = _extract_query_info(body)
     resp: Optional[httpx.Response] = None
+    request_id = audit.new_request_id()
+    backend_name = "unknown"
+    audit_status = "ok"
 
+    # 本地推論
     if strategy in ("local-first", "local-only", "smart-routing"):
         resp = await _try_local(config, path, body, headers, query, tokens)
+        if resp is None:
+            audit_status = "timeout"  # 本地失敗，先標記，後續若雲端成功會覆蓋
 
     if resp is None and strategy == "local-only":
+        audit.append_entry(backend_name, query, "", "error", request_id)
         return JSONResponse(
             {"error": {"message": "No local backend available", "type": "ceclaw_error"}},
             status_code=503,
         )
 
+    # 雲端 fallback
     if resp is None and strategy in ("local-first", "cloud-only", "smart-routing"):
         resp = await _try_cloud(config, path, body, headers)
+        if resp is not None:
+            audit_status = "ok"  # 雲端成功，覆蓋前面的 timeout 標記
 
     if resp is None:
+        audit.append_entry(backend_name, query, "", "error", request_id)
         return JSONResponse(
             {"error": {"message": "All backends unavailable", "type": "ceclaw_error"}},
             status_code=503,
         )
 
+    backend_name = getattr(resp, "_ceclaw_backend", "unknown")
+
     if "text/event-stream" in resp.headers.get("content-type", ""):
+        async def stream_with_audit():
+            buf = b""
+            status = "ok"
+            try:
+                async for chunk in resp.aiter_bytes():
+                    yield chunk
+                    if len(buf) < audit.MAX_BUFFER:
+                        buf += chunk
+            except Exception:
+                status = "error"
+                raise
+            finally:
+                response_text = buf.decode(errors="replace")
+                audit.append_entry(backend_name, query, response_text, status, request_id)
+
         return StreamingResponse(
-            _stream_response(resp),
+            stream_with_audit(),
             status_code=resp.status_code,
             media_type="text/event-stream",
-            headers={"X-CECLAW-Backend": resp.headers.get("X-Backend", "unknown")},
+            headers={"X-CECLAW-Backend": backend_name},
         )
 
-    return JSONResponse(resp.json(), status_code=resp.status_code)
+    # 非 streaming
+    resp_json = resp.json()
+    response_text = ""
+    try:
+        response_text = resp_json["choices"][0]["message"]["content"]
+    except Exception:
+        response_text = json.dumps(resp_json)[:100]
+
+    audit.append_entry(backend_name, query, response_text, audit_status, request_id)
+    return JSONResponse(resp_json, status_code=resp.status_code)
