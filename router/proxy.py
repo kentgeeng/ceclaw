@@ -20,6 +20,35 @@ async def _stream_response(response: httpx.Response) -> AsyncIterator[bytes]:
         yield chunk
 
 
+def rewrite_messages(body: bytes) -> bytes:
+    """rewrite openclaw non-standard roles for Qwen3.5 compatibility"""
+    try:
+        data = json.loads(body)
+        messages = data.get("messages")
+        if not messages:
+            return body
+        for msg in messages:
+            if msg.get("role") == "developer":
+                msg["role"] = "system"
+            elif msg.get("role") == "toolResult":
+                msg["role"] = "tool"
+        first_sys_idx = None
+        to_remove = []
+        for i, msg in enumerate(messages):
+            if msg.get("role") == "system":
+                if first_sys_idx is None:
+                    first_sys_idx = i
+                else:
+                    messages[first_sys_idx]["content"] += "\n\n" + msg.get("content", "")
+                    to_remove.append(i)
+        for i in reversed(to_remove):
+            messages.pop(i)
+        data["messages"] = messages
+        return json.dumps(data, ensure_ascii=False).encode()
+    except Exception:
+        return body
+
+
 def _extract_query_info(body: bytes) -> tuple[str, int]:
     """從 request body 取出 query 文字和 token 估算"""
     try:
@@ -143,6 +172,7 @@ async def handle_inference(
     request: Request,
 ) -> StreamingResponse | JSONResponse:
     body = await request.body()
+    body = rewrite_messages(body)
     headers = {
         "Content-Type": request.headers.get("Content-Type", "application/json"),
         "Accept": request.headers.get("Accept", "*/*"),
