@@ -53,7 +53,7 @@ for i in $(seq 1 $ROUNDS); do
         EXPECTED="gb10-llama"
     fi
 
-    PAYLOAD="{\"model\":\"minimax\",\"messages\":[{\"role\":\"user\",\"content\":\"${Q}\"}],\"max_tokens\":30}"
+    PAYLOAD="{\"model\":\"minimax\",\"messages\":[{\"role\":\"user\",\"content\":\"${Q}\"}],\"max_tokens\":200}"
 
     t0=$(date +%s%3N)
     RESP=$(curl -s -X POST "$ENDPOINT" \
