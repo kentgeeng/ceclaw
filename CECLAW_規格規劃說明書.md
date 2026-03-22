@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.3.7  
+**版本**: 0.3.8  
 **作者**: Kent (總工)  
-**日期**: 2026-03-21  
-**狀態**: Alpha — P1~P5 進行中，GB10 模型切換中
+**日期**: 2026-03-22  
+**狀態**: Alpha — P1~P5 完成，P0 修復中，GB10 模型切換完成
 
 ---
 
@@ -14,7 +14,7 @@
 
 NVIDIA 在 GTC 2026 發布 NemoClaw + OpenShell，定位為企業 AI Agent 安全執行框架。其核心設計假設是：**推論走 NVIDIA Cloud**。
 
-ColdElectric 擁有自建 GPU 推論基礎設施（GB10 機器，MiniMax-M2.5），需求：
+ColdElectric 擁有自建 GPU 推論基礎設施（GB10 機器，DGX Spark），需求：
 - 資料不出內網
 - 推論成本歸零
 - 不依賴 NVIDIA Cloud
@@ -30,6 +30,16 @@ NV 的設計有三道關卡逆著我們走：
 | `inference.local` DNS | 鎖死指向 NV Cloud | 改用 `host.openshell.internal` |
 | OpenShell Proxy | deny-all | network_policies + allowed_ips + binaries |
 | K3s 跨網段 | 網路隔離 | iptables FORWARD + MASQUERADE |
+
+### 1.3 POC vs 量產定位
+
+| 項目 | POC（當前）| 量產（未來）|
+|------|-----------|-----------|
+| 推論框架 | llama.cpp | vLLM（等 Blackwell 支援成熟）|
+| 模型精度 | Q4_K_M GGUF | FP8/NVFP4 滿級 |
+| 模型大小 | 47-70GB | 依需求選擇 |
+| 並發 | 2 slots | 數十~數百 |
+| 目標 | 驗證架構 + 穩定 | 企業生產 |
 
 ---
 
@@ -48,29 +58,11 @@ NV 的設計有三道關卡逆著我們走：
 | 模型選擇 | NV 指定 | 任意 GGUF |
 | CLI 入口 | `nemoclaw` | `ceclaw`（對齊設計）|
 | **審計記錄** | 無 | **Chain Audit Log（P5）** |
-| **多後端** | 無 | **P4：Ollama + vLLM + SGLang** |
+| **多後端** | 無 | **P4：Ollama + llama.cpp** |
 
 **核心差異：**
 > NemoClaw = Secure Execution（安全執行）  
 > CECLAW = Secure + Sovereign Inference（安全 + 主權推論）
-
-### 2.2 vs Ollama
-
-| 項目 | Ollama | CECLAW |
-|------|--------|--------|
-| 沙盒隔離 | 無 | OpenShell ✅ |
-| 網路控制 | 無 | YAML policy + iptables |
-| 雲端備援 | 無 | 4 個雲端 provider |
-| 適用場景 | 單機測試 | 企業生產環境 |
-
-### 2.3 vs 原生 OpenAI SDK
-
-| 項目 | 原生 SDK | CECLAW |
-|------|---------|--------|
-| 沙盒隔離 | 無 | OpenShell ✅ |
-| 資料出內網 | 是 | 否 |
-| 本地推論 | 否 | 是 |
-| 多 provider | 否 | 是 |
 
 ---
 
@@ -84,26 +76,27 @@ NV 的設計有三道關卡逆著我們走：
 ├─────────────────────────────────────────────────────────────┤
 │  ① CECLAW Inference Router (ceclaw/router/)                │
 │     - FastAPI + uvicorn，監聽 0.0.0.0:8000                 │
-│     - Smart routing（P4）：fast → main → backup → cloud    │
+│     - Smart routing：fast → main → backup → cloud          │
 │     - systemd 管理，開機自啟                                │
 │                                                             │
 │  ② CECLAW Plugin (ceclaw/plugin/)                          │
 │     - TypeScript, openclaw plugin v1                        │
-│     - registerCommand 暫時 disabled（P5 待修）              │
+│     - registerCommand 無解（openclaw 不支援此 API）          │
 │                                                             │
 │  ③ Sandbox Image (ghcr.io/kentgeeng/ceclaw-sandbox)        │
 │     - B方案 5 個 bug 已全部修正                             │
-│     - ceclaw-start.sh 自動設定                              │
 │                                                             │
 │  ④ OpenShell Policy                                        │
 │     - network_policies + allowed_ips + binaries             │
 │                                                             │
-│  ⑤ GB10 推論機（主力）                                     │
-│     - llama.cpp，MiniMax-M2.5-UD-Q3_K_XL，192.168.1.91:8001│
+│  ⑤ GB10 推論機（主力）✅ 已切換                             │
+│     - llama.cpp，Qwen3.5-122B Q4_K_M，192.168.1.91:8001   │
+│     - systemd 開機自啟，LLaMA Server (Qwen3.5-122B)        │
+│     - 備選：Qwen2.5-72B Q4_K_M（已下載，待測試）           │
 │                                                             │
-│  ⑥ Ollama（P4/P5，本地快速後端）                           │
+│  ⑥ Ollama（本地快速後端）                                   │
 │     - qwen3-nothink（fast，Modelfile自訂，支援tools）        │
-│     - qwen3:8b（backup，1.3s，think:false）                 │
+│     - qwen3:8b（backup，think:false）                       │
 │     - localhost:11434                                        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -127,14 +120,14 @@ Request 進來
      ▼
 Smart Routing 判斷
      │
-     ├── 簡單問題（< 80 tokens，無推理關鍵字）
-     │   → Ollama qwen2.5:7b（fast，0.19s）
+     ├── 簡單問題（無推理關鍵字）
+     │   → Ollama qwen3-nothink（fast，~1s）
      │
      ├── 複雜問題 / 預設
-     │   → GB10 MiniMax（main，1.8s）
+     │   → GB10 Qwen3.5-122B（main，15-36s）
      │
      ├── GB10 掛掉
-     │   → Ollama qwen3:8b（backup，1.3s）
+     │   → Ollama qwen3:8b（backup，~1.3s）
      │
      └── 全部掛掉
          → 雲端 fallback（Groq → Anthropic → OpenAI → NV）
@@ -142,59 +135,23 @@ Smart Routing 判斷
 
 ### 3.4 商業部署架構（三層推論）
 
-CECLAW 支援三層推論架構，依客戶需求彈性部署：
-
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                   客戶端 CECLAW                          │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
 │  Tier 1: 本地小伺服器                                    │
-│  ├─ 部署：客戶端小型伺服器                               │
 │  ├─ 模型：Ollama / 小型 GGUF                            │
 │  ├─ 用途：快速反應 (< 0.5s)                              │
-│  ├─ 範例：問候、計算、翻譯、摘要                         │
-│  └─ 價值：零延遲、資料不離開設備                         │
-│                                                         │
+│  └─ 資料不離開設備                                       │
 │           ↓ Smart Routing ↓                             │
-│                                                         │
-│  Tier 2: GPU 推論伺服器                                  │
-│  ├─ 部署：客戶自建 GPU 伺服器 或 租用算力                │
-│  │        （如 ColdElectric AI CDC）                    │
+│  Tier 2: GPU 推論伺服器（GB10 / AI CDC）                 │
 │  ├─ 模型：大型 GPU 叢集（llama.cpp / vLLM）             │
-│  ├─ 用途：複雜推理、長文分析 (1-3s)                      │
-│  ├─ 範例：為什麼、分析、系統設計、研究                   │
-│  └─ 價值：深度運算、資料不出自家機房                     │
-│                                                         │
+│  ├─ 用途：複雜推理、長文分析 (1-36s)                     │
+│  └─ 資料不出自家機房                                     │
 │           ↓ Cloud Fallback ↓                            │
-│                                                         │
 │  Tier 3: 任意模型 API                                    │
-│  ├─ 部署：雲端                                           │
 │  ├─ 模型：OpenAI / Anthropic / Groq / NVIDIA            │
-│  ├─ 用途：最強能力、最新模型 (2-10s)                     │
-│  ├─ 範例：特殊任務、尖峰備援                             │
-│  └─ 價值：能力無上限、按需付費                           │
-│                                                         │
+│  └─ 最強能力、按需付費                                   │
 └─────────────────────────────────────────────────────────┘
 ```
-
-**部署彈性：**
-- 可只部署 Tier 1（純本地）
-- 可 Tier 1 + Tier 2（本地 + GPU 伺服器）
-- 可三層全開（完整智慧路由）
-
-**自動切換：**
-CECLAW Smart Router 依查詢類型自動選擇最佳路徑，用戶無感知。
-
-**商業價值對應：**
-
-| 客戶類型 | 部署模式 | 價值主張 |
-|----------|----------|----------|
-| 企業用戶 | Tier 1 + 2 + 3 | 資料主權 + 複雜能力 + 無上限備援 |
-| 學術單位 | Tier 1 + 2 | 資料不出內網 + 經費可控 |
-| 高端個人 | Tier 1 + 3 | 快速本地 + 雲端最強能力 |
-
-> 一個系統，三層推論，依需求彈性部署，自動選擇最佳路徑。
 
 ---
 
@@ -207,61 +164,46 @@ CECLAW Smart Router 依查詢類型自動選擇最佳路徑，用戶無感知。
 | Inference Router | ✅ | - |
 | 本地優先路由 | ✅ | - |
 | 雲端降級 | ✅ | - |
-| 後端健康檢查 | ✅ | - |
+| 後端健康檢查 | ✅ | 65f5d89 |
 | SIGHUP 熱重載 | ✅ | - |
-| 零硬編碼 | ✅ | - |
 | OpenShell Policy | ✅ | - |
-| iptables 穿透 | ✅ | - |
 | Sandbox Image | ✅ | 2dfab79 |
-| timeout_local_ms 60000 | ✅ | 2dfab79 |
 | CoreDNS 持久化 | ✅ | 1bffd63 |
 | 監控腳本 + logrotate | ✅ | 70175b6 |
-| GB10 備份 | ✅ | 70175b6 |
 | ceclaw CLI v0.1.0 | ✅ | c412038 |
-| 燒機 20800 輪 100% | ✅ | - |
 | Ollama multi-backend | ✅ | 756a1a0 |
 | Smart routing | ✅ | 986a7b5 |
-| 關鍵字擴充（辦公室/coding/日文）| ✅ | 0c09325 |
-| 多後端燒機 200 輪 100% | ✅ | 3bac2a5 |
-| Smart Routing 20000 輪 | ✅ | - |
+| 多後端燒機 200 輪 | ✅ | 3bac2a5 |
 | ceclaw logs --follow | ✅ | 575d488 |
 | ceclaw logs --lines | ✅ | f115bd2 |
-| P5 關鍵字補充（15個推理詞，三語對齊）| ✅ | 515c59a |
-| P5 Health Check 配置化（15s，/health優先）| ✅ | 65f5d89 |
-| P5 qwen3-nothink E方案（tools schema）| ✅ | 9d213b3/52aa117 |
+| P5 關鍵字補充（三語對齊）| ✅ | 515c59a |
+| P5 Health Check 配置化 | ✅ | 65f5d89 |
+| P5 qwen3-nothink E方案 | ✅ | 9d213b3 |
 | Chain Audit Log | ✅ | 40ac82a |
+| **燒機 2000 輪 100%** | ✅ | - |
+| **GB10 Qwen3.5-122B** | ✅ | - |
+| **GB10 systemd 開機自啟** | ✅ | - |
+| **GLM-5 Turbo 評審通過** | ✅ | - |
 
 ### 4.2 驗證記錄
 
 ```
-2026-03-20 燒機（P1）：200 輪 200/200 ✅
-2026-03-20 Plugin 整合：openclaw TUI local/minimax ✅ commit: 6ebea02
-2026-03-20 B方案驗證：自動設定，不需要手動 Step 12 ✅ commit: 2dfab79
-2026-03-20 全鏈路燒機：3500/3500 100%，avg 1842ms ✅ commit: 70175b6
-2026-03-21 Ollama 測試：
-  - qwen2.5:7b：熱啟動 0.19s，能力基本，快速問答 ✅
-  - qwen3:8b think:false：1.3s，能力強，LRU Cache/數學/邏輯全過 ✅
-  - qwen3:8b 關鍵發現：能正確識別數學題型，qwen2.5:7b 不行
-2026-03-21 單後端燒機 20800 輪 100%，avg 1843ms ✅
-2026-03-21 P4 Smart Routing 端到端驗證：
-  - "hi" → ollama-fast → 200 ✅（avg 173ms）
-  - "why is the sky blue" → gb10-llama → 200 ✅（avg 1255ms）
-  - 16種問題 routing 100% 正確 ✅
-2026-03-21 多後端燒機 200/200 100%，ollama-fast avg=173ms，gb10-llama avg=1255ms ✅
-2026-03-21 Smart Routing 20000 輪：20000/20000 100% ✅
-2026-03-21 P5 E方案驗證：
-  - qwen3-nothink + tools：149/149 100%，avg 1227ms ✅
-  - 不亂觸發 tool_calls ✅
-  - TUI 測試：你是誰→ollama-fast，為什麼天空是藍色→gb10-llama ✅
-2026-03-21 P5 Chain Audit Log：200輪後585條記錄，鏈完整 ✅
-2026-03-21 GB10 問題發現：MiniMax 228B reasoning OOM，換模型中
+2026-03-21 P1~P5 全部完成驗證
+2026-03-22 GB10 模型比較測試：
+  - 10題標準測試：Qwen3.5 9/10，MiniMax 8/10
+  - 8題高難度（GLM-5 Turbo 評審）：
+    Qwen3.5 8/8 ✅，MiniMax 1/8（2❌/5⚠️）
+  - MiniMax 致命問題：日文崩潰（4種語言混入）、Q4空白輸出
+2026-03-22 燒機 2000 輪：2000/2000 100% ✅
+2026-03-22 Audit verify：2900 條記錄，鏈完整 ✅
+2026-03-22 GB10 systemd 開機自啟驗證 ✅
 ```
 
 ---
 
 ## 5. 設定檔規格
 
-### 5.1 ceclaw.yaml 現有規格（P4 後）
+### 5.1 ceclaw.yaml 現有規格（最新）
 
 ```yaml
 version: 1
@@ -279,7 +221,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 1
-        model: qwen2.5:7b
+        model: qwen3-nothink          # ✅ 已從 qwen2.5:7b 升級
         use_for: [simple_query]
 
       - name: gb10-llama
@@ -317,96 +259,39 @@ inference:
         models: [nvidia/nemotron-3-super-120b-a12b]
 ```
 
-### 5.2 ceclaw.yaml P4 已實作規格
-
-```yaml
-inference:
-  strategy: smart-routing        # 新策略
-  timeout_local_ms: 60000
-  local:
-    backends:
-      - name: ollama-fast
-        type: ollama
-        base_url: http://127.0.0.1:11434/v1
-        priority: 1
-        model: qwen2.5:7b
-        use_for: [simple_query]
-      - name: gb10-llama
-        type: llama.cpp
-        base_url: http://192.168.1.91:8001/v1
-        priority: 2
-        models:
-          - id: minimax
-            alias: default
-      - name: ollama-backup
-        type: ollama
-        base_url: http://127.0.0.1:11434/v1
-        priority: 3
-        model: qwen3:8b
-        options:
-          think: false
-        use_for: [fallback]
-```
-
 ---
 
 ## 6. 路線圖
 
-### Phase 1~3（✅ 完成）
+### Phase 1~5（✅ 完成）
 - Inference Router, Policy, iptables, CoreDNS
 - Plugin 整合, B方案 rebuild image
 - ceclaw CLI v0.1.0
 - 監控, logrotate, 備份
-- 燒機 3500 輪 100%
+- Chain Audit Log, Smart Routing, E方案
+- 燒機 2000 輪 100%
 
-### Phase 4 — 多後端（✅ 完成）
-- [x] ceclaw.yaml schema 擴充 ✅（commit: 454d088）
-- [x] Ollama adapter（backends.py）✅（commit: f40fa4f）
-- [x] Backend health check 更新 ✅
-- [x] Smart routing 實作 ✅（token threshold 移除 + 關鍵字擴充，commit: 0c09325）
-- [x] 多後端燒機驗證 ✅（commit: 3bac2a5，200輪100%）
-- [x] Smart Routing 20000 輪 ✅（20000/20000 100%）
-
-### Phase 5 — 企業功能（進行中）
-- [x] `ceclaw logs --follow` ✅（commit: 575d488）
-- [x] `ceclaw logs --lines <n>` ✅（commit: f115bd2）
-- [x] 關鍵字補充（15個推理詞，三語對齊）✅（commit: 515c59a）
-- [x] Health Check 配置化（15s timeout，llama.cpp→/health，ollama→/models）✅（commit: 65f5d89）
-- [x] qwen3-nothink E方案（tools schema 偵測，fast路徑換模型）✅（commit: 9d213b3/52aa117）
-- [x] Chain Audit Log（hash chain，flock並發保護，10MB buffer）✅（commit: 40ac82a）
-- [x] Streaming 完整測試 ✅（逐chunk轉發確認）
-- [x] session `--history-limit 20` ✅（鎖定解法：`openclaw tui --history-limit 20`）
-- [ ] 雲端降級完整測試（待 API key）
-- [ ] registerCommand bug ✗（無解：openclaw 不支援此 API）
-- [ ] session 持久化（P8 再議）
-- [ ] 時間閾值方案B（rolling avg，燒機穩定後再做）
+### Phase 0 — P0 修復（進行中）🔴
+- [ ] **坑#19 白標化**：system prompt 加入 CECLAW 身份，雙 Path
+- [ ] **坑#20 Context 膨脹**：`memory.qmd.limits.maxInjectedChars: 8000`
+- [ ] **坑#21 history-limit 預設化**：ceclaw.py TUI 呼叫加預設參數
+- [ ] **坑#18 Role 相容性**：研究 openclaw.json 原生解法
+- [ ] **坑#22 web_search**：SearXNG 自架或 Brave API key
+- [ ] **Qwen2.5-72B 評估**：47GB，預期更穩定，需跑 8 題 + GLM 審查
 
 ### Phase 6 — 相容性驗證
-- [ ] NemoClaw drop-in 替代驗證報告
-- [ ] 指令對照表（草稿完成，待正式驗證）
-
-**已確認結論：**
-- 核心 CLI 100% 對齊（onboard/connect/status/logs/start/stop）
-- 整體相似度 67-72%，差距為設計決策非功能缺失
-- P8 補 `ceclaw list` 可達 78%
+- [ ] NemoClaw drop-in 驗證報告
+- 已確認：核心 CLI 100% 對齊，整體 67-72% 相似度
 
 ### Phase 7 — OpenClaw Skill 相容性測試
-> CECLAW Router（本地 MiniMax）作為推論後端，驗證 OpenClaw skill 能否正常執行
-
-- [ ] A 級（無網路，10個）：Self-Improving Agent / Capability Evolver / Nano Pdf / Obsidian / Mcporter / Skill Creator / Openai Whisper / Model Usage / Apple Notes / Apple Reminders
-- [ ] B 級（有網路，15個）
-- [ ] C 級（功能補完，25個）
-
-⚠️ 安全原則：測試用 API key、隔離 sandbox、安裝前確認 skill 來源（ClawHavoc 事件：820+ 惡意 skill 已被清除，仍需驗證）
+- [ ] A 級（無網路，10個）優先
+- 前置條件：P0 全修完
 
 ### Phase 8 — UX 升級
-> 前置條件：P4~P7 全部完成 + P6 drop-in 驗證通過
-
-- [ ] `ceclaw onboard` 升級為 one-click installer（對齊 NemoClaw `nemoclaw.sh` 體驗）
-- [ ] `ceclaw doctor` 診斷指令（自動檢查 Router / GB10 / sandbox / CoreDNS 狀態）
-- [ ] `ceclaw list` 指令（對齊 NemoClaw `list`，整體相似度從 72% 提升至 78%）
-- [ ] 自動引導 policy approve 流程（坑#12 UX 解法）
-- [ ] session 自動管理（坑#13 UX 解法，自動開新 session 或清歷史）
+- [ ] `ceclaw onboard` 升級
+- [ ] `ceclaw doctor` 診斷指令
+- [ ] `ceclaw list` 指令
+- 前置條件：P6 完成
 
 ---
 
@@ -414,35 +299,41 @@ inference:
 
 | 限制 | 說明 | 計劃解法 |
 |------|------|---------|
-| MiniMax OOM | 228B reasoning 無限生成導致 KV cache 耗盡 | 換 Qwen3.5-122B（進行中）|
+| 身份洩漏 | 100% 洩漏通義千問/阿里巴巴 | P0 白標化 |
+| Context 膨脹 | session 發瘋 | P0 memory limit |
+| web_search 觸發 | 所有 prompt 都搜 | SearXNG 或 Brave key |
+| Qwen3.5-122B 極限操作 | ~86GB/128GB，不是穩定區間 | 考慮換 Qwen2.5-72B |
 | TUI 底部顯示 | openclaw 寫死 `local/minimax` | 無解，坑#11 |
 | Auto-approve | OpenShell 安全設計 | 無解，坑#12 |
-| Session replay | 歷史累積造成 Connection error | Phase 5，坑#13 |
-| GB10 手動啟動 | llama-server 未設自啟 | 加 systemd to GB10 |
-| VRAM 限制 | 16GB，兩個 Ollama 模型 9.9GB | 按需載入策略 |
+| GB10 reasoning 殘留 | qwen3-nothink 約11% 洩漏 | P1 middleware 過濾 |
+| vLLM on GB10 | Blackwell 支援尚未成熟 | 等 vLLM 更新 |
 
 ---
 
 ## 8. 技術債
 
-1. **Session replay**（坑#13）— main session 歷史累積造成 Connection error，已鎖定解法
-2. **GB10 自啟** — llama-server 需手動 SSH 啟動
-3. **registerCommand**（坑#5）— openclaw 不支援此 API，無解
-4. **undici EnvHttpProxyAgent** — experimental，長期關注 openclaw 更新
-5. **MiniMax reasoning OOM**（坑#14）— 228B 模型 reasoning 無限生成，換 Qwen3.5-122B 解決
-6. **qwen3-nothink reasoning 殘留** — Modelfile `/nothink` workaround 非完美，偶爾有 reasoning 輸出
-7. **difference between 冗餘** — `difference` 已包含 `difference between`，可清理
+1. **Session replay**（坑#13）— P0 處理中
+2. **身份洩漏**（坑#19）— P0 處理中
+3. **Context 膨脹**（坑#20）— P0 處理中
+4. **registerCommand**（坑#5）— openclaw 不支援，無解
+5. **undici EnvHttpProxyAgent** — experimental，長期關注
+6. **qwen3-nothink reasoning 殘留** — 11% 洩漏率
+7. **difference between 冗餘** — 關鍵字重複，可清理
+8. **MiniMax Q3_K_XL 未清理** — 95GB，`~/MiniMax-M2.5-GGUF/UD-Q3_K_XL/`
+9. **tokens ?/131k 顯示** — context window 顯示不正確
 
 ---
 
-## 9. 本地模型能力評估（P4 參考）
+## 9. 本地模型能力評估（v4.0 最新）
 
-| 模型 | 速度 | 題型識別 | 數學/邏輯 | 程式碼 | 用途 |
-|------|------|---------|---------|--------|------|
-| qwen3-nothink | ⭐⭐⭐ 1.2s | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | fast（tools支援）|
-| qwen3:8b | ⭐⭐⭐ 1.3s | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | backup |
-| GB10 MiniMax 228B | ⭐⭐⭐⭐ 33s | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | main（reasoning OOM問題）|
-| Qwen3.5-122B Q4 | ⭐⭐⭐⭐ 預期快 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 未來main（下載中）|
+| 模型 | 大小 | GB10記憶體 | 速度 | 品質 | 穩定性 | 狀態 |
+|------|------|-----------|------|------|--------|------|
+| Qwen3.5-122B Q4_K_M | 70GB | ~86GB | 22t/s | ⭐⭐⭐⭐⭐ | ⚠️ 極限 | **當前主力** |
+| Qwen2.5-72B Q4_K_M | 47GB | ~60GB | 待測 | ⭐⭐⭐⭐ | ✅ 穩定 | 待測試 |
+| MiniMax IQ2_M | 74GB | ~82GB | 29t/s | ⭐⭐ | ❌ 日文崩潰 | 淘汰 |
+| MiniMax Q3_K_XL | 95GB | ~110GB+ | 27t/s | ⭐⭐⭐ | ❌ OOM | 淘汰 |
+| qwen3-nothink | ~5GB | Ollama | ~200ms | ⭐⭐⭐ | ✅ | fast path |
+| qwen3:8b | ~5GB | Ollama | ~1.3s | ⭐⭐⭐ | ✅ | backup |
 
 ---
 
@@ -466,8 +357,13 @@ CECLAW   = Secure + Sovereign Inference
 - NemoClaw GitHub: https://github.com/NVIDIA/NemoClaw
 - CECLAW sandbox image: ghcr.io/kentgeeng/ceclaw-sandbox:latest
 - CECLAW repo: github.com/kentgeeng/ceclaw
+- Qwen3.5-122B GGUF: https://huggingface.co/bartowski/Qwen_Qwen3.5-122B-A10B-GGUF
+- Qwen2.5-72B GGUF: https://huggingface.co/bartowski/Qwen2.5-72B-Instruct-GGUF
+- ZengboJames GB10 參考: https://github.com/ZengboJamesWang/Qwen3.5-35B-A3B-openclaw-dgx-spark
+- GLM-5 Turbo 督察: OpenRouter → zhipuai/glm-5-turbo
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.3.7 | 日期: 2026-03-21*
+*總工: Kent | 版本: 0.3.8 | 日期: 2026-03-22*  
+*P1✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ | 下一步: P0修復*
