@@ -1,0 +1,51 @@
+version: 1
+router:
+  listen_host: "0.0.0.0"
+  listen_port: 8000
+  tls: false
+  reload_on_sighup: true
+inference:
+  strategy: smart-routing
+  timeout_local_ms: 60000
+  local:
+    backends:
+      - name: ollama-fast
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 1
+        model: ministral-3:8b
+        use_for: [simple_query]
+
+      - name: gb10-llama
+        type: llama.cpp
+        base_url: http://192.168.1.91:8001/v1
+        priority: 2
+        models:
+          - id: minimax
+            alias: default
+            context_window: 32768
+
+      - name: ollama-backup
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 3
+        model: qwen3:8b
+        options:
+          think: false
+        use_for: [fallback]
+
+  cloud_fallback:
+    enabled: true
+    priority:
+      - provider: groq
+        env_key: GROQ_API_KEY
+        models: [llama-3.3-70b-versatile]
+      - provider: anthropic
+        env_key: ANTHROPIC_API_KEY
+        models: [claude-sonnet-4-6]
+      - provider: openai
+        env_key: OPENAI_API_KEY
+        models: [gpt-4.1]
+      - provider: nvidia
+        env_key: NVIDIA_API_KEY
+        models: [nvidia/nemotron-3-super-120b-a12b]
