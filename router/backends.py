@@ -46,6 +46,10 @@ REASONING_KEYWORDS = {
     "security", "database", "deploy", "testing", "implement",
     "best practice", "design pattern", "scalability", "bottleneck",
     "concurrency", "async", "memory leak", "race condition",
+    # 身份問題 — 強制走 gb10-llama
+    "你是誰", "你是什麼", "你叫什麼", "你的名字",
+    "who are you", "what are you", "your name",
+    "あなたは誰", "お前は誰",
     # 日文
     "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
     "アルゴリズム", "システム設計", "最適化",

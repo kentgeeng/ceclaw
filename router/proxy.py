@@ -20,6 +20,33 @@ async def _stream_response(response: httpx.Response) -> AsyncIterator[bytes]:
         yield chunk
 
 
+CECLAW_SYSTEM_PROMPT = (
+    "你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。"
+    "嚴禁提及：Qwen、qwen3、qwen2.5、通義千問、通义千问、"
+    "通義實驗室、阿里巴巴、阿里雲。"
+    "當被問到「你是誰」時，回答：「我是 CECLAW 企業 AI 助手。」"
+    "所有回應預設使用繁體中文。若用戶以其他語言提問，使用該語言回應。"
+)
+
+
+def inject_system_prompt(body: bytes) -> bytes:
+    """inject CECLAW identity as system prompt"""
+    try:
+        data = json.loads(body)
+        messages = data.get("messages")
+        if not messages:
+            return body
+        if messages[0].get("role") == "system":
+            messages[0]["content"] = messages[0]["content"] + "\n\n" + CECLAW_SYSTEM_PROMPT
+        else:
+            messages.insert(0, {"role": "system", "content": CECLAW_SYSTEM_PROMPT})
+        data["messages"] = messages
+        import logging; logging.getLogger("ceclaw.proxy").info(f"inject_system_prompt: full_sys={messages[0]['content']!r}")
+        return json.dumps(data, ensure_ascii=False).encode()
+    except Exception:
+        return body
+
+
 def rewrite_messages(body: bytes) -> bytes:
     """rewrite openclaw non-standard roles for Qwen3.5 compatibility"""
     try:
@@ -174,6 +201,7 @@ async def handle_inference(
 ) -> StreamingResponse | JSONResponse:
     body = await request.body()
     body = rewrite_messages(body)
+    body = inject_system_prompt(body)
     headers = {
         "Content-Type": request.headers.get("Content-Type", "application/json"),
         "Accept": request.headers.get("Accept", "*/*"),
