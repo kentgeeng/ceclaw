@@ -48,6 +48,8 @@ REASONING_KEYWORDS = {
     "concurrency", "async", "memory leak", "race condition",
     # 身份問題 — 強制走 gb10-llama
     "你是誰", "你是什麼", "你叫什麼", "你的名字",
+    "誰開發", "誰創造", "哪個公司", "通義千問", "通義",
+    "who developed", "who created", "which company",
     "who are you", "what are you", "your name",
     "あなたは誰", "お前は誰",
     # 日文
