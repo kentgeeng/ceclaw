@@ -44,6 +44,7 @@ def rewrite_messages(body: bytes) -> bytes:
         for i in reversed(to_remove):
             messages.pop(i)
         data["messages"] = messages
+        import logging; logging.getLogger("ceclaw.proxy").info(f"rewrite_messages: developer→system, toolResult→tool, merged {len(to_remove)} system(s)")
         return json.dumps(data, ensure_ascii=False).encode()
     except Exception:
         return body

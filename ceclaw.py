@@ -92,6 +92,7 @@ def cmd_status():
 
 def cmd_connect():
     print(f"Connecting to sandbox: {SANDBOX_NAME}")
+    print(f"  Tip: run 'tui' to start AI agent")
     subprocess.run(["openshell", "sandbox", "connect", SANDBOX_NAME])
 
 def cmd_logs(lines=None):
