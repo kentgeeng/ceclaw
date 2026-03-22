@@ -3,7 +3,7 @@
 
 **預估時間**: 1~2 小時（不含模型下載）  
 **適用**: pop-os 重灌或全新機器  
-**SOP 版本**: 1.5 | **日期**: 2026-03-21
+**SOP 版本**: 1.6 | **日期**: 2026-03-22
 
 ---
 
@@ -79,17 +79,35 @@ router:
   tls: false
   reload_on_sighup: true
 inference:
-  strategy: local-first
+  strategy: smart-routing
   timeout_local_ms: 60000
   local:
     backends:
+      - name: ollama-fast
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 1
+        model: qwen3-nothink
+        use_for: [simple_query]
+
       - name: gb10-llama
         type: llama.cpp
         base_url: http://192.168.1.91:8001/v1
+        priority: 2
         models:
           - id: minimax
             alias: default
             context_window: 32768
+
+      - name: ollama-backup
+        type: ollama
+        base_url: http://127.0.0.1:11434/v1
+        priority: 3
+        model: qwen3:8b
+        options:
+          think: false
+        use_for: [fallback]
+
   cloud_fallback:
     enabled: true
     priority:
@@ -141,8 +159,6 @@ sudo netfilter-persistent save
 
 ## Step 8：建立 CoreDNS restore 腳本
 
-⚠️ P3 已完成 CoreDNS 持久化（ceclaw-coredns.service），此腳本供手動修復使用。
-
 ```bash
 mkdir -p ~/nemoclaw-config
 cat > ~/nemoclaw-config/restore-coredns.sh << 'EOF'
@@ -190,18 +206,63 @@ ceclaw status
 
 ---
 
-## Step 8d：安裝 Ollama（P4，若需要）
+## Step 8d：安裝 Ollama + qwen3-nothink
 
 ```bash
 # 確認已裝
 ollama --version
 
 # 下載模型
-ollama pull qwen2.5:7b   # fast 路徑，4.7GB
 ollama pull qwen3:8b     # backup 路徑，5.2GB
 
-# 確認 VRAM 夠用
-nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv
+# 建立 qwen3-nothink（CECLAW 身份 Modelfile）
+cat > /tmp/Modelfile.ceclaw << 'EOF'
+FROM qwen3:8b
+SYSTEM /nothink 你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。嚴禁提及：Qwen、qwen3、qwen2.5、通義千問、通义千问、通義實驗室、阿里巴巴、阿里雲。當被問到「你是誰」時，回答：「我是 CECLAW 企業 AI 助手。」所有回應預設使用繁體中文。若用戶以其他語言提問，使用該語言回應。不顯示思考過程，直接回答。
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>
+PARAMETER temperature 0.6
+PARAMETER top_k 20
+PARAMETER top_p 0.95
+PARAMETER repeat_penalty 1
+EOF
+ollama create qwen3-nothink -f /tmp/Modelfile.ceclaw
+
+# 驗證
+ollama run qwen3-nothink "你是誰"
+# 預期回：我是 CECLAW 企業 AI 助手
+```
+
+---
+
+## Step 8e：啟動 SearXNG（本地搜尋）
+
+```bash
+mkdir -p ~/searxng-config
+
+# 先取得預設設定
+docker run --rm searxng/searxng:latest cat /etc/searxng/settings.yml > ~/searxng-config/settings.yml
+
+# 加入 json format
+python3 - << 'EOF'
+import os
+path = os.path.expanduser("~/searxng-config/settings.yml")
+content = open(path).read()
+if "formats:" in content and "- json" not in content:
+    content = content.replace("formats:\n    - html", "formats:\n    - html\n    - json")
+    open(path, "w").write(content)
+    print("done")
+EOF
+
+# 啟動
+docker run -d --name searxng \
+  --restart=always \
+  -p 8888:8080 \
+  -v ~/searxng-config:/etc/searxng \
+  searxng/searxng:latest
+
+sleep 5
+curl -s "http://localhost:8888/search?q=test&format=json" | python3 -m json.tool | head -5
 ```
 
 ---
@@ -239,7 +300,6 @@ openshell sandbox create \
   --from ghcr.io/kentgeeng/ceclaw-sandbox:latest \
   --policy ~/ceclaw/config/ceclaw-policy.yaml \
   --keep
-# --keep 保留 policy approved 記錄
 
 openshell sandbox list   # 預期: ceclaw-agent   Ready
 ```
@@ -258,44 +318,69 @@ openshell term
 3. `r` 看 Network Rules
 4. 有 pending（黃色）→ `A` Approve All
 
-⚠️ **新建 sandbox 後需先進 sandbox 跑 `ceclaw-start`，sandbox 內程序連線後才會產生 pending rules，再回 TUI 按 A。不是「沒有 pending = 自動生效」。**
+---
+
+## Step 12：Sandbox 初始化（⚠️ 重要，必做）
+
+連進 sandbox 後執行以下 4 步：
+
+```bash
+openshell sandbox connect ceclaw-agent
+```
+
+進去後：
+
+```bash
+# Step A: 安裝 CECLAW plugin（自動重啟 gateway）
+openclaw plugins install /opt/ceclaw
+
+# Step B: tui alias
+grep -q "alias tui=" ~/.bashrc || echo "alias tui='openclaw tui --session fresh-\$(date +%s) --history-limit 20'" >> ~/.bashrc
+
+# Step C: openclaw.json patch（contextWindow + compaction）
+python3 - << 'EOF'
+import json
+path = "/sandbox/.openclaw/openclaw.json"
+cfg = json.load(open(path))
+for model in cfg["models"]["providers"]["local"]["models"]:
+    model["contextWindow"] = 32768
+    model["maxTokens"] = 4096
+cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
+json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
+print("done")
+EOF
+
+# Step D: gateway auto-start
+grep -q "openclaw gateway run" ~/.bashrc || cat >> ~/.bashrc << 'BEOF'
+if ! pgrep -f "openclaw-gatewa" > /dev/null 2>&1; then
+    openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
+fi
+BEOF
+
+source ~/.bashrc
+```
 
 ---
 
-## Step 12：端到端驗證
+## Step 13：端到端驗證
 
-**Terminal 1：**
 ```bash
-openshell sandbox connect ceclaw-agent
-# 看到: [gateway] agent model: local/minimax = 成功
+# sandbox 內
+tui
+# 問：你是誰
+# 預期：我是 CECLAW 企業 AI 助手
 ```
 
-若出現 403 → 回 openshell term Approve policy
-
-**Terminal 2：**
 ```bash
-openshell sandbox connect ceclaw-agent
-openclaw tui
-# 底部: local/minimax | tokens ?/131k
-# 發訊息確認回應
-```
-
-**pop-os：**
-```bash
+# pop-os
 tail -f ~/.ceclaw/router.log
 # 看到: [local] gb10-llama → 200
-```
-
-或用 ceclaw CLI：
-```bash
 ceclaw status   # 三項全綠
 ```
 
-✅ 全通
-
 ---
 
-## Step 13：備份關鍵檔案
+## Step 14：備份關鍵檔案
 
 ```bash
 mkdir -p ~/ceclaw/backup
@@ -316,31 +401,30 @@ bash ~/nemoclaw-config/restore-coredns.sh
 # 2. Router（systemd 自啟，確認）
 sudo systemctl status ceclaw-router
 
-# 3. GB10（若未設自啟）
-ssh zoe_gb@192.168.1.91 "nohup ~/start_llama.sh > ~/llama.log 2>&1 &"
+# 3. GB10（systemd 自啟，確認）
+ssh zoe_gb@192.168.1.91 'sudo systemctl status llama-server'
 
-# 4. 重建 sandbox
-openshell sandbox create --name ceclaw-agent \
-  --from ghcr.io/kentgeeng/ceclaw-sandbox:latest \
-  --policy ~/ceclaw/config/ceclaw-policy.yaml --keep
+# 4. SearXNG（docker --restart=always，自動起）
+docker ps | grep searxng
 
-# 5. 進 sandbox，自動執行 ceclaw-start
-# 或用 ceclaw CLI：ceclaw status
+# 5. 連 sandbox（gateway 自動啟動）
+openshell sandbox connect ceclaw-agent
+tui
 ```
 
 ---
 
-## 關鍵技術背景
+## ⚠️ 關鍵注意事項
 
-- OpenShell proxy 寫死 `host.openshell.internal` → `172.17.0.1`
-- Sandbox 在 K3s (172.20.x)，需 iptables FORWARD + MASQUERADE
-- Policy 必須同時有 `allowed_ips` + `binaries`
-- 新 sandbox pending rules 需 TUI 手動 Approve
-- openclaw gateway 必須前景執行
-- timeout_local_ms 60000 避免冷啟動失敗
-- ⚠️ Connection error → 不要改 baseUrl，見坑#10
+**坑#10（關鍵）**: 不要改 `baseUrl` 為 IP，保持 `host.openshell.internal:8000/v1`
+
+**坑#23（關鍵）**: **不要 `docker restart` openshell container**
+- 會讓 K3s 網路混亂，sandbox SSH 死掉
+- 正確做法：等 pod 自己恢復，或用 `openshell term`
+
+**sandbox 重建後**：必須執行 Step 12 的 4 步（plugin install + alias + json patch + gateway autostart）
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*  
-*SOP 版本: 1.5 | 日期: 2026-03-21*
+*SOP 版本: 1.6 | 日期: 2026-03-22*
