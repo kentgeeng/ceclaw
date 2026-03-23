@@ -158,7 +158,7 @@ async def _try_local(
             if resp.status_code in (200, 201):
                 logger.info(f"[local] {backend.name} → {resp.status_code}")
                 return resp
-            logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
+            logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback, body={resp.text[:300]}")
             _healthy[backend.name] = False
         except httpx.TimeoutException:
             logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
