@@ -72,18 +72,6 @@ def rewrite_messages(body: bytes) -> bytes:
             messages.pop(i)
         data["messages"] = messages
         import logging; logging.getLogger("ceclaw.proxy").info(f"rewrite_messages: developer→system, toolResult→tool, merged {len(to_remove)} system(s)")
-        # inject enable_thinking: false
-        think_prefix = "[think]"
-        last_user = next(
-            (m for m in reversed(data.get("messages", [])) if m.get("role") == "user"),
-            None
-        )
-        if last_user and isinstance(last_user.get("content"), str) \
-                and last_user["content"].lstrip().lower().startswith(think_prefix):
-            last_user["content"] = last_user["content"].lstrip()[len(think_prefix):].lstrip()
-            data.setdefault("chat_template_kwargs", {})["enable_thinking"] = True
-        else:
-            data.setdefault("chat_template_kwargs", {}).setdefault("enable_thinking", False)
         return json.dumps(data, ensure_ascii=False).encode()
     except Exception:
         return body
