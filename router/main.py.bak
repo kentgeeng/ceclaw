@@ -11,7 +11,6 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 import uvicorn
-import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -99,22 +98,6 @@ async def completions(request: Request):
 
 
 # ── CECLAW status endpoint ────────────────────────────────
-
-@app.get("/search")
-@app.post("/search")
-async def proxy_search(request: Request):
-    """Proxy SearXNG search requests from sandbox"""
-    params = dict(request.query_params)
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(
-                "http://localhost:8888/search",
-                params=params,
-                headers={"Accept": "application/json"}
-            )
-            return JSONResponse(resp.json(), status_code=resp.status_code)
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=502)
 
 @app.get("/ceclaw/status")
 async def status():
