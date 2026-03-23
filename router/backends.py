@@ -56,6 +56,13 @@ REASONING_KEYWORDS = {
     "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
     "アルゴリズム", "システム設計", "最適化",
     "実装", "違い", "まとめ",
+    # 即時性關鍵字 — 強制走 gb10-llama
+    "今天", "今日", "現在", "最新", "即時", "剛才", "剛剛",
+    "股價", "天氣", "氣溫", "匯率", "幣價", "比特幣", "漲跌",
+    "新聞", "最近", "目前", "當前", "這週", "本週", "昨天",
+    "today", "now", "current", "latest", "recent", "live",
+    "stock price", "weather", "exchange rate", "bitcoin",
+    "breaking", "this week", "yesterday", "right now",
 }
 
 def needs_reasoning(query: str) -> bool:
