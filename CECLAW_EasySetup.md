@@ -1,6 +1,6 @@
 # CECLAW Easy Setup 快速上手手冊
 
-**版本**: 1.5 | **日期**: 2026-03-23
+**版本**: 1.6 | **日期**: 2026-03-23
 **適用**: 快速建立可用的 CECLAW 環境
 **預估時間**: 15 分鐘（環境已備齊）/ 1~2 小時（全新機器）
 
@@ -62,6 +62,7 @@ for model in cfg["models"]["providers"]["local"]["models"]:
     model["contextWindow"] = 32768
     model["maxTokens"] = 4096
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
+cfg["tools"] = {}  # 移除 coding profile，讓 searxng_search 可用
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 print("done")
 EOF
@@ -171,4 +172,4 @@ openshell term
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*版本: 1.5 | 日期: 2026-03-23*
+*版本: 1.6 | 日期: 2026-03-23*

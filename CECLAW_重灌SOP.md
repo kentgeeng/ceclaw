@@ -3,7 +3,7 @@
 
 **預估時間**: 1~2 小時（不含模型下載）
 **適用**: pop-os 重灌或全新機器
-**SOP 版本**: 1.8 | **日期**: 2026-03-23
+**SOP 版本**: 1.9 | **日期**: 2026-03-23
 
 ---
 
@@ -76,6 +76,12 @@ curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
 ```bash
 scp ~/ceclaw/backup/start_llama.sh.bak zoe_gb@192.168.1.91:~/start_llama.sh
 ssh gb10 "chmod +x ~/start_llama.sh"
+```
+
+⚠️ **確認 `--parallel 1`**：parallel 2 會讓每 slot 只有 16384 tokens，搜尋結果超出後 400。
+```bash
+ssh gb10 'grep "parallel" ~/start_llama.sh'
+# 預期：--parallel 1
 ```
 
 ---
@@ -265,15 +271,33 @@ mkdir -p ~/searxng-config
 # 取得預設設定
 docker run --rm searxng/searxng:latest cat /etc/searxng/settings.yml > ~/searxng-config/settings.yml
 
-# 加入 json format
-python3 - << 'EOF'
-import os
-path = os.path.expanduser("~/searxng-config/settings.yml")
-content = open(path).read()
-if "formats:" in content and "- json" not in content:
-    content = content.replace("formats:\n    - html", "formats:\n    - html\n    - json")
-    open(path, "w").write(content)
-    print("done")
+# 寫入正式設定（加 json format + 可靠引擎）
+sudo tee ~/searxng-config/settings.yml << 'EOF'
+use_default_settings: true
+server:
+  secret_key: "ceclaw-searxng-key-2026"
+  limiter: false
+  image_proxy: false
+search:
+  formats:
+    - html
+    - json
+general:
+  debug: false
+  instance_name: "CECLAW Search"
+engines:
+  - name: duckduckgo
+    engine: duckduckgo
+    categories: general, news
+    disabled: false
+  - name: brave
+    engine: brave
+    categories: general, news
+    disabled: false
+  - name: bing
+    engine: bing
+    categories: general, news
+    disabled: false
 EOF
 
 # 啟動
@@ -285,10 +309,12 @@ docker run -d --name searxng \
 
 sleep 5
 # 驗證 pop-os 直接存取
-curl -s "http://localhost:8888/search?q=test&format=json" | python3 -m json.tool | head -5
+curl -s "http://localhost:8888/search?q=NVIDIA+stock&format=json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('results:', len(d.get('results',[])))"
 # 驗證 Router proxy
-curl -s "http://localhost:8000/search?q=test&format=json" | python3 -m json.tool | head -5
+curl -s "http://localhost:8000/search?q=test&format=json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('results:', len(d.get('results',[])))"
 ```
+
+⚠️ `~/searxng-config/settings.yml` 擁有者是 uid 977（docker 內的 searxng），需用 `sudo tee` 修改。
 
 ---
 
@@ -347,14 +373,31 @@ openshell term
 
 ## Step 12：Sandbox 初始化（⚠️ 重要，必做 6 步）
 
-### Step E（pop-os）：傳入 SearXNG plugin
+### Step E（pop-os）：Build plugin + 傳入 sandbox
+
+⚠️ sandbox 無法安裝 esbuild（npmjs.org 被封），需在 pop-os 側 build：
 
 ```bash
+# Step E-1: Build dist/index.js（若 tar.gz 內無 dist/）
+cd /tmp && tar xzf ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz
+cd openclaw-plugin-searxng
+npm install
+npx esbuild index.ts --bundle --format=esm --outfile=dist/index.js --external:@sinclair/typebox
+ls dist/index.js && echo "build OK"
+
+# Step E-2: 取 token（需有活著的 SSH session）
 TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
-echo "Token: $TOKEN"
 [ -z "$TOKEN" ] && echo "ERROR: no active SSH session，請先確認 openshell gateway 在跑" && exit 1
+
+# Step E-3: 傳 plugin tar.gz
 scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
   ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
+
+# Step E-4: 建立 dist/ 並傳入編譯好的 index.js
+ssh -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
+  sandbox@ceclaw-agent "mkdir -p /sandbox/.openclaw/extensions/searxng-search/dist"
+scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
+  /tmp/openclaw-plugin-searxng/dist/index.js sandbox@ceclaw-agent:/sandbox/.openclaw/extensions/searxng-search/dist/index.js
 ```
 
 ### 進 sandbox 執行：
@@ -370,7 +413,7 @@ openclaw plugins install /opt/ceclaw
 # Step B: tui alias
 grep -q "alias tui=" ~/.bashrc || echo "alias tui='openclaw tui --session fresh-\$(date +%s) --history-limit 20'" >> ~/.bashrc
 
-# Step C: openclaw.json patch（contextWindow + compaction）
+# Step C: openclaw.json patch（contextWindow + compaction + tools）
 python3 - << 'EOF'
 import json
 path = "/sandbox/.openclaw/openclaw.json"
@@ -379,6 +422,7 @@ for model in cfg["models"]["providers"]["local"]["models"]:
     model["contextWindow"] = 32768
     model["maxTokens"] = 4096
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
+cfg["tools"] = {}  # 移除 coding profile，讓 searxng_search 可用
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 print("done")
 EOF
@@ -390,17 +434,30 @@ if ! pgrep -f "openclaw-gatewa" > /dev/null 2>&1; then
 fi
 BEOF
 
-# Step F: 安裝 SearXNG plugin
+# Step F: 安裝 SearXNG plugin + 修正 package.json
 cd /tmp && tar xzf openclaw-plugin-searxng-full.tar.gz
 rm -rf ~/.openclaw/extensions/searxng-search 2>/dev/null
 openclaw plugins install /tmp/openclaw-plugin-searxng
+
+# 修正 package.json（name + extensions 指向 dist/index.js）
+python3 - << 'EOF'
+import json
+path = "/sandbox/.openclaw/extensions/searxng-search/package.json"
+pkg = json.load(open(path))
+pkg["name"] = "searxng-search"
+pkg["openclaw"]["extensions"] = ["./dist/index.js"]
+json.dump(pkg, open(path, "w"), indent=2, ensure_ascii=False)
+print("package.json done")
+EOF
+
+# 修正 openclaw.json plugin config
 python3 - << 'EOF'
 import json
 path = "/sandbox/.openclaw/openclaw.json"
 cfg = json.load(open(path))
 cfg["plugins"]["entries"]["searxng-search"]["config"]["baseUrl"] = "http://host.openshell.internal:8000"
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("done")
+print("openclaw.json done")
 EOF
 
 source ~/.bashrc
@@ -468,11 +525,17 @@ tui
 - 會讓 K3s 網路混亂，sandbox SSH 死掉
 - 正確做法：等 pod 自己恢復，或用 `openshell term`
 
-**坑#24**: sandbox 重建後 SearXNG plugin 消失，必須執行 Step E + Step F
+**坑#24**: sandbox SearXNG plugin 每次重建後消失，必須執行 Step E+F
+
+**坑#25（關鍵）**: `openclaw.json tools.profile: "coding"` 會擋住 searxng_search。Step C 必須加 `cfg["tools"] = {}`
+
+**坑#26**: SearXNG plugin 缺少 `dist/index.js`（需在 pop-os 側 esbuild 編譯後 scp 進 sandbox）
+
+**坑#27（關鍵）**: `--parallel 2` 讓每 slot 只有 16384 tokens → 搜尋結果塞滿後 400。必須用 `--parallel 1`
 
 **sandbox 重建後**：必須執行 Step 12 的全部 6 步（A + B + C + D + E + F）
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*SOP 版本: 1.8 | 日期: 2026-03-23*
+*SOP 版本: 1.9 | 日期: 2026-03-23*

@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.4.0
+**版本**: 0.4.1
 **作者**: Kent (總工)
 **日期**: 2026-03-23
-**狀態**: Alpha — P0~P1 部分完成，POC 展示就緒
+**狀態**: Alpha — P0~P1 大部分完成，SearXNG E2E ✅，POC 展示就緒
 
 ---
 
@@ -38,7 +38,7 @@ NV 的設計有三道關卡逆著我們走：
 | 推論框架 | llama.cpp | vLLM（等 Blackwell 支援成熟）|
 | 模型精度 | Q4_K_M GGUF | FP8/NVFP4 滿級 |
 | 模型大小 | 47-70GB | 依需求選擇 |
-| 並發 | 2 slots | 數十~數百 |
+| 並發 | 1 slot（parallel 1，避免 context exceed 400）| 數十~數百 |
 | 目標 | 驗證架構 + 展示 | 企業生產 |
 
 ---
@@ -244,6 +244,12 @@ SearXNG:8888（本地搜尋）
   - #37 fallback：停 GB10 → ollama-backup → 200 ✅
   - #50 fast path：doomgrave/ministral-3:8b 3000輪 100%，身份 0 洩漏，簡體 1.1% ✅
   - #38 SearXNG：TUI 問天氣 → searxng_search 觸發 → 回傳真實結果 ✅
+  - #53 Step E token guard ✅
+  - #55 REASONING_KEYWORDS 即時性關鍵字 ✅
+  - #56 enable_thinking:false 注入（ZengboJamesWang proxy 修法）✅
+  - #57 --parallel 1 修 context exceed 400 ✅
+  - #58 burnin_v3.sh Layer 2 AI 決策觸發 3/3 ✅
+  - SearXNG E2E 完整通（stock price, bitcoin, 天氣 均有真實數據）✅
   - audit 10144+ 條鏈完整 ✅
 ```
 
@@ -392,6 +398,9 @@ inference:
 | sandbox 重建後需手動 6 步 | 見交接文件 | P8 自動化 |
 | docker restart → sandbox 死 | 坑#23 | 不要 restart container |
 | SearXNG plugin 重建後消失 | 坑#24 | 手動執行 Step E+F |
+| tools.profile: coding 擋 searxng | 坑#25 | Step C 加 `cfg["tools"] = {}` |
+| plugin 無 dist/index.js | 坑#26 | pop-os esbuild + scp |
+| parallel 2 → 16384 token 上限 | 坑#27 | 已改 parallel 1 |
 | fast path > 500ms | doomgrave avg ~850ms | 未來找更快模型 |
 
 ---
@@ -449,5 +458,5 @@ CECLAW   = Secure + Sovereign Inference
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*總工: Kent | 版本: 0.4.0 | 日期: 2026-03-23*
-*P0✅ P1部分✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ | 下一步: P1#39→P6*
+*總工: Kent | 版本: 0.4.1 | 日期: 2026-03-23*
+*P0✅ P1大部分✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ SearXNG E2E✅ | 下一步: P1#39→P6*

@@ -1,4 +1,4 @@
-# CECLAW 專案交接文件 v4.2
+# CECLAW 專案交接文件 v4.3
 ## 給下一個對話的軟工 + 總工角色說明
 
 **總工（Kent）**：35年工程經驗，ZOE AI Digital Twin 作者，做決策、設計審核
@@ -8,51 +8,48 @@
 
 ---
 
-## ⚠️ 本次對話重要進展摘要（v4.1 → v4.2）
+## ⚠️ 本次對話重要進展摘要（v4.2 → v4.3）
 
 ### 已完成 ✅
 
-1. **#37 503 fallback 修復** ✅ commit `c894fc6`
-   - `_try_local()` 改為逐一嘗試所有本地後端
-   - gb10 timeout/掛掉 → 自動降級 ollama-backup，不走 cloud
-   - 驗證：停 GB10 → Router log `gb10-llama ✗ → ollama-backup → 200` ✅
+1. **#53 Step E token 空值 guard** ✅ commit `a2e82d1`
+   - EasySetup v1.5 + 重灌SOP v1.8：Step E 加 `[ -z "$TOKEN" ]` 檢查
 
-2. **#49 fast path 換 ministral-3:8b** ✅ commit `c853e68`
-   - 繁體穩定、無 thinking、身份攻擊全擋
-   - 建立 qwen2.5-zh Modelfile（後改用 doomgrave）
+2. **#55 REASONING_KEYWORDS 即時性關鍵字** ✅ commit `bd09a17`
+   - 加入：今天、現在、最新、股價、天氣、比特幣等即時性詞彙
+   - 含即時性語意的問題強制走 gb10-llama
 
-3. **#50 fast path 換 doomgrave/ministral-3:8b** ✅ commit `1eb09d2`
-   - 速度比原版快 15%（avg 10.5s vs 12.3s）
-   - 繁體穩定、身份安全優於原版
-   - 3000輪燒機 100%，身份 0 洩漏，簡體 1.1%
+3. **#56 enable_thinking:false 注入** ✅ commit `cf98b2b` + `92eb564`
+   - proxy.py `rewrite_messages()` 加入 `chat_template_kwargs.enable_thinking: False`
+   - 強制覆蓋（不用 setdefault），修 tool call 第二輪 gb10 400
 
-4. **#38 P0-4b SearXNG web search 整合** ✅ commit `328d491`
-   - Router 加 `/search` proxy endpoint → 轉發 SearXNG:8888
-   - sandbox 安裝 `openclaw-plugin-searxng`
-   - iptables 開放 port 8888
-   - 測試：TUI 問天氣 → 觸發 searxng_search ✅
-   - plugin tar.gz 備份：`~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz`
+4. **#57 --parallel 1，修 context exceed 400** ✅ commit `dbc8094`
+   - 根本原因：`--parallel 2` → 每 slot 16384 tokens，搜尋結果塞滿超出
+   - `start_llama.sh` 改 `--parallel 1`，每 slot 獨享 32768 tokens
+   - 400 完全消失
 
-5. **GB10 SSH 免密碼** ✅
-   - SSH key：`~/.ssh/id_gb10`
-   - `~/.ssh/config` 設定 `Host gb10`
-   - GB10 `sudoers` 設 NOPASSWD
+5. **SearXNG E2E 完整通** ✅
+   - Plugin `dist/index.js` 從源碼 build（pop-os 側 esbuild）
+   - `package.json` name 改 `searxng-search`，extensions 指向 `dist/index.js`
+   - `openclaw.json tools: {}` 移除 coding profile（blocking searxng_search）
+   - SearXNG engines 設定：duckduckgo + brave + bing
+   - workspace TOOLS.md / IDENTITY.md / USER.md 已設定
 
-6. **burnin_v2.sh** ✅
-   - FAST 16題、MAIN 16題（各加 8 題）
-   - 開頭加 SearXNG Proxy 驗證段落
-   - 舊腳本 `burnin_routing.sh` 保留
+6. **#58 burnin_v3.sh** ✅ commit `7aad6f1`
+   - Layer 1：SearXNG Proxy 連通
+   - Layer 2：AI 決策觸發（3 題即時性問題驗回應有數據）
+   - 100 輪燒機 100% ✅
 
 ### 當前狀態
 
 | Phase | 項目 | 狀態 | Commit |
 |-------|------|------|--------|
-| P1 #37 | 503 fallback | ✅ | c894fc6 |
-| P1 #38 | SearXNG 整合 | ✅ | 328d491 |
-| P1 #49 | fast path ministral | ✅ | c853e68 |
-| P1 #50 | fast path doomgrave | ✅ | 1eb09d2 |
+| P1 #53 | Step E token guard | ✅ | a2e82d1 |
+| P1 #55 | REASONING_KEYWORDS 即時性 | ✅ | bd09a17 |
+| P1 #56 | enable_thinking 注入 | ✅ | cf98b2b |
+| P1 #57 | parallel 1 修 400 | ✅ | dbc8094 |
+| P1 #58 | burnin_v3.sh Layer 2 | ✅ | 7aad6f1 |
 | P1 #39 | Qwen2.5-72B 評估 | ⬜ | — |
-| P1 #40 | reasoning 殘留 | ✗ 暫擱 | — |
 | P6 | NemoClaw drop-in 驗證 | ⬜ | — |
 | P7 | Skill 相容性測試 | ⬜ | — |
 | P8 | UX 升級 | ⬜ | — |
@@ -162,18 +159,20 @@ source ~/.bashrc
 - Qwen2.5-72B 佔 ~60GB，真正的穩定區間
 - `--parallel 2` = 2個推論 slot
 
-**當前 start_llama.sh（Qwen3.5-122B）：**
+**當前 start_llama.sh（Qwen3.5-122B，parallel 1）：**
 ```bash
 #!/bin/bash
 /home/zoe_gb/llama.cpp/build/bin/llama-server \
   --model /home/zoe_gb/Qwen3.5-122B/Qwen_Qwen3.5-122B-A10B-Q4_K_M/Qwen_Qwen3.5-122B-A10B-Q4_K_M-00001-of-00002.gguf \
   --alias minimax --host 0.0.0.0 --port 8001 \
-  --ctx-size 32768 --parallel 2 \
+  --ctx-size 32768 --parallel 1 \
   --flash-attn on --n-gpu-layers 99 --threads 20 \
   --cache-type-k q4_0 --cache-type-v q4_0 \
   --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
   --reasoning off --jinja
 ```
+
+⚠️ **`--parallel 1` 是關鍵**：parallel 2 會讓每 slot 只有 16384 tokens，搜尋結果塞滿後 400。parallel 1 每 slot 獨享 32768。
 
 ### OpenShell（沙盒系統）
 - K3s in Docker container (ID 每次重建會變)
@@ -196,13 +195,15 @@ source ~/.bashrc
   - `qwen2.5-zh` — 舊 fast path（已換掉，可清理）
   - `phi4-mini` — 測試用（2.5GB）
 
-### SearXNG（本地搜尋）✅ 完整整合
+### SearXNG（本地搜尋）✅ E2E 完整通
 - Docker 部署，port 8888
-- 設定：`~/ceclaw/config/searxng-settings.yml`
+- 設定：`~/searxng-config/settings.yml`（⚠️ 擁有者 uid 977，需 sudo 修改）
+- 啟用引擎：duckduckgo + brave + bing
 - pop-os 存取：`http://localhost:8888`
 - Router proxy：`http://localhost:8000/search?q=...&format=json`
 - sandbox 透過 Router 存取：`http://host.openshell.internal:8000/search`
 - plugin：`openclaw-plugin-searxng`，備份在 `~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz`
+- ⚠️ plugin 需要 `dist/index.js`（esbuild 編譯），sandbox 重建後要從 pop-os 重新 build + scp
 
 ---
 
@@ -215,7 +216,8 @@ source ~/.bashrc
 ├── ceclaw_monitor.sh
 ├── ceclaw.py                 # ceclaw CLI v0.1.0
 ├── burnin_routing.sh         # 原版燒機腳本（8+8題）
-├── burnin_v2.sh              # ✅ 新版燒機腳本（16+16題+SearXNG驗證）
+├── burnin_v2.sh              # 燒機腳本（16+16題+SearXNG Layer1驗證）
+├── burnin_v3.sh              # ✅ 新版燒機腳本（Layer1+Layer2 AI決策觸發驗證）
 ├── CECLAW_交接文件.md
 ├── CECLAW_規格規劃說明書.md
 ├── router/
@@ -306,6 +308,12 @@ inference:
 
 | Commit | 說明 |
 |--------|------|
+| `7aad6f1` | feat: burnin_v3.sh 加 SearXNG Layer 2 AI 決策觸發驗證 |
+| `dbc8094` | fix: #57 --parallel 1，修 context exceed 400，清 debug log |
+| `92eb564` | fix: #57 enable_thinking 強制覆蓋，修 tool call 第二輪 gb10 400 |
+| `cf98b2b` | fix: #56 inject enable_thinking:false，對齊 ZengboJamesWang proxy |
+| `bd09a17` | feat: #55 REASONING_KEYWORDS 加即時性關鍵字，強制走 gb10-llama |
+| `a2e82d1` | fix: #53 Step E token 空值 guard，避免靜默失敗 |
 | `328d491` | feat: #38 SearXNG整合完成，Router /search proxy，sandbox plugin固化SOP |
 | `1eb09d2` | feat: fast path 換 doomgrave/ministral-3:8b，速度+15%，品質更好，身份更安全 |
 | `c853e68` | feat: fast path 換 ministral-3:8b，身份攻擊全擋，無thinking問題 |
@@ -331,6 +339,11 @@ inference:
 | 38 | SearXNG web search 整合 | ✅ 328d491 |
 | 49 | fast path doomgrave/ministral-3:8b | ✅ 1eb09d2 |
 | 50 | fast path 速度優化 | ✅（done via doomgrave）|
+| 53 | Step E token 空值 guard | ✅ a2e82d1 |
+| 55 | REASONING_KEYWORDS 即時性關鍵字 | ✅ bd09a17 |
+| 56 | enable_thinking:false 注入 | ✅ cf98b2b |
+| 57 | parallel 1 修 context exceed 400 | ✅ dbc8094 |
+| 58 | burnin_v3.sh Layer 2 驗證 | ✅ 7aad6f1 |
 | 39 | Qwen2.5-72B 評估 | ⬜ |
 | 40 | qwen3-nothink reasoning 殘留 | ✗ 暫擱（Ollama API 限制）|
 | 51 | fast path < 500ms | ⬜ 未來 |
@@ -403,6 +416,18 @@ CECLAW_SYSTEM_PROMPT = (
 **坑#23（關鍵）**: **不要 `docker restart` openshell container**。會讓 K3s 網路亂掉，sandbox SSH 死掉。正確做法：等 pod 自己恢復，或用 `openshell term`。
 
 **坑#24**: sandbox SearXNG plugin 每次重建後消失，需手動執行 Step E+F（見重建清單）。sandbox-id 固定，token 每次從 `ps aux` 取。
+
+**坑#25**: `openclaw.json tools.profile: "coding"` 把 searxng_search 擋掉。sandbox 重建後 Step C 必須加 `cfg["tools"] = {}`。
+
+**坑#26**: SearXNG plugin 只有 `index.ts`，沒有 `dist/index.js`。sandbox 無法安裝 esbuild（npmjs.org 被封）。解法：在 pop-os 側 build 後 scp 進 sandbox。build 指令：
+```bash
+cd /tmp && tar xzf ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz
+cd openclaw-plugin-searxng
+npm install
+npx esbuild index.ts --bundle --format=esm --outfile=dist/index.js --external:@sinclair/typebox
+```
+
+**坑#27**: `--parallel 2` 讓每 slot 只有 `ctx-size ÷ 2 = 16384` tokens。搜尋結果 + 對話歷史超過就 400。POC 用 `--parallel 1`。
 
 ---
 
@@ -522,8 +547,14 @@ scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.
 | 49 | fast path ministral-3:8b | P1 | ✅ | c853e68 |
 | 50 | fast path doomgrave/ministral-3:8b | P1 | ✅ | 1eb09d2 |
 | 51 | fast path < 500ms | P1 | ⬜ 未來 | — |
+| 52 | burnin_v2.sh（16+16+SearXNG Layer1）| P1 | ✅ | 020e797 |
+| 53 | Step E token 空值 guard | P1 | ✅ | a2e82d1 |
+| 55 | REASONING_KEYWORDS 即時性關鍵字 | P1 | ✅ | bd09a17 |
+| 56 | enable_thinking:false 注入 | P1 | ✅ | cf98b2b |
+| 57 | parallel 1 修 context exceed 400 | P1 | ✅ | dbc8094 |
+| 58 | burnin_v3.sh Layer 2 AI 決策觸發 | P1 | ✅ | 7aad6f1 |
 
-**完成：41/51 ✅ | 待做：7 ⬜ | 無解/暫擱：3 ✗**
+**完成：49/58 ✅ | 待做：6 ⬜ | 無解/暫擱：3 ✗**
 
 ---
 
@@ -556,5 +587,5 @@ POC 階段，量產走 vLLM + 滿級模型
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
 *總工: Kent | 軟工: 下個對話 Claude | 督察: GLM-5 Turbo*
-*文件版本: v4.2 | 日期: 2026-03-23*
-*P1✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ P0全✅ P1部分✅ | 下一步: P1#39→P6 | 最新commit: 328d491*
+*文件版本: v4.3 | 日期: 2026-03-23*
+*P1✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ P0全✅ P1大部分✅ | 下一步: P1#39→P6 | 最新commit: 7aad6f1*
