@@ -9,7 +9,7 @@ import httpx
 from fastapi import Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from .config import CECLAWConfig, LocalBackend, CloudProvider
-from .backends import get_healthy_backend, select_backend, check_all
+from .backends import get_healthy_backend, select_backend, check_all, _healthy
 from . import audit
 
 logger = logging.getLogger("ceclaw.proxy")
@@ -112,45 +112,52 @@ async def _try_local(
     tokens: int = 0,
 ) -> Optional[httpx.Response]:
     strategy = config.inference.strategy
-    if strategy == "smart-routing":
-        backend = select_backend(config, query, tokens)
-    else:
-        backend = get_healthy_backend(config)
+    tried = set()
 
-    if not backend:
-        return None
+    for _ in range(3):
+        if strategy == "smart-routing":
+            backend = select_backend(config, query, tokens)
+        else:
+            backend = get_healthy_backend(config)
 
-    if backend.type == "ollama" and backend.model:
-        try:
-            import json as _json
-            data = _json.loads(body)
-            data["model"] = backend.model
-            body = _json.dumps(data).encode()
-        except Exception:
-            pass
+        if not backend or backend.name in tried:
+            break
+        tried.add(backend.name)
 
-    clean_path = path.lstrip("/")
-    clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path
-    url = f"{backend.base_url.rstrip('/')}/{clean_path}"
-    timeout = config.inference.timeout_local_ms / 1000
+        current_body = body
+        if backend.type == "ollama" and backend.model:
+            try:
+                import json as _json
+                data = _json.loads(current_body)
+                data["model"] = backend.model
+                current_body = _json.dumps(data).encode()
+            except Exception:
+                pass
 
-    try:
+        clean_path = path.lstrip("/")
+        clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path
+        url = f"{backend.base_url.rstrip('/')}/{clean_path}"
+        timeout = config.inference.timeout_local_ms / 1000
+
         client = httpx.AsyncClient(timeout=timeout)
-        resp = await client.post(url, content=body, headers=headers)
-        resp._ceclaw_backend = backend.name
-        if resp.status_code in (200, 201):
-            logger.info(f"[local] {backend.name} → {resp.status_code}")
-            return resp
-        logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
-        return None
-    except httpx.TimeoutException:
-        logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
-        return None
-    except Exception as e:
-        logger.warning(f"[local] {backend.name} error: {e}, falling back")
-        return None
-    finally:
-        await client.aclose()
+        try:
+            resp = await client.post(url, content=current_body, headers=headers)
+            resp._ceclaw_backend = backend.name
+            if resp.status_code in (200, 201):
+                logger.info(f"[local] {backend.name} → {resp.status_code}")
+                return resp
+            logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
+            _healthy[backend.name] = False
+        except httpx.TimeoutException:
+            logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
+            _healthy[backend.name] = False
+        except Exception as e:
+            logger.warning(f"[local] {backend.name} error: {e}, falling back")
+            _healthy[backend.name] = False
+        finally:
+            await client.aclose()
+
+    return None
 
 
 async def _try_cloud(
