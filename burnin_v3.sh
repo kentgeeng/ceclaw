@@ -1,6 +1,13 @@
 #!/bin/bash
 # CECLAW P4 Smart Routing 燒機腳本 v3
-# 新增：SearXNG Layer 2 AI 決策觸發驗證
+#
+# Layer 1：SearXNG Proxy 連通驗證（curl /search，results > 0）
+# Layer 2A：SearXNG 搜尋品質驗證（三題即時性查詢，results > 0）
+#           取代原 Layer 2（openclaw agent CLI）
+#           原因：openclaw agent CLI 有 bug，把 tools list 當 user message，
+#           導致 AI 看不到真正的 query，造成假陽性。Layer 2A 改為直接驗
+#           /search endpoint，確定性測試，不依賴 AI 決策層。
+# Layer 2B：手動 TUI 驗證（不進 burnin，見驗收清單）
 ROUNDS=${1:-100}
 ENDPOINT="http://host.openshell.internal:8000/v1/chat/completions"
 AUTH="Bearer ceclaw-local"
@@ -63,33 +70,32 @@ else
     echo "Layer 1: ⚠️  無結果或連線失敗（繼續燒機）"
 fi
 
-# === SearXNG Layer 2：AI 決策觸發驗證 ===
+# === SearXNG Layer 2A：搜尋品質驗證（直接測 /search endpoint）===
 echo ""
-echo "=== SearXNG Layer 2：AI 決策觸發驗證 ==="
-echo "發送即時性 prompt，驗證 AI 是否上網搜尋..."
-
-L2_QUERIES=("NVIDIA 股價現在多少？" "比特幣今天價格" "台北今天天氣如何")
+echo "=== SearXNG Layer 2A：搜尋品質驗證 ==="
+L2_QUERIES=("NVIDIA+stock+price" "比特幣" "台北天氣")
 L2_PASS=0
-L2_FAIL=0
 
 for Q in "${L2_QUERIES[@]}"; do
-    echo -n "  問：${Q} → "
-    RESP=$(openclaw agent --agent main --session-id "burnin-l2-$(date +%s)" -m "$Q" --timeout 90 2>/dev/null)
-    # 有數字（股價/溫度/幣價）或有具體地名/時間 = 有搜尋結果
-    if echo "$RESP" | grep -qE '[0-9]+\.[0-9]+|[0-9]{3,}|°C|USD|TWD|台北|天氣|多雲|晴'; then
-        echo "✅ 有實質回應"
-        L2_PASS=$((L2_PASS+1))
+    echo -n "  查詢：${Q} → "
+    RESP=$(curl -sf --max-time 10 "http://host.openshell.internal:8000/search?q=${Q}&format=json" 2>/dev/null)
+    if [ -z "$RESP" ]; then
+        echo "⚠️  無回應或 JSON 錯誤"
     else
-        echo "⚠️  無實質資料（可能未觸發搜尋）"
-        L2_FAIL=$((L2_FAIL+1))
+        COUNT=$(echo "$RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null)
+        if [ -n "$COUNT" ] && [ "$COUNT" -gt 0 ]; then
+            echo "✅ results=${COUNT}"
+            L2_PASS=$((L2_PASS+1))
+        else
+            echo "⚠️  results=0"
+        fi
     fi
-    sleep 3
 done
 
-if [ "$L2_PASS" -gt 0 ]; then
-    echo "Layer 2: ✅ ${L2_PASS}/${#L2_QUERIES[@]} 題有上網並回傳有效資料"
+if [ "$L2_PASS" -eq 3 ]; then
+    echo "Layer 2A: ✅ 3/3 全過"
 else
-    echo "Layer 2: ❌ 全部無效（SearXNG 整合可能有問題）"
+    echo "Layer 2A: ⚠️  ${L2_PASS}/3（部分查詢無結果）"
 fi
 echo "=========================="
 echo ""
@@ -137,23 +143,27 @@ for i in $(seq 1 $ROUNDS); do
     # 每 100 輪做一次 Layer 2 驗證
     if [ $((i % 100)) -eq 0 ]; then
         echo ""
-        echo "=== 第 ${i} 輪 SearXNG Layer 2 定期驗證 ==="
+        echo "=== 第 ${i} 輪 SearXNG Layer 2A 定期驗證 ==="
         L2_PASS_MID=0
         for Q2 in "${L2_QUERIES[@]}"; do
-            echo -n "  問：${Q2} → "
-            RESP2=$(openclaw agent --agent main --session-id "burnin-mid-$(date +%s)" -m "$Q2" --timeout 90 2>/dev/null)
-            if echo "$RESP2" | grep -qE '[0-9]+\.[0-9]+|[0-9]{3,}|°C|USD|TWD|台北|天氣|多雲|晴'; then
-                echo "✅"
-                L2_PASS_MID=$((L2_PASS_MID+1))
+            echo -n "  查詢：${Q2} → "
+            RESP2=$(curl -sf --max-time 10 "http://host.openshell.internal:8000/search?q=${Q2}&format=json" 2>/dev/null)
+            if [ -n "$RESP2" ]; then
+                COUNT2=$(echo "$RESP2" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null)
+                if [ -n "$COUNT2" ] && [ "$COUNT2" -gt 0 ]; then
+                    echo "✅ results=${COUNT2}"
+                    L2_PASS_MID=$((L2_PASS_MID+1))
+                else
+                    echo "⚠️  results=0"
+                fi
             else
-                echo "⚠️  無實質資料"
+                echo "⚠️  無回應"
             fi
-            sleep 3
         done
-        if [ "$L2_PASS_MID" -gt 0 ]; then
-            echo "Layer 2 @ ${i}: ✅ ${L2_PASS_MID}/3"
+        if [ "$L2_PASS_MID" -eq 3 ]; then
+            echo "Layer 2A @ ${i}: ✅ 3/3"
         else
-            echo "Layer 2 @ ${i}: ❌ SearXNG 可能失效"
+            echo "Layer 2A @ ${i}: ⚠️  ${L2_PASS_MID}/3"
         fi
         echo "=========================="
         echo ""
