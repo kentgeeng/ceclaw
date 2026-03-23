@@ -79,15 +79,20 @@ L2_PASS=0
 for Q in "${L2_QUERIES[@]}"; do
     echo -n "  查詢：${Q} → "
     RESP=$(curl -sf --max-time 10 "http://host.openshell.internal:8000/search?q=${Q}&format=json" 2>/dev/null)
-    if [ -z "$RESP" ]; then
-        echo "⚠️  無回應或 JSON 錯誤"
+    COUNT=$([ -n "$RESP" ] && echo "$RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null || echo "0")
+    if [ -n "$COUNT" ] && [ "$COUNT" -gt 0 ]; then
+        echo "✅ results=${COUNT}"
+        L2_PASS=$((L2_PASS+1))
     else
-        COUNT=$(echo "$RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null)
-        if [ -n "$COUNT" ] && [ "$COUNT" -gt 0 ]; then
-            echo "✅ results=${COUNT}"
+        echo -n "⚠️  results=0，retry 中... → "
+        sleep 10
+        RESP2=$(curl -sf --max-time 10 "http://host.openshell.internal:8000/search?q=${Q}&format=json" 2>/dev/null)
+        COUNT2=$([ -n "$RESP2" ] && echo "$RESP2" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null || echo "0")
+        if [ -n "$COUNT2" ] && [ "$COUNT2" -gt 0 ]; then
+            echo "✅ retry 通過 results=${COUNT2}"
             L2_PASS=$((L2_PASS+1))
         else
-            echo "⚠️  results=0"
+            echo "⚠️  retry 仍失敗 results=0"
         fi
     fi
 done
@@ -148,16 +153,21 @@ for i in $(seq 1 $ROUNDS); do
         for Q2 in "${L2_QUERIES[@]}"; do
             echo -n "  查詢：${Q2} → "
             RESP2=$(curl -sf --max-time 10 "http://host.openshell.internal:8000/search?q=${Q2}&format=json" 2>/dev/null)
-            if [ -n "$RESP2" ]; then
-                COUNT2=$(echo "$RESP2" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null)
-                if [ -n "$COUNT2" ] && [ "$COUNT2" -gt 0 ]; then
-                    echo "✅ results=${COUNT2}"
+            COUNT_M=$([ -n "$RESP2" ] && echo "$RESP2" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null || echo "0")
+            if [ -n "$COUNT_M" ] && [ "$COUNT_M" -gt 0 ]; then
+                echo "✅ results=${COUNT_M}"
+                L2_PASS_MID=$((L2_PASS_MID+1))
+            else
+                echo -n "⚠️  results=0，retry 中... → "
+                sleep 10
+                RESP2R=$(curl -sf --max-time 10 "http://host.openshell.internal:8000/search?q=${Q2}&format=json" 2>/dev/null)
+                COUNT_MR=$([ -n "$RESP2R" ] && echo "$RESP2R" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null || echo "0")
+                if [ -n "$COUNT_MR" ] && [ "$COUNT_MR" -gt 0 ]; then
+                    echo "✅ retry 通過 results=${COUNT_MR}"
                     L2_PASS_MID=$((L2_PASS_MID+1))
                 else
-                    echo "⚠️  results=0"
+                    echo "⚠️  retry 仍失敗 results=0"
                 fi
-            else
-                echo "⚠️  無回應"
             fi
         done
         if [ "$L2_PASS_MID" -eq 3 ]; then
