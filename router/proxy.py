@@ -83,7 +83,7 @@ def rewrite_messages(body: bytes) -> bytes:
             last_user["content"] = last_user["content"].lstrip()[len(think_prefix):].lstrip()
             data.setdefault("chat_template_kwargs", {})["enable_thinking"] = True
         else:
-            data.setdefault("chat_template_kwargs", {}).setdefault("enable_thinking", False)
+            data.setdefault("chat_template_kwargs", {})["enable_thinking"] = False
         return json.dumps(data, ensure_ascii=False).encode()
     except Exception:
         return body
