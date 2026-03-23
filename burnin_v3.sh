@@ -73,7 +73,7 @@ fi
 # === SearXNG Layer 2A：搜尋品質驗證（直接測 /search endpoint）===
 echo ""
 echo "=== SearXNG Layer 2A：搜尋品質驗證 ==="
-L2_QUERIES=("NVIDIA+stock+price" "比特幣" "台北天氣")
+L2_QUERIES=("NVIDIA+stock+price" "bitcoin+price" "taipei+weather")
 L2_PASS=0
 
 for Q in "${L2_QUERIES[@]}"; do
