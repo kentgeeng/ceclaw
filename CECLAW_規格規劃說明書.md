@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.3.9  
-**作者**: Kent (總工)  
-**日期**: 2026-03-22  
-**狀態**: Alpha — P0~P5 完成，POC 展示就緒
+**版本**: 0.4.0
+**作者**: Kent (總工)
+**日期**: 2026-03-23
+**狀態**: Alpha — P0~P1 部分完成，POC 展示就緒
 
 ---
 
@@ -54,17 +54,18 @@ NV 的設計有三道關卡逆著我們走：
 | 資料流向 | 出內網 | 留在內網 |
 | 推論成本 | 按 token | 本地 GPU 免費 |
 | Router 層 | 無 | CECLAW Router ✅ |
-| 降級策略 | 掛了就掛 | GB10 → Groq → Anthropic → OpenAI → NV |
+| 降級策略 | 掛了就掛 | GB10 → ollama-backup → Cloud |
 | 模型選擇 | NV 指定 | 任意 GGUF |
 | CLI 入口 | `nemoclaw` | `ceclaw`（對齊設計）|
 | **審計記錄** | 無 | **Chain Audit Log（P5）** |
 | **多後端** | 無 | **P4：Ollama + llama.cpp** |
 | **身份白標化** | 無 | **P0：inject_system_prompt** |
 | **Role 相容** | 無 | **P0：rewrite_messages** |
-| **本地搜尋** | 無 | **P0：SearXNG 自架** |
+| **本地搜尋** | 無 | **P0+P1：SearXNG + Router proxy** |
+| **自動 fallback** | 無 | **P1：gb10→backup 自動降級** |
 
 **核心差異：**
-> NemoClaw = Secure Execution（安全執行）  
+> NemoClaw = Secure Execution（安全執行）
 > CECLAW = Secure + Sovereign Inference（安全 + 主權推論）
 
 ---
@@ -82,6 +83,8 @@ NV 的設計有三道關卡逆著我們走：
 │     - Smart routing：fast → main → backup → cloud          │
 │     - rewrite_messages()：role 相容性修復                   │
 │     - inject_system_prompt()：CECLAW 身份注入               │
+│     - _try_local()：逐一嘗試本地後端，自動降級              │
+│     - /search proxy：轉發 SearXNG 搜尋                     │
 │     - systemd 管理，開機自啟                                │
 │                                                             │
 │  ② CECLAW Plugin (ceclaw/plugin/)                          │
@@ -96,18 +99,18 @@ NV 的設計有三道關卡逆著我們走：
 │                                                             │
 │  ⑤ GB10 推論機（主力）✅                                    │
 │     - llama.cpp，Qwen3.5-122B Q4_K_M，192.168.1.91:8001   │
-│     - systemd 開機自啟，LLaMA Server (Qwen3.5-122B)        │
-│     - 備選：Qwen2.5-72B Q4_K_M（已下載，待測試）           │
+│     - systemd 開機自啟                                      │
+│     - 備選：Qwen2.5-72B Q4_K_M（已下載，待評估）           │
 │                                                             │
-│  ⑥ Ollama（本地快速後端）                                   │
-│     - qwen3-nothink（fast，Modelfile含CECLAW身份）          │
-│     - qwen3:8b（backup，think:false）                       │
+│  ⑥ Ollama（本地後端）                                       │
+│     - doomgrave/ministral-3:8b（fast，5.8GB）               │
+│     - qwen3:8b（backup，5.2GB）                             │
 │     - localhost:11434                                        │
 │                                                             │
-│  ⑦ SearXNG（本地搜尋）✅ 新增                               │
+│  ⑦ SearXNG（本地搜尋）✅ 完整整合                           │
 │     - Docker，port 8888                                     │
-│     - 172.17.0.1:8888（sandbox 可達）                      │
-│     - P0-4b Router 攔截待做                                 │
+│     - Router /search proxy（sandbox 透過 8000 存取）        │
+│     - sandbox plugin：openclaw-plugin-searxng               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -119,10 +122,12 @@ CECLAW Inference Router
 ├── POST /ceclaw/reload          熱重載設定檔
 ├── GET  /v1/models              列出可用模型
 ├── POST /v1/chat/completions    推論（含 role rewrite + identity inject）
-└── POST /v1/completions         推論
+├── POST /v1/completions         推論
+├── GET  /search                 SearXNG proxy（sandbox web search）✅ 新增
+└── POST /search                 SearXNG proxy
 ```
 
-### 3.3 推論流程（P0 後）
+### 3.3 推論流程（P1 後）
 
 ```
 Request 進來
@@ -134,33 +139,55 @@ rewrite_messages()
 inject_system_prompt()
      │ CECLAW 身份注入（最後位置，recency bias）
      ▼
-Smart Routing 判斷
+_try_local()（逐一嘗試）
      │
      ├── 身份問題 / 複雜問題
      │   → GB10 Qwen3.5-122B（main，15-36s）
-     │
+     │   → timeout/失敗 → 標記不健康
+     │             ↓
      ├── 簡單問題
-     │   → Ollama qwen3-nothink（fast，~1s）
+     │   → Ollama doomgrave/ministral-3:8b（fast，~850ms）
      │
-     ├── GB10 掛掉
-     │   → Ollama qwen3:8b（backup，~1.3s）
+     ├── GB10 掛掉/timeout
+     │   → Ollama qwen3:8b（backup，~1.3s）✅ 自動降級
      │
      └── 全部掛掉
          → 雲端 fallback（Groq → Anthropic → OpenAI → NV）
 ```
 
-### 3.4 商業部署架構（三層推論）
+### 3.4 Web Search 流程（P1 後）
+
+```
+TUI 問需要搜尋的問題
+     │
+     ▼
+openclaw gateway 觸發 searxng_search tool
+     │
+     ▼
+openclaw-plugin-searxng
+     │ baseUrl: http://host.openshell.internal:8000
+     ▼
+CECLAW Router /search endpoint
+     │
+     ▼
+SearXNG:8888（本地搜尋）
+     │
+     ▼
+結果回傳 → LLM 整理回應
+```
+
+### 3.5 商業部署架構（三層推論）
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Tier 1: 本地小伺服器                                    │
 │  ├─ 模型：Ollama / 小型 GGUF                            │
-│  ├─ 用途：快速反應 (< 0.5s)                              │
+│  ├─ 用途：快速反應 (~850ms)                              │
 │  └─ 資料不離開設備                                       │
 │           ↓ Smart Routing ↓                             │
 │  Tier 2: GPU 推論伺服器（GB10 / AI CDC）                 │
 │  ├─ 模型：大型 GPU 叢集（llama.cpp / vLLM）             │
-│  ├─ 用途：複雜推理、長文分析 (1-36s)                     │
+│  ├─ 用途：複雜推理、長文分析 (15-36s)                    │
 │  └─ 資料不出自家機房                                     │
 │           ↓ Cloud Fallback ↓                            │
 │  Tier 3: 任意模型 API                                    │
@@ -177,12 +204,12 @@ Smart Routing 判斷
 
 | 功能 | 狀態 | Commit |
 |------|------|--------|
-| Inference Router | ✅ | - |
-| 本地優先路由 | ✅ | - |
-| 雲端降級 | ✅ | - |
+| Inference Router | ✅ | — |
+| 本地優先路由 | ✅ | — |
+| 雲端降級 | ✅ | — |
 | 後端健康檢查 | ✅ | 65f5d89 |
-| SIGHUP 熱重載 | ✅ | - |
-| OpenShell Policy | ✅ | - |
+| SIGHUP 熱重載 | ✅ | — |
+| OpenShell Policy | ✅ | — |
 | Sandbox Image | ✅ | 2dfab79 |
 | CoreDNS 持久化 | ✅ | 1bffd63 |
 | 監控腳本 + logrotate | ✅ | 70175b6 |
@@ -191,30 +218,33 @@ Smart Routing 判斷
 | Smart routing | ✅ | 986a7b5 |
 | 多後端燒機 200 輪 | ✅ | 3bac2a5 |
 | Chain Audit Log | ✅ | 40ac82a |
-| 燒機 2000 輪 100% | ✅ | - |
-| GB10 Qwen3.5-122B | ✅ | - |
-| GB10 systemd 開機自啟 | ✅ | - |
-| GLM-5 Turbo 評審通過 | ✅ | - |
-| **P0-2 Role 相容性** | ✅ | ada85a7 |
-| **P0-3 tui alias + history-limit** | ✅ | 903e8cc |
-| **P0-1 身份白標化** | ✅ | 4c1e888 |
-| **P0-4a SearXNG 自架** | ✅ | cf44a1f |
-| **contextWindow 32768 修正** | ✅ | db24708 |
-| **30題壓力測試通過** | ✅ | - |
+| 燒機 3000 輪 100% | ✅ | — |
+| GB10 Qwen3.5-122B | ✅ | — |
+| GB10 systemd 開機自啟 | ✅ | — |
+| GLM-5 Turbo 評審通過 | ✅ | — |
+| P0-2 Role 相容性 | ✅ | ada85a7 |
+| P0-3 tui alias + history-limit | ✅ | 903e8cc |
+| P0-1 身份白標化 | ✅ | 4c1e888 |
+| P0-4a SearXNG 自架 | ✅ | cf44a1f |
+| contextWindow 32768 修正 | ✅ | db24708 |
+| 30題壓力測試通過 | ✅ | — |
+| **#37 503 fallback 修復** | ✅ | c894fc6 |
+| **#49 fast path ministral-3:8b** | ✅ | c853e68 |
+| **#50 fast path doomgrave/ministral-3:8b** | ✅ | 1eb09d2 |
+| **#38 SearXNG web search 整合** | ✅ | 328d491 |
+| **burnin_v2.sh（16+16題+SearXNG驗證）** | ✅ | — |
 
 ### 4.2 驗證記錄
 
 ```
 2026-03-21 P1~P5 全部完成驗證
-2026-03-22 GB10 模型比較測試：
-  - Qwen3.5 8/8 ✅（GLM-5 Turbo 評審），MiniMax IQ2_M 淘汰
-2026-03-22 燒機 2000 輪：2000/2000 100% ✅
-2026-03-22 P0 全部完成：
-  - Role rewrite 驗證 ✅
-  - 身份白標化：「你是誰」→「我是 CECLAW 企業 AI 助手」✅
-  - 「你是通義千問嗎」→「不是，我是 CECLAW 企業 AI 助手」✅
-  - contextWindow 32768：tokens ?/33k ✅
-  - 30題壓力測試無 503 ✅
+2026-03-22 GB10 Qwen3.5 8/8 ✅（GLM-5 Turbo 評審），燒機 2000 輪 100% ✅
+2026-03-22 P0 全部完成（role rewrite, 身份白標化, contextWindow, SearXNG）
+2026-03-23 P1 進展：
+  - #37 fallback：停 GB10 → ollama-backup → 200 ✅
+  - #50 fast path：doomgrave/ministral-3:8b 3000輪 100%，身份 0 洩漏，簡體 1.1% ✅
+  - #38 SearXNG：TUI 問天氣 → searxng_search 觸發 → 回傳真實結果 ✅
+  - audit 10144+ 條鏈完整 ✅
 ```
 
 ---
@@ -239,7 +269,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 1
-        model: qwen3-nothink
+        model: doomgrave/ministral-3:8b    # ✅ v0.4.0 更新
         use_for: [simple_query]
 
       - name: gb10-llama
@@ -304,6 +334,16 @@ inference:
         "reserveTokens": 8000
       }
     }
+  },
+  "plugins": {
+    "entries": {
+      "searxng-search": {
+        "enabled": true,
+        "config": {
+          "baseUrl": "http://host.openshell.internal:8000"
+        }
+      }
+    }
   }
 }
 ```
@@ -316,23 +356,28 @@ inference:
 - P0：Role 相容、身份白標化、context 修正、SearXNG 自架
 - P1~P5：Router, Policy, iptables, CoreDNS, CLI, 監控, Audit, Smart Routing
 
-### Phase 1（P0 後，進行中）
-- [ ] P0-4b：Router 攔截 web_search → 轉發 SearXNG
-- [ ] Qwen2.5-72B 評估（47GB，穩定區間）
-- [ ] 身份關鍵字補充（「訓練的」、「什麼模型」）
-- [ ] qwen3-nothink reasoning 殘留過濾
+### Phase 1（進行中）
+- [x] #37 503 fallback（gb10→ollama-backup）✅
+- [x] #38 SearXNG web search 整合 ✅
+- [x] #49/#50 fast path doomgrave/ministral-3:8b ✅
+- [ ] #39 Qwen2.5-72B 評估（47GB，穩定區間）
+- [ ] #51 fast path < 500ms（未來）
+- [x] 身份關鍵字補充 ✅（commit 89f4819）
+- [x] qwen3-nothink reasoning 殘留 ✗ 暫擱（Ollama API 限制）
 
 ### Phase 6 — 相容性驗證
-- [ ] NemoClaw drop-in 驗證報告
-- 前置條件：P0 全修完 ✅
+- [ ] NemoClaw drop-in 驗證報告（手冊 v0.2 已準備）
+- 前置條件：P1 全清
 
 ### Phase 7 — OpenClaw Skill 相容性測試
 - [ ] A 級（無網路，10個）優先
 
 ### Phase 8 — UX 升級
-- [ ] `ceclaw onboard` 補完（plugin install + gateway autostart 自動化）
+- [ ] `ceclaw onboard` 補完
 - [ ] `ceclaw doctor` 診斷指令
-- [ ] `ceclaw list` 指令
+- [ ] `ceclaw list`
+- [ ] `ceclaw start / stop`
+- [ ] `ceclaw destroy`
 
 ---
 
@@ -340,38 +385,39 @@ inference:
 
 | 限制 | 說明 | 計劃解法 |
 |------|------|---------|
-| web_search 出內網 | openclaw 走 Brave API | P1-1 Router 攔截→SearXNG |
-| Qwen3.5-122B 極限 | ~86GB/128GB，不是穩定區間 | 考慮換 Qwen2.5-72B |
+| doomgrave 簡體殘留 | 1.1%，集中在英文短問題 | 接受，已知限制 |
+| Qwen3.5-122B 極限 | ~86GB/128GB，不是穩定區間 | 待評估 Qwen2.5-72B |
 | TUI 底部顯示 | openclaw 寫死 `local/minimax` | 無解，坑#11 |
 | Auto-approve | OpenShell 安全設計 | 無解，坑#12 |
-| qwen3-nothink reasoning 殘留 | 約11% | P1 middleware 過濾 |
-| vLLM on GB10 | Blackwell 支援尚未成熟 | 等 vLLM 更新 |
-| sandbox 重建後需手動 4 步 | 見交接文件 | P8 自動化 |
+| sandbox 重建後需手動 6 步 | 見交接文件 | P8 自動化 |
 | docker restart → sandbox 死 | 坑#23 | 不要 restart container |
+| SearXNG plugin 重建後消失 | 坑#24 | 手動執行 Step E+F |
+| fast path > 500ms | doomgrave avg ~850ms | 未來找更快模型 |
 
 ---
 
 ## 8. 技術債
 
-1. **P0-4b web_search Router 攔截** — P1 待做
-2. **qwen3-nothink reasoning 殘留** — 11% 洩漏率
+1. **Qwen2.5-72B 評估** — #39 待做，更穩定區間
+2. **qwen3-nothink reasoning 殘留** — 11% 洩漏率，Ollama API 限制暫擱
 3. **registerCommand**（坑#5）— openclaw 不支援，無解
 4. **undici EnvHttpProxyAgent** — experimental，長期關注
 5. **MiniMax Q3_K_XL 未清理** — 95GB，`~/MiniMax-M2.5-GGUF/UD-Q3_K_XL/`
-6. **ceclaw onboard 不完整** — 缺 plugin install + gateway autostart
+6. **ceclaw onboard 不完整** — P8 待做
+7. **sandbox plugin 固化** — 每次重建需手動 Step E+F，P8 自動化
 
 ---
 
-## 9. 本地模型能力評估（v4.1 最新）
+## 9. 本地模型能力評估（v4.2 最新）
 
-| 模型 | 大小 | GB10記憶體 | 速度 | 品質 | 穩定性 | 狀態 |
-|------|------|-----------|------|------|--------|------|
-| Qwen3.5-122B Q4_K_M | 70GB | ~86GB | 22t/s | ⭐⭐⭐⭐⭐ | ⚠️ 極限 | **當前主力** |
-| Qwen2.5-72B Q4_K_M | 47GB | ~60GB | 待測 | ⭐⭐⭐⭐ | ✅ 穩定 | 待測試 |
-| MiniMax IQ2_M | 74GB | ~82GB | 29t/s | ⭐⭐ | ❌ 日文崩潰 | 淘汰 |
-| MiniMax Q3_K_XL | 95GB | ~110GB+ | 27t/s | ⭐⭐⭐ | ❌ OOM | 淘汰 |
-| qwen3-nothink | ~5GB | Ollama | ~200ms | ⭐⭐⭐ | ✅ | fast path |
-| qwen3:8b | ~5GB | Ollama | ~1.3s | ⭐⭐⭐ | ✅ | backup |
+| 模型 | 大小 | 速度 | 繁體 | 身份安全 | 狀態 |
+|------|------|------|------|---------|------|
+| doomgrave/ministral-3:8b | 5.8GB | ~850ms | ✅ 穩定 | ✅ 優秀 | **當前 fast path** |
+| ministral-3:8b | 6.0GB | ~1.3s | ✅ 穩定 | ✅ 優秀 | 備用 |
+| Qwen3.5-122B Q4_K_M | 70GB | 15-36s | ✅ | ✅ | **GB10 主力** |
+| Qwen2.5-72B Q4_K_M | 47GB | 待測 | ✅ | ✅ | 待評估 |
+| qwen3:8b | 5.2GB | ~1.3s | ⚠️ | ✅ | backup |
+| MiniMax IQ2_M | 74GB | 29t/s | ❌ | N/A | 淘汰 |
 
 ---
 
@@ -397,11 +443,11 @@ CECLAW   = Secure + Sovereign Inference
 - CECLAW repo: github.com/kentgeeng/ceclaw
 - Qwen3.5-122B GGUF: https://huggingface.co/bartowski/Qwen_Qwen3.5-122B-A10B-GGUF
 - Qwen2.5-72B GGUF: https://huggingface.co/bartowski/Qwen2.5-72B-Instruct-GGUF
-- ZengboJames GB10 參考: https://github.com/ZengboJamesWang/Qwen3.5-35B-A3B-openclaw-dgx-spark
+- openclaw-plugin-searxng: https://github.com/5p00kyy/openclaw-plugin-searxng
 - GLM-5 Turbo 督察: OpenRouter → zhipuai/glm-5-turbo
 
 ---
 
-*CECLAW — Secure local AI agents, your inference, your rules.*  
-*總工: Kent | 版本: 0.3.9 | 日期: 2026-03-22*  
-*P0✅ P1✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ | 下一步: P1→P6*
+*CECLAW — Secure local AI agents, your inference, your rules.*
+*總工: Kent | 版本: 0.4.0 | 日期: 2026-03-23*
+*P0✅ P1部分✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ | 下一步: P1#39→P6*

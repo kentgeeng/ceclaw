@@ -1,9 +1,9 @@
 # CECLAW 重灌 SOP
 ## 從零開始到端到端通的完整步驟
 
-**預估時間**: 1~2 小時（不含模型下載）  
-**適用**: pop-os 重灌或全新機器  
-**SOP 版本**: 1.6 | **日期**: 2026-03-22
+**預估時間**: 1~2 小時（不含模型下載）
+**適用**: pop-os 重灌或全新機器
+**SOP 版本**: 1.7 | **日期**: 2026-03-23
 
 ---
 
@@ -38,10 +38,36 @@ openshell gateway list   # 預期: openshell   local   Healthy
 
 ---
 
-## Step 3：GB10 啟動 llama-server
+## Step 3：GB10 設定 SSH 免密碼
 
 ```bash
-ssh zoe_gb@192.168.1.91 "nohup ~/start_llama.sh > ~/llama.log 2>&1 &"
+ssh-keygen -t ed25519 -f ~/.ssh/id_gb10 -N ""
+ssh-copy-id -i ~/.ssh/id_gb10.pub zoe_gb@192.168.1.91
+
+cat >> ~/.ssh/config << 'EOF'
+Host gb10
+    HostName 192.168.1.91
+    User zoe_gb
+    IdentityFile ~/.ssh/id_gb10
+EOF
+
+# 驗證
+ssh gb10 'echo OK'
+```
+
+GB10 設定 sudo NOPASSWD（需登入 GB10）：
+```bash
+ssh gb10
+sudo visudo
+# 最後加一行：zoe_gb ALL=(ALL) NOPASSWD: ALL
+```
+
+---
+
+## Step 4：GB10 啟動 llama-server
+
+```bash
+ssh gb10 "nohup ~/start_llama.sh > ~/llama.log 2>&1 &"
 sleep 30
 curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
 ```
@@ -49,12 +75,12 @@ curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
 `~/start_llama.sh` 若遺失，從 pop-os 備份還原：
 ```bash
 scp ~/ceclaw/backup/start_llama.sh.bak zoe_gb@192.168.1.91:~/start_llama.sh
-ssh zoe_gb@192.168.1.91 "chmod +x ~/start_llama.sh"
+ssh gb10 "chmod +x ~/start_llama.sh"
 ```
 
 ---
 
-## Step 4：Clone CECLAW 專案
+## Step 5：Clone CECLAW 專案
 
 ```bash
 cd ~
@@ -67,7 +93,7 @@ pip install fastapi httpx uvicorn pyyaml pydantic
 
 ---
 
-## Step 5：建立 Router 設定檔
+## Step 6：建立 Router 設定檔
 
 ```bash
 mkdir -p ~/.ceclaw
@@ -87,7 +113,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 1
-        model: qwen3-nothink
+        model: doomgrave/ministral-3:8b
         use_for: [simple_query]
 
       - name: gb10-llama
@@ -128,7 +154,7 @@ EOF
 
 ---
 
-## Step 6：部署 Router systemd service
+## Step 7：部署 Router systemd service
 
 ```bash
 sudo cp ~/ceclaw/ceclaw-router.service /etc/systemd/system/
@@ -142,22 +168,30 @@ curl -s http://localhost:8000/ceclaw/status | python3 -m json.tool
 
 ---
 
-## Step 7：設定 iptables 網路穿透
+## Step 8：設定 iptables 網路穿透
 
 ```bash
 sudo apt install iptables-persistent -y
+
+# Port 8000（Router）
 sudo iptables -I FORWARD -s 172.20.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
 sudo iptables -I FORWARD -s 10.42.0.0/16  -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
 sudo iptables -I FORWARD -s 10.200.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
 sudo iptables -t nat -A POSTROUTING -s 172.20.0.0/16 -d 172.17.0.1 -j MASQUERADE
 sudo iptables -t nat -A POSTROUTING -s 10.42.0.0/16  -d 172.17.0.1 -j MASQUERADE
 sudo ufw allow from 172.20.0.0/16 to any port 8000
+
+# Port 8888（SearXNG，透過 Router proxy 存取）
+sudo iptables -I FORWARD -s 172.20.0.0/16 -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
+sudo iptables -I FORWARD -s 10.42.0.0/16  -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
+sudo iptables -I FORWARD -s 10.200.0.0/16 -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
+
 sudo netfilter-persistent save
 ```
 
 ---
 
-## Step 8：建立 CoreDNS restore 腳本
+## Step 8b：建立 CoreDNS restore 腳本
 
 ```bash
 mkdir -p ~/nemoclaw-config
@@ -175,7 +209,7 @@ bash ~/nemoclaw-config/restore-coredns.sh
 
 ---
 
-## Step 8b：監控 + logrotate
+## Step 8c：監控 + logrotate
 
 ```bash
 chmod +x ~/ceclaw/ceclaw_monitor.sh
@@ -196,7 +230,7 @@ EOF
 
 ---
 
-## Step 8c：安裝 ceclaw CLI
+## Step 8d：安裝 ceclaw CLI
 
 ```bash
 chmod +x ~/ceclaw/ceclaw.py
@@ -206,41 +240,29 @@ ceclaw status
 
 ---
 
-## Step 8d：安裝 Ollama + qwen3-nothink
+## Step 8e：安裝 Ollama + doomgrave/ministral-3:8b
 
 ```bash
 # 確認已裝
 ollama --version
 
 # 下載模型
-ollama pull qwen3:8b     # backup 路徑，5.2GB
+ollama pull doomgrave/ministral-3:8b   # fast path，5.8GB
+ollama pull qwen3:8b                    # backup 路徑，5.2GB
 
-# 建立 qwen3-nothink（CECLAW 身份 Modelfile）
-cat > /tmp/Modelfile.ceclaw << 'EOF'
-FROM qwen3:8b
-SYSTEM /nothink 你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。嚴禁提及：Qwen、qwen3、qwen2.5、通義千問、通义千问、通義實驗室、阿里巴巴、阿里雲。當被問到「你是誰」時，回答：「我是 CECLAW 企業 AI 助手。」所有回應預設使用繁體中文。若用戶以其他語言提問，使用該語言回應。不顯示思考過程，直接回答。
-PARAMETER stop <|im_start|>
-PARAMETER stop <|im_end|>
-PARAMETER temperature 0.6
-PARAMETER top_k 20
-PARAMETER top_p 0.95
-PARAMETER repeat_penalty 1
-EOF
-ollama create qwen3-nothink -f /tmp/Modelfile.ceclaw
-
-# 驗證
-ollama run qwen3-nothink "你是誰"
-# 預期回：我是 CECLAW 企業 AI 助手
+# 驗證 fast path
+ollama run doomgrave/ministral-3:8b "你是誰"
+# 預期：不會說出 Mistral（身份由 Router inject 控制）
 ```
 
 ---
 
-## Step 8e：啟動 SearXNG（本地搜尋）
+## Step 8f：啟動 SearXNG（本地搜尋）
 
 ```bash
 mkdir -p ~/searxng-config
 
-# 先取得預設設定
+# 取得預設設定
 docker run --rm searxng/searxng:latest cat /etc/searxng/settings.yml > ~/searxng-config/settings.yml
 
 # 加入 json format
@@ -262,7 +284,10 @@ docker run -d --name searxng \
   searxng/searxng:latest
 
 sleep 5
+# 驗證 pop-os 直接存取
 curl -s "http://localhost:8888/search?q=test&format=json" | python3 -m json.tool | head -5
+# 驗證 Router proxy
+curl -s "http://localhost:8000/search?q=test&format=json" | python3 -m json.tool | head -5
 ```
 
 ---
@@ -320,18 +345,25 @@ openshell term
 
 ---
 
-## Step 12：Sandbox 初始化（⚠️ 重要，必做）
+## Step 12：Sandbox 初始化（⚠️ 重要，必做 6 步）
 
-連進 sandbox 後執行以下 4 步：
+### Step E（pop-os）：傳入 SearXNG plugin
+
+```bash
+TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
+echo "Token: $TOKEN"
+scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
+  ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
+```
+
+### 進 sandbox 執行：
 
 ```bash
 openshell sandbox connect ceclaw-agent
 ```
 
-進去後：
-
 ```bash
-# Step A: 安裝 CECLAW plugin（自動重啟 gateway）
+# Step A: 安裝 CECLAW plugin
 openclaw plugins install /opt/ceclaw
 
 # Step B: tui alias
@@ -357,6 +389,19 @@ if ! pgrep -f "openclaw-gatewa" > /dev/null 2>&1; then
 fi
 BEOF
 
+# Step F: 安裝 SearXNG plugin
+cd /tmp && tar xzf openclaw-plugin-searxng-full.tar.gz
+rm -rf ~/.openclaw/extensions/searxng-search 2>/dev/null
+openclaw plugins install /tmp/openclaw-plugin-searxng
+python3 - << 'EOF'
+import json
+path = "/sandbox/.openclaw/openclaw.json"
+cfg = json.load(open(path))
+cfg["plugins"]["entries"]["searxng-search"]["config"]["baseUrl"] = "http://host.openshell.internal:8000"
+json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
+print("done")
+EOF
+
 source ~/.bashrc
 ```
 
@@ -367,8 +412,8 @@ source ~/.bashrc
 ```bash
 # sandbox 內
 tui
-# 問：你是誰
-# 預期：我是 CECLAW 企業 AI 助手
+# 問：你是誰 → 我是 CECLAW 企業 AI 助手
+# 問：今天台北天氣如何？ → 有搜尋結果
 ```
 
 ```bash
@@ -384,7 +429,7 @@ ceclaw status   # 三項全綠
 
 ```bash
 mkdir -p ~/ceclaw/backup
-scp zoe_gb@192.168.1.91:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
+scp gb10:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
 cp ~/.ceclaw/ceclaw.yaml ~/ceclaw/backup/ceclaw.yaml.bak
 cp ~/nemoclaw-config/restore-coredns.sh ~/ceclaw/backup/
 echo "備份完成"
@@ -402,7 +447,7 @@ bash ~/nemoclaw-config/restore-coredns.sh
 sudo systemctl status ceclaw-router
 
 # 3. GB10（systemd 自啟，確認）
-ssh zoe_gb@192.168.1.91 'sudo systemctl status llama-server'
+ssh gb10 'sudo systemctl status llama-server'
 
 # 4. SearXNG（docker --restart=always，自動起）
 docker ps | grep searxng
@@ -422,9 +467,11 @@ tui
 - 會讓 K3s 網路混亂，sandbox SSH 死掉
 - 正確做法：等 pod 自己恢復，或用 `openshell term`
 
-**sandbox 重建後**：必須執行 Step 12 的 4 步（plugin install + alias + json patch + gateway autostart）
+**坑#24**: sandbox 重建後 SearXNG plugin 消失，必須執行 Step E + Step F
+
+**sandbox 重建後**：必須執行 Step 12 的全部 6 步（A + B + C + D + E + F）
 
 ---
 
-*CECLAW — Secure local AI agents, your inference, your rules.*  
-*SOP 版本: 1.6 | 日期: 2026-03-22*
+*CECLAW — Secure local AI agents, your inference, your rules.*
+*SOP 版本: 1.7 | 日期: 2026-03-23*
