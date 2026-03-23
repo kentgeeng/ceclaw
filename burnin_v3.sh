@@ -133,6 +133,31 @@ for i in $(seq 1 $ROUNDS); do
             main_ok=$((main_ok+1)); main_total_ms=$((main_total_ms+ms))
         fi
     fi
+
+    # 每 100 輪做一次 Layer 2 驗證
+    if [ $((i % 100)) -eq 0 ]; then
+        echo ""
+        echo "=== 第 ${i} 輪 SearXNG Layer 2 定期驗證 ==="
+        L2_PASS_MID=0
+        for Q2 in "${L2_QUERIES[@]}"; do
+            echo -n "  問：${Q2} → "
+            RESP2=$(openclaw agent --agent main --session-id "burnin-mid-$(date +%s)" -m "$Q2" --timeout 90 2>/dev/null)
+            if echo "$RESP2" | grep -qE '[0-9]+\.[0-9]+|[0-9]{3,}|°C|USD|TWD|台北|天氣|多雲|晴'; then
+                echo "✅"
+                L2_PASS_MID=$((L2_PASS_MID+1))
+            else
+                echo "⚠️  無實質資料"
+            fi
+            sleep 3
+        done
+        if [ "$L2_PASS_MID" -gt 0 ]; then
+            echo "Layer 2 @ ${i}: ✅ ${L2_PASS_MID}/3"
+        else
+            echo "Layer 2 @ ${i}: ❌ SearXNG 可能失效"
+        fi
+        echo "=========================="
+        echo ""
+    fi
 done
 
 echo "=================================================="
