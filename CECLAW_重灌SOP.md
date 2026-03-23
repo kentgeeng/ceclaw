@@ -3,7 +3,7 @@
 
 **預估時間**: 1~2 小時（不含模型下載）
 **適用**: pop-os 重灌或全新機器
-**SOP 版本**: 1.7 | **日期**: 2026-03-23
+**SOP 版本**: 1.8 | **日期**: 2026-03-23
 
 ---
 
@@ -352,6 +352,7 @@ openshell term
 ```bash
 TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
 echo "Token: $TOKEN"
+[ -z "$TOKEN" ] && echo "ERROR: no active SSH session，請先確認 openshell gateway 在跑" && exit 1
 scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
   ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
 ```
@@ -474,4 +475,4 @@ tui
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*SOP 版本: 1.7 | 日期: 2026-03-23*
+*SOP 版本: 1.8 | 日期: 2026-03-23*

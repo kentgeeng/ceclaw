@@ -1,6 +1,6 @@
 # CECLAW Easy Setup 快速上手手冊
 
-**版本**: 1.4 | **日期**: 2026-03-23
+**版本**: 1.5 | **日期**: 2026-03-23
 **適用**: 快速建立可用的 CECLAW 環境
 **預估時間**: 15 分鐘（環境已備齊）/ 1~2 小時（全新機器）
 
@@ -35,6 +35,7 @@ tui
 
 ```bash
 TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
+[ -z "$TOKEN" ] && echo "ERROR: no active SSH session，請先確認 openshell gateway 在跑" && exit 1
 scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
   ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
 ```
@@ -170,4 +171,4 @@ openshell term
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*版本: 1.4 | 日期: 2026-03-23*
+*版本: 1.5 | 日期: 2026-03-23*
