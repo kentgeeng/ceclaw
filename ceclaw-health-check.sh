@@ -96,8 +96,8 @@ else
 fi
 
 # sandbox 狀態
-SANDBOX_STATUS=$(openshell sandbox list 2>/dev/null | grep "ceclaw-agent" | awk '{print $5}')
-if [ "$SANDBOX_STATUS" = "Ready" ]; then
+SANDBOX_STATUS=$(openshell sandbox list 2>/dev/null | grep "ceclaw-agent")
+if echo "$SANDBOX_STATUS" | grep -q "Ready"; then
     echo "$PASS sandbox ceclaw-agent: Ready"
 else
     echo "$FAIL sandbox ceclaw-agent: $SANDBOX_STATUS (需重建)"
@@ -141,7 +141,7 @@ check_iptables "172.19.0.0/16"
 check_iptables "10.200.0.0/16"
 check_input "172.19.0.0/16"
 
-UFW_ROUTED=$(sudo ufw status verbose 2>/dev/null | grep "Default:" | grep -oP "routed: \K\w+")
+UFW_ROUTED=$(sudo ufw status verbose 2>/dev/null | grep -i "routed" | awk '{print $NF}')
 if [ "$UFW_ROUTED" = "allow" ]; then
     echo "$PASS UFW routed: allow"
 else
