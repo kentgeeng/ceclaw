@@ -13,7 +13,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 1
-        model: doomgrave/ministral-3:8b
+        model: ministral-3:14b
         use_for: [simple_query]
 
       - name: gb10-llama
