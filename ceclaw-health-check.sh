@@ -141,7 +141,7 @@ check_iptables "172.19.0.0/16"
 check_iptables "10.200.0.0/16"
 check_input "172.19.0.0/16"
 
-UFW_ROUTED=$(sudo ufw status verbose 2>/dev/null | grep -i "routed" | awk '{print $NF}')
+UFW_ROUTED=$(sudo ufw status verbose 2>/dev/null | grep -i "routed" | awk '{print $(NF-1)}')
 if [ "$UFW_ROUTED" = "allow" ]; then
     echo "$PASS UFW routed: allow"
 else
