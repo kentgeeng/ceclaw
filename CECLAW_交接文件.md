@@ -1,4 +1,4 @@
-# CECLAW 專案交接文件 v4.3
+# CECLAW 專案交接文件 v4.4
 ## 給下一個對話的軟工 + 總工角色說明
 
 **總工（Kent）**：35年工程經驗，ZOE AI Digital Twin 作者，做決策、設計審核
@@ -8,37 +8,49 @@
 
 ---
 
-## ⚠️ 本次對話重要進展摘要（v4.2 → v4.3）
+## ⚠️ 本次對話重要進展摘要（v4.3 → v4.4）
 
 ### 已完成 ✅
 
-1. **#53 Step E token 空值 guard** ✅ commit `a2e82d1`
-   - EasySetup v1.5 + 重灌SOP v1.8：Step E 加 `[ -z "$TOKEN" ]` 檢查
+1. **#59 ctx-size 65536 + parallel 2** ✅ commit `9a0fac1`
+   - GB10 記憶體充裕（70.5/128GB），升級支援雙並發
+   - `--ctx-size 65536 --parallel 2`，每 slot 獨享 32768 tokens
+   - 修復 SQL schema VARCHAR 截斷等 context 不足問題
 
-2. **#55 REASONING_KEYWORDS 即時性關鍵字** ✅ commit `bd09a17`
-   - 加入：今天、現在、最新、股價、天氣、比特幣等即時性詞彙
-   - 含即時性語意的問題強制走 gb10-llama
+2. **#63 fast 路徑繁體強化** ✅ commit `512177f`
+   - proxy.py CECLAW_SYSTEM_PROMPT 加「嚴禁輸出簡體字」
+   - 措辭：「預設使用繁體中文（台灣）回覆，嚴禁輸出簡體字。若用戶以其他語言提問，使用該語言回應。」
 
-3. **#56 enable_thinking:false 注入** ✅ commit `cf98b2b` + `92eb564`
-   - proxy.py `rewrite_messages()` 加入 `chat_template_kwargs.enable_thinking: False`
-   - 強制覆蓋（不用 setdefault），修 tool call 第二輪 gb10 400
+3. **#51 fast path 升級 ministral-3:14b** ✅ commit `2753e28`
+   - 台灣本土模型全數評估完畢（全淘汰，原因見坑記錄）
+   - ministral-3:14b 通過 2000 輪燒機（100%）+ 36 項手動驗收
+   - fast avg ~618ms，整句簡體 0，單字簡體率 ~1.9%（已知技術債）
 
-4. **#57 --parallel 1，修 context exceed 400** ✅ commit `dbc8094`
-   - 根本原因：`--parallel 2` → 每 slot 16384 tokens，搜尋結果塞滿超出
-   - `start_llama.sh` 改 `--parallel 1`，每 slot 獨享 32768 tokens
-   - 400 完全消失
+4. **#65 burnin Layer 2A 重構** ✅
+   - 移除 `openclaw agent` CLI（有 bug，假陽性）
+   - Layer 2A 改 curl `/search` endpoint，results > 0
+   - Layer 2B 定義為手動 TUI 驗證
+   - 加 retry 機制（sleep 10 重試），追蹤 SearXNG 穩定度
 
-5. **SearXNG E2E 完整通** ✅
-   - Plugin `dist/index.js` 從源碼 build（pop-os 側 esbuild）
-   - `package.json` name 改 `searxng-search`，extensions 指向 `dist/index.js`
-   - `openclaw.json tools: {}` 移除 coding profile（blocking searxng_search）
-   - SearXNG engines 設定：duckduckgo + brave + bing
-   - workspace TOOLS.md / IDENTITY.md / USER.md 已設定
+5. **#64 openclaw.json tools 覆寫根因修復** ✅ commit `b4e7ad3`
+   - 根因：openclaw gateway dynamic reload 覆寫 `tools: {}`
+   - 解法：明確設 `tools.web.search.enabled: True`（merge 不覆寫）
+   - Step C 從 `cfg["tools"] = {}` 改為明確設值
 
-6. **#58 burnin_v3.sh** ✅ commit `7aad6f1`
-   - Layer 1：SearXNG Proxy 連通
-   - Layer 2：AI 決策觸發（3 題即時性問題驗回應有數據）
-   - 100 輪燒機 100% ✅
+6. **坑#25 復發修復** ✅ commit `6a78756`
+   - sandbox openclaw.json tools 被覆寫，手動修復
+   - 根本解法已納入 #64
+
+7. **SSH keepalive 修復** ✅
+   - `~/.ssh/config` 加 `ServerAliveInterval 30 / ServerAliveCountMax 3`
+   - 解決 Broken pipe 問題
+
+8. **SearXNG Layer 2A 查詢詞改英文** ✅
+   - 根因：bash curl 不自動 percent-encode 中文，搜尋引擎拒絕
+   - 改為：`NVIDIA+stock+price` / `bitcoin+price` / `taipei+weather`
+
+9. **四份文件更新** ✅ commit `b4e7ad3`
+   - EasySetup v1.7、重灌SOP v2.0、規格書 v0.4.2、交接文件 v4.4
 
 ### 當前狀態
 
@@ -49,7 +61,16 @@
 | P1 #56 | enable_thinking 注入 | ✅ | cf98b2b |
 | P1 #57 | parallel 1 修 400 | ✅ | dbc8094 |
 | P1 #58 | burnin_v3.sh Layer 2 | ✅ | 7aad6f1 |
+| P1 #59 | ctx-size 65536 + parallel 2 | ✅ | 9a0fac1 |
+| P1 #51 | fast path 升級 ministral-3:14b | ✅ | 2753e28 |
+| P1 #63 | fast 路徑繁體強化 | ✅ | 512177f |
+| P1 #64 | tools 覆寫根因修復 | ✅ | b4e7ad3 |
+| P1 #65 | burnin Layer 2A 重構 | ✅ | — |
 | P1 #39 | Qwen2.5-72B 評估 | ⬜ | — |
+| P1 #60 | fallback warning | ⬜ | — |
+| P1 #61 | 台積電/NVIDIA股價漏答 | ⬜ | — |
+| P1 #62 | gb10 retry 機制 | ⬜ | — |
+| P1 #66 | SearXNG 穩定性盤查 | ⬜ | — |
 | P6 | NemoClaw drop-in 驗證 | ⬜ | — |
 | P7 | Skill 相容性測試 | ⬜ | — |
 | P8 | UX 升級 | ⬜ | — |
@@ -165,20 +186,20 @@ source ~/.bashrc
 - Qwen2.5-72B 佔 ~60GB，真正的穩定區間
 - `--parallel 2` = 2個推論 slot
 
-**當前 start_llama.sh（Qwen3.5-122B，parallel 1）：**
+**當前 start_llama.sh（Qwen3.5-122B，parallel 2，#59）：**
 ```bash
 #!/bin/bash
 /home/zoe_gb/llama.cpp/build/bin/llama-server \
   --model /home/zoe_gb/Qwen3.5-122B/Qwen_Qwen3.5-122B-A10B-Q4_K_M/Qwen_Qwen3.5-122B-A10B-Q4_K_M-00001-of-00002.gguf \
   --alias minimax --host 0.0.0.0 --port 8001 \
-  --ctx-size 32768 --parallel 1 \
+  --ctx-size 65536 --parallel 2 \
   --flash-attn on --n-gpu-layers 99 --threads 20 \
   --cache-type-k q4_0 --cache-type-v q4_0 \
   --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
   --reasoning off --jinja
 ```
 
-⚠️ **`--parallel 1` 是關鍵**：parallel 2 會讓每 slot 只有 16384 tokens，搜尋結果塞滿後 400。parallel 1 每 slot 獨享 32768。
+⚠️ **`--parallel 2 --ctx-size 65536` 是關鍵**：每 slot 獨享 32768 tokens，支援雙並發。（#59 commit `9a0fac1`）
 
 ### OpenShell（沙盒系統）
 - K3s in Docker container (ID 每次重建會變)
@@ -194,7 +215,7 @@ source ~/.bashrc
 - 安裝版本: 0.18.0
 - endpoint: `http://127.0.0.1:11434`
 - 已下載模型：
-  - `doomgrave/ministral-3:8b` — **當前 fast path**（5.8GB，繁體穩、無 thinking）
+  - `ministral-3:14b` — **當前 fast path**（9.1GB，整句簡體0，2000輪驗收通過）
   - `ministral-3:8b` — 保留備用（6.0GB）
   - `qwen3:8b` — backup 路徑（5.2GB）
   - `qwen3-nothink` — 舊 fast path（已換掉，可清理）
@@ -270,7 +291,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 1
-        model: doomgrave/ministral-3:8b    # ✅ 換新，繁體穩+速度快
+        model: ministral-3:14b             # ✅ #51 升級，整句簡體0，avg ~650ms
         use_for: [simple_query]
 
       - name: gb10-llama

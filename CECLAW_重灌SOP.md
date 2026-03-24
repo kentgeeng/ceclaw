@@ -246,7 +246,7 @@ ceclaw status
 
 ---
 
-## Step 8e：安裝 Ollama + doomgrave/ministral-3:8b
+## Step 8e：安裝 Ollama + ministral-3:14b
 
 ```bash
 # 確認已裝
@@ -536,7 +536,7 @@ tui
 
 **坑#26**: SearXNG plugin 缺少 `dist/index.js`（需在 pop-os 側 esbuild 編譯後 scp 進 sandbox）
 
-**坑#27（關鍵）**: `--parallel 2` 讓每 slot 只有 16384 tokens → 搜尋結果塞滿後 400。必須用 `--parallel 1`
+**坑#27（歷史）**: 舊版 `--parallel 2 --ctx-size 32768` 讓每 slot 只有 16384 tokens → 400。現已改 `--ctx-size 65536 --parallel 2`，每 slot 獨享 32768（#59）
 
 **sandbox 重建後**：必須執行 Step 12 的全部 6 步（A + B + C + D + E + F）
 

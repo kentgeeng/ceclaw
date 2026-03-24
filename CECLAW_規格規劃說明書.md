@@ -38,7 +38,7 @@ NV 的設計有三道關卡逆著我們走：
 | 推論框架 | llama.cpp | vLLM（等 Blackwell 支援成熟）|
 | 模型精度 | Q4_K_M GGUF | FP8/NVFP4 滿級 |
 | 模型大小 | 47-70GB | 依需求選擇 |
-| 並發 | 1 slot（parallel 1，避免 context exceed 400）| 數十~數百 |
+| 並發 | 2 slots（parallel 2 + ctx-size 65536，每 slot 32768，#59）| 數十~數百 |
 | 目標 | 驗證架構 + 展示 | 企業生產 |
 
 ---
@@ -103,7 +103,7 @@ NV 的設計有三道關卡逆著我們走：
 │     - 備選：Qwen2.5-72B Q4_K_M（已下載，待評估）           │
 │                                                             │
 │  ⑥ Ollama（本地後端）                                       │
-│     - doomgrave/ministral-3:8b（fast，5.8GB）               │
+│     - ministral-3:14b（fast，9.1GB，#51）                   │
 │     - qwen3:8b（backup，5.2GB）                             │
 │     - localhost:11434                                        │
 │                                                             │
@@ -146,7 +146,7 @@ _try_local()（逐一嘗試）
      │   → timeout/失敗 → 標記不健康
      │             ↓
      ├── 簡單問題
-     │   → Ollama doomgrave/ministral-3:8b（fast，~850ms）
+     │   → Ollama ministral-3:14b（fast，~650ms）
      │
      ├── GB10 掛掉/timeout
      │   → Ollama qwen3:8b（backup，~1.3s）✅ 自動降級
@@ -248,6 +248,7 @@ SearXNG:8888（本地搜尋）
   - #55 REASONING_KEYWORDS 即時性關鍵字 ✅
   - #56 enable_thinking:false 注入（ZengboJamesWang proxy 修法）✅
   - #57 --parallel 1 修 context exceed 400 ✅
+  - #59 --ctx-size 65536 --parallel 2，每 slot 32768 ✅
   - #58 burnin_v3.sh Layer 2 AI 決策觸發 3/3 ✅
   - SearXNG E2E 完整通（stock price, bitcoin, 天氣 均有真實數據）✅
   - audit 10144+ 條鏈完整 ✅
@@ -400,7 +401,7 @@ inference:
 | SearXNG plugin 重建後消失 | 坑#24 | 手動執行 Step E+F |
 | tools.profile: coding 擋 searxng | 坑#25 | Step C 加 `cfg["tools"] = {}` |
 | plugin 無 dist/index.js | 坑#26 | pop-os esbuild + scp |
-| parallel 2 → 16384 token 上限 | 坑#27 | 已改 parallel 1 |
+| parallel 2 → 16384 token 上限 | 坑#27 | 已改 parallel 2 + ctx-size 65536（#59）|
 | fast path > 500ms | doomgrave avg ~850ms | 未來找更快模型 |
 
 ---
@@ -421,7 +422,7 @@ inference:
 
 | 模型 | 大小 | 速度 | 繁體 | 身份安全 | 狀態 |
 |------|------|------|------|---------|------|
-| doomgrave/ministral-3:8b | 5.8GB | ~850ms | ✅ 穩定 | ✅ 優秀 | **當前 fast path** |
+| ministral-3:14b | 9.1GB | ~650ms | ✅ 穩定 | ✅ 優秀 | **當前 fast path** |
 | ministral-3:8b | 6.0GB | ~1.3s | ✅ 穩定 | ✅ 優秀 | 備用 |
 | Qwen3.5-122B Q4_K_M | 70GB | 15-36s | ✅ | ✅ | **GB10 主力** |
 | Qwen2.5-72B Q4_K_M | 47GB | 待測 | ✅ | ✅ | 待評估 |
