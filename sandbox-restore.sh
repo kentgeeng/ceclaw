@@ -1,10 +1,10 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v1.1
+# CECLAW Sandbox Restore Script v1.2
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect ceclaw-agent
 
 BACKUP_DIR=~/ceclaw/backup
-echo "=== CECLAW Sandbox Restore v1.1 ==="
+echo "=== CECLAW Sandbox Restore v1.2 ==="
 
 # Step 1: 確認 sandbox
 echo "[1/6] 確認 sandbox..."
@@ -49,7 +49,7 @@ echo "  傳入完成"
 cat > /tmp/sandbox_init.py << 'PYEOF'
 import json, subprocess, os, shutil
 
-print("=== sandbox_init.py v1.1 開始 ===")
+print("=== sandbox_init.py v1.2 開始 ===")
 
 CFG_PATH = "/sandbox/.openclaw/openclaw.json"
 
@@ -104,23 +104,25 @@ if "defaults" not in cfg["agents"]:
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
 cfg["agents"]["defaults"]["model"] = {"primary": "local/minimax"}
 
-# tools（坑#64：明確 enabled，防 dynamic reload 覆寫）
+# tools（Bug#3修復：停用內建 web search，強制模型只能用 searxng_search）
+# 注意：plugins.allow 不設（Bug#1修復：設了反而讓 plugin 不載入，用 auto-load）
 cfg["tools"] = {
     "web": {
-        "search": {"enabled": True},
-        "fetch": {"enabled": True}
+        "search": {"enabled": False},  # 停用內建 Brave，模型才會選 searxng_search
+        "fetch": {"enabled": False}
     }
 }
 
-# plugins allow（坑#74：2026.3.11+ 需要白名單）
+# plugins（不設 allow，讓 auto-load 生效）
 if "plugins" not in cfg:
     cfg["plugins"] = {}
 if "entries" not in cfg["plugins"]:
     cfg["plugins"]["entries"] = {}
-cfg["plugins"]["allow"] = ["searxng-search", "ceclaw"]
+# 移除 allow key（如果存在）
+cfg["plugins"].pop("allow", None)
 
 json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
-print("Step C: openclaw.json patched (含 api/apiKey/gateway/model/allow)")
+print("Step C: openclaw.json patched (api/apiKey/gateway/model, tools disabled, no allow)")
 
 # Step D: gateway autostart
 bashrc = open(bashrc_path).read()
@@ -143,12 +145,12 @@ if os.path.exists(dist_path):
 else:
     print("Step F dist: WARNING - index.js not found!")
 
-# Fix package.json
+# Fix package.json（Bug#2修復：用 dist/index.js 不是 ./dist/index.js）
 pkg_path = "/sandbox/.openclaw/extensions/searxng-search/package.json"
 if os.path.exists(pkg_path):
     pkg = json.load(open(pkg_path))
     pkg["name"] = "searxng-search"
-    pkg["openclaw"]["extensions"] = ["./dist/index.js"]
+    pkg["openclaw"]["extensions"] = ["dist/index.js"]  # 不加 ./，避免 escapes package directory 錯誤
     json.dump(pkg, open(pkg_path, "w"), indent=2, ensure_ascii=False)
     print("Step F package.json: fixed")
 
