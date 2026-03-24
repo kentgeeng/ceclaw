@@ -1,97 +1,350 @@
-# CECLAW 專案交接文件 v4.4
+# CECLAW 專案交接文件 v4.5
 ## 給下一個對話的軟工 + 總工角色說明
 
 **總工（Kent）**：35年工程經驗，ZOE AI Digital Twin 作者，做決策、設計審核
 **軟工（下個對話）**：負責實作、測試、debug，遇困難問總工
 **原則**：SOP-002 — 每次動手前說意圖，等 Kent 確認；每步完成後 commit
-**督察**：GLM-5 Turbo（OpenRouter）— 品質審查，$0.12/次，CP值極高
+**督察**：GLM-5 Turbo（OpenRouter）— 品質審查，$0.12/次
 
 ---
 
-## ⚠️ 本次對話重要進展摘要（v4.3 → v4.4）
+## ⚠️ 本次對話重要進展摘要（v4.4 → v4.5）
 
 ### 已完成 ✅
 
-1. **#59 ctx-size 65536 + parallel 2** ✅ commit `9a0fac1`
-   - GB10 記憶體充裕（70.5/128GB），升級支援雙並發
-   - `--ctx-size 65536 --parallel 2`，每 slot 獨享 32768 tokens
-   - 修復 SQL schema VARCHAR 截斷等 context 不足問題
+1. **6000 輪燒機 100%** ✅
+   - Fast path 3000/3000，avg 621ms
+   - Main path 3000/3000，avg 2594ms
+   - SearXNG 60/60 檢查點 100%
+   - 全簡體異常 1/3000（0.03%）
 
-2. **#63 fast 路徑繁體強化** ✅ commit `512177f`
-   - proxy.py CECLAW_SYSTEM_PROMPT 加「嚴禁輸出簡體字」
-   - 措辭：「預設使用繁體中文（台灣）回覆，嚴禁輸出簡體字。若用戶以其他語言提問，使用該語言回應。」
+2. **#66 SearXNG 穩定性盤查** ✅
+   - 14/14 檢查點全通，零 retry
+   - 查詢詞改英文（curl URL encode 根因）
 
-3. **#51 fast path 升級 ministral-3:14b** ✅ commit `2753e28`
-   - 台灣本土模型全數評估完畢（全淘汰，原因見坑記錄）
-   - ministral-3:14b 通過 2000 輪燒機（100%）+ 36 項手動驗收
-   - fast avg ~618ms，整句簡體 0，單字簡體率 ~1.9%（已知技術債）
+3. **openclaw 升級 2026.3.13（pop-os 側）** ✅
+   - `npm install -g openclaw@2026.3.13` 在 pop-os 完成
+   - pop-os: `OpenClaw 2026.3.13 (61d171a)` ✅
+   - **sandbox 內仍是 2026.3.11**（base image ARM64，無法直接升級）
 
-4. **#65 burnin Layer 2A 重構** ✅
-   - 移除 `openclaw agent` CLI（有 bug，假陽性）
-   - Layer 2A 改 curl `/search` endpoint，results > 0
-   - Layer 2B 定義為手動 TUI 驗證
-   - 加 retry 機制（sleep 10 重試），追蹤 SearXNG 穩定度
+4. **sandbox 重建 + 網路問題全面排查** ✅（今日重大突破）
+   - 發現真正根因：openclaw.json 缺少 `api: "openai-completions"` 欄位
+   - 加入後 TUI 成功回應：`我是 CECLAW 企業 AI 助手`
+   - 新 sandbox ID：`2e04e3db-259d-4820-ae39-af385c5d0ce1`
 
-5. **#64 openclaw.json tools 覆寫根因修復** ✅ commit `b4e7ad3`
-   - 根因：openclaw gateway dynamic reload 覆寫 `tools: {}`
-   - 解法：明確設 `tools.web.search.enabled: True`（merge 不覆寫）
-   - Step C 從 `cfg["tools"] = {}` 改為明確設值
-
-6. **坑#25 復發修復** ✅ commit `6a78756`
-   - sandbox openclaw.json tools 被覆寫，手動修復
-   - 根本解法已納入 #64
-
-7. **SSH keepalive 修復** ✅
-   - `~/.ssh/config` 加 `ServerAliveInterval 30 / ServerAliveCountMax 3`
-   - 解決 Broken pipe 問題
-
-8. **SearXNG Layer 2A 查詢詞改英文** ✅
-   - 根因：bash curl 不自動 percent-encode 中文，搜尋引擎拒絕
-   - 改為：`NVIDIA+stock+price` / `bitcoin+price` / `taipei+weather`
-
-9. **四份文件更新** ✅ commit `b4e7ad3`
-   - EasySetup v1.7、重灌SOP v2.0、規格書 v0.4.2、交接文件 v4.4
+5. **網路層全面排查（重要發現，需寫進 SOP）**
+   - gateway 重建會讓舊 sandbox 消失（K3s PVC 綁定問題）
+   - openshell container 實際網段：`172.19.0.0/16`（非 `172.20.0.0/16`）
+   - sandbox 內有 `ALL_PROXY` 環境變數，需用 `--noproxy "*"` 繞過
+   - UFW `deny (routed)` 已改為 `allow routed`
+   - INPUT chain 缺少 `172.19.0.0/16 → port 8000` 規則（已加）
 
 ### 當前狀態
 
 | Phase | 項目 | 狀態 | Commit |
 |-------|------|------|--------|
-| P1 #53 | Step E token guard | ✅ | a2e82d1 |
-| P1 #55 | REASONING_KEYWORDS 即時性 | ✅ | bd09a17 |
-| P1 #56 | enable_thinking 注入 | ✅ | cf98b2b |
-| P1 #57 | parallel 1 修 400 | ✅ | dbc8094 |
-| P1 #58 | burnin_v3.sh Layer 2 | ✅ | 7aad6f1 |
-| P1 #59 | ctx-size 65536 + parallel 2 | ✅ | 9a0fac1 |
-| P1 #51 | fast path 升級 ministral-3:14b | ✅ | 2753e28 |
-| P1 #63 | fast 路徑繁體強化 | ✅ | 512177f |
-| P1 #64 | tools 覆寫根因修復 | ✅ | b4e7ad3 |
-| P1 #65 | burnin Layer 2A 重構 | ✅ | — |
+| P1 #66 | SearXNG 穩定性盤查 | ✅ 今日 | — |
+| openclaw | 升級 2026.3.13（pop-os）| ✅ | — |
+| **TUI 身份驗證** | `你是誰` → CECLAW 回應 | ✅ 今日 | — |
+| **SearXNG TUI** | 天氣查詢 → 用 Brave 非 SearXNG | ⚠️ 未完成 | — |
 | P1 #39 | Qwen2.5-72B 評估 | ⬜ | — |
 | P1 #60 | fallback warning | ⬜ | — |
 | P1 #61 | 台積電/NVIDIA股價漏答 | ⬜ | — |
 | P1 #62 | gb10 retry 機制 | ⬜ | — |
-| P1 #66 | SearXNG 穩定性盤查 | ⬜ | — |
 | P6 | NemoClaw drop-in 驗證 | ⬜ | — |
 | P7 | Skill 相容性測試 | ⬜ | — |
 | P8 | UX 升級 | ⬜ | — |
+| **#67** | **Plugin OTA + 官方SDK重寫 + ceclaw update 一鍵更新** | ⬜ 新開 | — |
 
 ---
 
-## ⚠️ Sandbox 重建後必做清單（手動 6 步）
+## 🚨 最緊急待辦：SearXNG Plugin 未正確載入
+
+### 問題描述
+TUI 問「今天台北天氣」→ 回應用 Brave Search API（未設定），而非 SearXNG plugin。
+SearXNG plugin 已安裝但沒有被 openclaw 正確呼叫。
+
+### Debug 步驟
+
+**Step 1：確認 plugin 狀態**
+```bash
+# sandbox 內
+cat /tmp/openclaw-gateway.log | grep -i "searxng\|plugin" | tail -20
+ls /sandbox/.openclaw/extensions/searxng-search/
+ls /sandbox/.openclaw/extensions/searxng-search/dist/
+```
+
+**Step 2：確認 openclaw.json plugin 設定**
+```bash
+python3 -c "
+import json
+cfg = json.load(open('/sandbox/.openclaw/openclaw.json'))
+print('plugins:', json.dumps(cfg.get('plugins',{}), indent=2))
+print('tools:', json.dumps(cfg.get('tools',{}), indent=2))
+"
+```
+
+**Step 3：確認 tools 設定**
+openclaw.json 必須有：
+```json
+"tools": {
+    "web": {
+        "search": {"enabled": true},
+        "fetch": {"enabled": true}
+    }
+}
+```
+
+**Step 4：確認 plugins.allow**
+2026.3.11 有新安全要求，plugin 必須在 `plugins.allow` 白名單：
+```bash
+python3 -c "
+import json
+cfg = json.load(open('/sandbox/.openclaw/openclaw.json'))
+print('allow:', cfg.get('plugins',{}).get('allow','MISSING'))
+"
+```
+
+若沒有，加入：
+```python
+cfg["plugins"]["allow"] = ["searxng-search", "ceclaw"]
+```
+
+**Step 5：SearXNG 連通測試**
+```bash
+# sandbox 內，繞過 proxy
+curl --noproxy "*" "http://host.openshell.internal:8000/search?q=taipei+weather&format=json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('results:', len(d.get('results',[])))"
+```
+
+---
+
+## ⚠️ 今日重建的 Sandbox 設定狀態
+
+### 當前 openclaw.json 結構（已確認）
+```json
+{
+    "wizard": {...},
+    "agents": {
+        "defaults": {
+            "compaction": {"mode": "safeguard", "reserveTokens": 8000},
+            "model": {"primary": "local/minimax"}
+        }
+    },
+    "tools": {
+        "web": {
+            "search": {"enabled": true},
+            "fetch": {"enabled": true}
+        }
+    },
+    "gateway": {"mode": "local"},
+    "models": {
+        "providers": {
+            "local": {
+                "baseUrl": "http://host.openshell.internal:8000/v1",
+                "apiKey": "ceclaw-local-key",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "minimax",
+                        "name": "minimax",
+                        "contextWindow": 32768,
+                        "maxTokens": 4096
+                    }
+                ]
+            }
+        }
+    },
+    "plugins": {
+        "entries": {
+            "searxng-search": {
+                "enabled": true,
+                "config": {"baseUrl": "http://host.openshell.internal:8000"}
+            },
+            "ceclaw": {...}
+        }
+    }
+}
+```
+
+### 缺少的部分（待補）
+- `plugins.allow` 白名單（2026.3.11 新安全要求）
+- SearXNG plugin `dist/index.js` 需確認存在
+- `auth-profiles.json` 位置：`/sandbox/.openclaw/agents/main/agent/auth-profiles.json`
+
+---
+
+## 系統環境（當前狀態）
+
+### pop-os（主工作站）
+- OS: Pop!_OS 22.04 LTS
+- User: `zoe_ai`
+- IP: `192.168.1.210`
+- GPU: RTX 5070 Ti (16GB VRAM)
+- openclaw: **2026.3.13** (pop-os 側)
+
+### GB10（推論機）
+- 硬體：NVIDIA DGX Spark，GB10 Grace Blackwell Superchip
+- 統一記憶體：128GB LPDDR5X
+- IP: `192.168.1.91`，User: `zoe_gb`，SSH: `ssh gb10`
+- llama-server: port **8001**
+- **當前模型**: Qwen3.5-122B-A10B Q4_K_M
+- **start_llama.sh**：`--ctx-size 65536 --parallel 2`（#59）
+
+### Sandbox（當前）
+- sandbox name: `ceclaw-agent`
+- sandbox ID: `2e04e3db-259d-4820-ae39-af385c5d0ce1` ⚠️ **今日新建，可能再變**
+- openclaw 版本: **2026.3.11**（base image 決定，ARM64）
+- 實際網段: `10.200.0.2`（sandbox 內），`172.19.0.2`（pop-os 視角）
+- **取得最新 sandbox ID**：`ps aux | grep "openshell ssh-proxy" | grep -o "sandbox-id [a-z0-9-]*" | awk '{print $2}'`
+
+### iptables 已加規則（今日新增，已 netfilter-persistent save）
+```bash
+# FORWARD
+172.19.0.0/16 → 172.17.0.1:8000 ACCEPT
+# INPUT  
+172.19.0.0/16 → port 8000 ACCEPT
+10.200.0.0/16 → port 8000 ACCEPT
+# NAT
+172.19.0.0/16 → 172.17.0.1 MASQUERADE
+10.200.0.0/16 → 172.17.0.1 MASQUERADE
+# UFW
+default routed: allow（今日改）
+```
+
+---
+
+## 重大坑記錄（今日新增）
+
+**坑#68（關鍵）**: gateway 重建後 sandbox 消失
+- 原因：`openshell gateway start` 在 gateway 已 stopped 時會重建整個 K3s，sandbox PVC 跟著消失
+- 正確做法：`docker start <container_id>` 而不是 `openshell gateway start`
+- 防止：每次 sandbox 設定完後立刻備份 openclaw.json 到 pop-os
+
+**坑#69（關鍵）**: openclaw.json 必須有 `api: "openai-completions"`
+- 沒有這個欄位，openclaw 不知道用什麼協議打 local Router
+- TUI 顯示 `local/minimax` 但推論失敗
+- 加入後立刻通
+
+**坑#70**: sandbox 內有 `ALL_PROXY` 環境變數
+- 即使 unset http_proxy/HTTP_PROXY，ALL_PROXY 還在
+- curl 測試必須用 `--noproxy "*"` 才能繞過
+- openclaw 用 undici（不受 ALL_PROXY 影響），所以 TUI 可以通
+
+**坑#71**: openshell 實際網段是 `172.19.0.0/16` 不是 `172.20.0.0/16`
+- 舊 SOP 的 iptables 規則漏了 `172.19.0.0/16`
+- 需要加 INPUT + FORWARD + MASQUERADE 三條規則
+
+**坑#72**: UFW `deny (routed)` 封鎖所有路由轉發
+- 即使 iptables FORWARD 有 ACCEPT，UFW 的 routed deny 會覆蓋
+- 解法：`sudo ufw default allow routed`
+
+**坑#73**: restore-coredns.sh 用的是 `kubectl` 而非完整路徑
+- K3s container 內 kubectl 在 `/usr/bin/kubectl`，但 docker exec 找不到
+- 但實測發現 `getent hosts host.openshell.internal` 解析正確（`/etc/hosts` 寫死）
+- CoreDNS 修不修不影響 DNS 解析，`host.openshell.internal` = `172.17.0.1` 是 hardcoded
+
+**坑#74（關鍵）**: 新 sandbox 需要 `plugins.allow` 白名單（2026.3.11+）
+- gateway 啟動時警告：`plugins.allow is empty; discovered non-bundled plugins may auto-load`
+- 未確認是否影響 SearXNG plugin 載入
+
+---
+
+## 全局進度表
+
+| # | 項目 | Phase | 狀態 | Commit |
+|---|------|-------|------|--------|
+| 1-35 | 歷史完成項 | P1~P5 | ✅ | — |
+| 36 | 2000輪燒機 | P1 | ✅ | — |
+| 37 | 503 fallback | P1 | ✅ | c894fc6 |
+| 38 | SearXNG 整合 | P1 | ✅ | 328d491 |
+| 39 | Qwen2.5-72B 評估 | P1 | ⬜ | — |
+| 40 | reasoning 殘留 | P1 | ✗ 暫擱 | — |
+| 49 | fast path ministral-3:8b | P1 | ✅ | c853e68 |
+| 50 | fast path doomgrave | P1 | ✅ | 1eb09d2 |
+| 51 | fast path ministral-3:14b | P1 | ✅ | 2753e28 |
+| 52 | burnin_v2.sh | P1 | ✅ | 020e797 |
+| 53 | Step E token guard | P1 | ✅ | a2e82d1 |
+| 55 | REASONING_KEYWORDS | P1 | ✅ | bd09a17 |
+| 56 | enable_thinking 注入 | P1 | ✅ | cf98b2b |
+| 57 | parallel 1 修 400 | P1 | ✅ | dbc8094 |
+| 58 | burnin_v3.sh Layer 2 | P1 | ✅ | 7aad6f1 |
+| 59 | ctx-size 65536 + parallel 2 | P1 | ✅ | 9a0fac1 |
+| 60 | fallback warning | P1 | ⬜ | — |
+| 61 | 台積電/NVIDIA股價漏答 | P1 | ⬜ | — |
+| 62 | gb10 retry 機制 | P1 | ⬜ | — |
+| 63 | fast 路徑繁體強化 | P1 | ✅ | 512177f |
+| 64 | tools 覆寫根因修復 | P1 | ✅ | b4e7ad3 |
+| 65 | burnin Layer 2A 重構 | P1 | ✅ | — |
+| 66 | SearXNG 穩定性盤查 | P1 | ✅ 今日 | — |
+| 66b | 台灣本土模型淘汰補文件 | P1 | ⬜ | — |
+| 41 | NemoClaw drop-in 驗證 | P6 | ⬜ | — |
+| 42-43 | Skill 相容性測試 | P7 | ⬜ | — |
+| 44 | ceclaw onboard | P8 | ⬜ | — |
+| 45 | ceclaw doctor | P8 | ⬜ | — |
+| 46 | ceclaw list | P8 | ⬜ | — |
+| 47 | ceclaw start/stop | P8 | ⬜ | — |
+| 48 | ceclaw destroy | P8 | ⬜ | — |
+| 67 | Plugin OTA + 官方SDK + ceclaw update + rollback | P8 | ⬜ 新開 | — |
+
+**完成：54 ✅ | 待做：13 ⬜ | 暫擱：1 ✗**
+
+---
+
+## Sandbox 重建後必做清單（已更新版）
 
 每次重建 sandbox 後，**先在 pop-os 執行 Step E**，再進 sandbox 執行其他步驟。
 
-### Step E（pop-os）：傳入 SearXNG plugin
+### ⚠️ 先取得新 sandbox ID
+
 ```bash
-TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
-scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
-  ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
+# 取 sandbox ID（每次重建都會變）
+SANDBOX_ID=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')
+echo "SANDBOX_ID: $SANDBOX_ID"
+
+# 若無活躍 SSH session，用以下方式
+openshell sandbox list  # 確認 ceclaw-agent Ready
 ```
 
-⚠️ sandbox-id `f24db4d6-9135-416c-a090-dbd281ebcd75` 固定不變（sandbox name 相同）
-⚠️ token 每次 SSH session 重建會變，用上面指令動態取得
+### Step E（pop-os）：Build + 傳入 plugin
 
-### 進 sandbox 後執行（Step A-D-F）：
+```bash
+TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
+SANDBOX_ID=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')
+
+[ -z "$TOKEN" ] && echo "ERROR: no token" && exit 1
+[ -z "$SANDBOX_ID" ] && echo "ERROR: no sandbox-id" && exit 1
+
+# 清舊 known_hosts（sandbox 重建 host key 會變）
+ssh-keygen -f "/home/zoe_ai/.ssh/known_hosts" -R "ceclaw-agent" 2>/dev/null
+
+# Build plugin
+cd /tmp && tar xzf ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz
+cd openclaw-plugin-searxng
+npm install
+npx esbuild index.ts --bundle --format=esm --outfile=dist/index.js --external:@sinclair/typebox
+ls dist/index.js && echo "build OK"
+
+# 傳入 sandbox
+scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell" \
+  -o StrictHostKeyChecking=no \
+  ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
+
+ssh -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell" \
+  -o StrictHostKeyChecking=no \
+  sandbox@ceclaw-agent "mkdir -p /sandbox/.openclaw/extensions/searxng-search/dist"
+
+scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell" \
+  -o StrictHostKeyChecking=no \
+  /tmp/openclaw-plugin-searxng/dist/index.js sandbox@ceclaw-agent:/sandbox/.openclaw/extensions/searxng-search/dist/index.js
+
+echo "Step E 完成"
+```
+
+### 進 sandbox 後執行（Step A → F）
+
+```bash
+openshell sandbox connect ceclaw-agent
+```
 
 ```bash
 # Step A: 安裝 CECLAW plugin
@@ -100,26 +353,62 @@ openclaw plugins install /opt/ceclaw
 # Step B: tui alias
 grep -q "alias tui=" ~/.bashrc || echo "alias tui='openclaw tui --session fresh-\$(date +%s) --history-limit 20'" >> ~/.bashrc
 
-# Step C: openclaw.json patch
+# Step C: openclaw.json 完整 patch（新版，含所有必要欄位）
 python3 - << 'EOF'
 import json
 path = "/sandbox/.openclaw/openclaw.json"
 cfg = json.load(open(path))
-for model in cfg["models"]["providers"]["local"]["models"]:
-    model["contextWindow"] = 32768
-    model["maxTokens"] = 4096
+
+# models
+cfg["models"] = {
+    "providers": {
+        "local": {
+            "baseUrl": "http://host.openshell.internal:8000/v1",
+            "apiKey": "ceclaw-local-key",
+            "api": "openai-completions",
+            "models": [
+                {
+                    "id": "minimax",
+                    "name": "minimax",
+                    "contextWindow": 32768,
+                    "maxTokens": 4096
+                }
+            ]
+        }
+    }
+}
+
+# gateway
+if "gateway" not in cfg:
+    cfg["gateway"] = {}
+cfg["gateway"]["mode"] = "local"
+
+# agents
+if "agents" not in cfg:
+    cfg["agents"] = {}
+if "defaults" not in cfg["agents"]:
+    cfg["agents"]["defaults"] = {}
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
+cfg["agents"]["defaults"]["model"] = {"primary": "local/minimax"}
+
+# tools
 cfg["tools"] = {
     "web": {
         "search": {"enabled": True},
         "fetch": {"enabled": True}
     }
-}  # 明確設 enabled:true，防止 openclaw dynamic reload 覆寫（坑#64）
+}
+
+# plugins allow（2026.3.11+ 新安全要求）
+if "plugins" not in cfg:
+    cfg["plugins"] = {}
+cfg["plugins"]["allow"] = ["searxng-search", "ceclaw"]
+
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 print("done")
 EOF
 
-# Step D: gateway auto-start
+# Step D: gateway auto-start（注意需要 --allow-unconfigured 如果 mode 未設定）
 grep -q "openclaw gateway run" ~/.bashrc || cat >> ~/.bashrc << 'BEOF'
 if ! pgrep -f "openclaw-gatewa" > /dev/null 2>&1; then
     openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
@@ -130,389 +419,103 @@ BEOF
 cd /tmp && tar xzf openclaw-plugin-searxng-full.tar.gz
 rm -rf ~/.openclaw/extensions/searxng-search 2>/dev/null
 openclaw plugins install /tmp/openclaw-plugin-searxng
+
+python3 - << 'EOF'
+import json
+path = "/sandbox/.openclaw/extensions/searxng-search/package.json"
+pkg = json.load(open(path))
+pkg["name"] = "searxng-search"
+pkg["openclaw"]["extensions"] = ["./dist/index.js"]
+json.dump(pkg, open(path, "w"), indent=2, ensure_ascii=False)
+print("package.json done")
+EOF
+
 python3 - << 'EOF'
 import json
 path = "/sandbox/.openclaw/openclaw.json"
 cfg = json.load(open(path))
-cfg["plugins"]["entries"]["searxng-search"]["config"]["baseUrl"] = "http://host.openshell.internal:8000"
+if "plugins" not in cfg:
+    cfg["plugins"] = {}
+if "entries" not in cfg["plugins"]:
+    cfg["plugins"]["entries"] = {}
+if "searxng-search" not in cfg["plugins"]["entries"]:
+    cfg["plugins"]["entries"]["searxng-search"] = {}
+entry = cfg["plugins"]["entries"]["searxng-search"]
+entry["enabled"] = True
+if "config" not in entry:
+    entry["config"] = {}
+entry["config"]["baseUrl"] = "http://host.openshell.internal:8000"
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("done")
+print("openclaw.json done")
+EOF
+
+# auth（必須在 gateway 啟動前設定）
+mkdir -p /sandbox/.openclaw/agents/main/agent
+cat > /sandbox/.openclaw/agents/main/agent/auth-profiles.json << 'EOF'
+{
+    "local": {
+        "apiKey": "ceclaw-local-key"
+    }
+}
 EOF
 
 source ~/.bashrc
+
+# 啟動 gateway
+openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
+sleep 15
+cat /tmp/openclaw-gateway.log | tail -3
+echo "設定完成，執行 tui 驗證"
 ```
 
----
+### 驗證
 
-## ⚠️ 坑#23：不要 docker restart openshell container
-
-`docker restart <openshell container ID>` 會讓 K3s 內部網路混亂，sandbox SSH 連線斷掉且難恢復。
-
-正確做法：
-- 不要 restart container
-- sandbox SSH 斷掉 → 等 30-60 秒，K3s pod 自己恢復
-- 若等不回來 → `openshell term`（TUI 方式進入，不走 SSH）
-- 最後手段 → 重建 sandbox（照上方清單補設定）
-
----
-
-## 1. 系統環境
-
-### pop-os（主工作站）
-- OS: Pop!_OS 22.04 LTS
-- User: `zoe_ai`
-- IP: 192.168.1.210
-- GPU: RTX 5070 Ti (16GB VRAM)
-- Docker: 26.1.3
-- Python: 3.10（venv 在 `~/ceclaw/.venv`）
-- Node.js: v22（系統）
-
-### GB10（推論機）✅
-- 硬體：NVIDIA DGX Spark，GB10 Grace Blackwell Superchip
-- 統一記憶體：128GB LPDDR5X（CPU+GPU 共享）
-- hostname: `gx10` / IP: `192.168.1.91`
-- User: `zoe_gb`
-- SSH: `ssh gb10`（免密碼，key `~/.ssh/id_gb10`）
-- sudo: NOPASSWD 已設定
-- llama-server: port **8001**，無 auth
-- **當前模型**: Qwen3.5-122B-A10B Q4_K_M（70GB，thinking=0）
-- **備選模型**: Qwen2.5-72B Q4_K_M（47GB，待評估）
-- 啟動: `~/start_llama.sh`
-
-**⚠️ 重要硬體特性（GB10）：**
-- 統一記憶體架構，`nvidia-smi` 顯示 N/A 是正常的
-- 使用 DGX Dashboard（localhost:11000）監控記憶體
-- Qwen3.5-122B 佔 ~86GB，接近極限（不是穩定區間）
-- Qwen2.5-72B 佔 ~60GB，真正的穩定區間
-- `--parallel 2` = 2個推論 slot
-
-**當前 start_llama.sh（Qwen3.5-122B，parallel 2，#59）：**
 ```bash
-#!/bin/bash
-/home/zoe_gb/llama.cpp/build/bin/llama-server \
-  --model /home/zoe_gb/Qwen3.5-122B/Qwen_Qwen3.5-122B-A10B-Q4_K_M/Qwen_Qwen3.5-122B-A10B-Q4_K_M-00001-of-00002.gguf \
-  --alias minimax --host 0.0.0.0 --port 8001 \
-  --ctx-size 65536 --parallel 2 \
-  --flash-attn on --n-gpu-layers 99 --threads 20 \
-  --cache-type-k q4_0 --cache-type-v q4_0 \
-  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
-  --reasoning off --jinja
-```
-
-⚠️ **`--parallel 2 --ctx-size 65536` 是關鍵**：每 slot 獨享 32768 tokens，支援雙並發。（#59 commit `9a0fac1`）
-
-### OpenShell（沙盒系統）
-- K3s in Docker container (ID 每次重建會變)
-- 取得當前 ID: `docker ps --format "{{.ID}}" | head -1`
-- Gateway endpoint: `https://127.0.0.1:8080`
-- Sandbox image: `ghcr.io/kentgeeng/ceclaw-sandbox:latest`
-- sandbox-id: `f24db4d6-9135-416c-a090-dbd281ebcd75`（固定）
-- `host.openshell.internal` = NV 寫死解析到 `172.17.0.1`（Docker bridge，不可改）
-- Session 路徑: `/sandbox/.openclaw/agents/main/sessions/`
-- ⚠️ **不要 docker restart openshell container（坑#23）**
-
-### Ollama（本地快速推論）
-- 安裝版本: 0.18.0
-- endpoint: `http://127.0.0.1:11434`
-- 已下載模型：
-  - `ministral-3:14b` — **當前 fast path**（9.1GB，整句簡體0，2000輪驗收通過）
-  - `ministral-3:8b` — 保留備用（6.0GB）
-  - `qwen3:8b` — backup 路徑（5.2GB）
-  - `qwen3-nothink` — 舊 fast path（已換掉，可清理）
-  - `qwen2.5-zh` — 舊 fast path（已換掉，可清理）
-  - `phi4-mini` — 測試用（2.5GB）
-
-### SearXNG（本地搜尋）✅ E2E 完整通
-- Docker 部署，port 8888
-- 設定：`~/searxng-config/settings.yml`（⚠️ 擁有者 uid 977，需 sudo 修改）
-- 啟用引擎：duckduckgo + brave + bing
-- pop-os 存取：`http://localhost:8888`
-- Router proxy：`http://localhost:8000/search?q=...&format=json`
-- sandbox 透過 Router 存取：`http://host.openshell.internal:8000/search`
-- plugin：`openclaw-plugin-searxng`，備份在 `~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz`
-- ⚠️ plugin 需要 `dist/index.js`（esbuild 編譯），sandbox 重建後要從 pop-os 重新 build + scp
-
----
-
-## 2. 專案檔案結構
-
-```
-~/ceclaw/
-├── .venv/
-├── ceclaw-router.service
-├── ceclaw_monitor.sh
-├── ceclaw.py                 # ceclaw CLI v0.1.0
-├── burnin_routing.sh         # 原版燒機腳本（8+8題）
-├── burnin_v2.sh              # 燒機腳本（16+16題+SearXNG Layer1驗證）
-├── burnin_v3.sh              # ✅ 新版燒機腳本（Layer1+Layer2 AI決策觸發驗證）
-├── CECLAW_交接文件.md
-├── CECLAW_規格規劃說明書.md
-├── router/
-│   ├── config.py
-│   ├── backends.py           # ✅ 身份關鍵字 + _try_local fallback
-│   ├── proxy.py              # ✅ rewrite_messages + inject_system_prompt
-│   ├── audit.py
-│   └── main.py               # ✅ /search proxy endpoint
-├── plugin/
-│   ├── src/index.ts
-│   ├── dist/index.js
-│   ├── openclaw.plugin.json
-│   └── package.json
-├── sandbox/
-│   ├── Dockerfile
-│   └── ceclaw-start.sh
-├── config/
-│   ├── ceclaw-policy.yaml
-│   └── searxng-settings.yml
-└── backup/
-    ├── ceclaw.yaml.bak
-    ├── start_llama.sh.bak
-    ├── restore-coredns.sh
-    └── openclaw-plugin-searxng-full.tar.gz  # ✅ SearXNG plugin 備份
-```
-
----
-
-## 3. 當前 ceclaw.yaml（最新）
-
-```yaml
-version: 1
-router:
-  listen_host: "0.0.0.0"
-  listen_port: 8000
-  tls: false
-  reload_on_sighup: true
-inference:
-  strategy: smart-routing
-  timeout_local_ms: 60000
-  local:
-    backends:
-      - name: ollama-fast
-        type: ollama
-        base_url: http://127.0.0.1:11434/v1
-        priority: 1
-        model: ministral-3:14b             # ✅ #51 升級，整句簡體0，avg ~650ms
-        use_for: [simple_query]
-
-      - name: gb10-llama
-        type: llama.cpp
-        base_url: http://192.168.1.91:8001/v1
-        priority: 2
-        models:
-          - id: minimax
-            alias: default
-            context_window: 32768
-
-      - name: ollama-backup
-        type: ollama
-        base_url: http://127.0.0.1:11434/v1
-        priority: 3
-        model: qwen3:8b
-        options:
-          think: false
-        use_for: [fallback]
-
-  cloud_fallback:
-    enabled: true
-    priority:
-      - provider: groq
-        env_key: GROQ_API_KEY
-        models: [llama-3.3-70b-versatile]
-      - provider: anthropic
-        env_key: ANTHROPIC_API_KEY
-        models: [claude-sonnet-4-6]
-      - provider: openai
-        env_key: OPENAI_API_KEY
-        models: [gpt-4.1]
-      - provider: nvidia
-        env_key: NVIDIA_API_KEY
-        models: [nvidia/nemotron-3-super-120b-a12b]
-```
-
----
-
-## 4. Git Commit 歷史（完整）
-
-| Commit | 說明 |
-|--------|------|
-| `7aad6f1` | feat: burnin_v3.sh 加 SearXNG Layer 2 AI 決策觸發驗證 |
-| `dbc8094` | fix: #57 --parallel 1，修 context exceed 400，清 debug log |
-| `92eb564` | fix: #57 enable_thinking 強制覆蓋，修 tool call 第二輪 gb10 400 |
-| `cf98b2b` | fix: #56 inject enable_thinking:false，對齊 ZengboJamesWang proxy |
-| `bd09a17` | feat: #55 REASONING_KEYWORDS 加即時性關鍵字，強制走 gb10-llama |
-| `a2e82d1` | fix: #53 Step E token 空值 guard，避免靜默失敗 |
-| `328d491` | feat: #38 SearXNG整合完成，Router /search proxy，sandbox plugin固化SOP |
-| `1eb09d2` | feat: fast path 換 doomgrave/ministral-3:8b，速度+15%，品質更好，身份更安全 |
-| `c853e68` | feat: fast path 換 ministral-3:8b，身份攻擊全擋，無thinking問題 |
-| `c894fc6` | fix: #37 _try_local() 改為逐一嘗試所有本地後端，gb10 timeout/掛掉自動降級 ollama-backup |
-| `db24708` | fix: sandbox 重建後恢復所有設定，contextWindow=32768 + reserveTokens=8000 + gateway autostart |
-| `4c1e888` | fix: P0-1 身份白標化，inject_system_prompt + 身份關鍵字強制走 gb10-llama (#19) |
-| `cf44a1f` | feat: P0-4a SearXNG 自架，endpoint http://172.17.0.1:8888 (#22) |
-| `903e8cc` | fix: P0-3 tui alias 加 --session fresh+history-limit 20 (#21) |
-| `ada85a7` | fix: P0-2 role rewrite，developer→system, toolResult→tool, system merge (#18) |
-| `06f535c` | docs: 交接文件 v4.0 + 規格書 v0.3.8，GB10切換完成+P0清單 |
-| `40ac82a` | feat: P5 Chain Audit Log |
-
----
-
-## 5. 詳細 TODO List（按優先級）
-
-### ✅ P0 全部完成
-### ✅ P1 部分完成
-
-| # | 項目 | 狀態 |
-|---|------|------|
-| 37 | 503 fallback（gb10→ollama-backup）| ✅ c894fc6 |
-| 38 | SearXNG web search 整合 | ✅ 328d491 |
-| 49 | fast path doomgrave/ministral-3:8b | ✅ 1eb09d2 |
-| 50 | fast path 速度優化 | ✅（done via doomgrave）|
-| 53 | Step E token 空值 guard | ✅ a2e82d1 |
-| 55 | REASONING_KEYWORDS 即時性關鍵字 | ✅ bd09a17 |
-| 56 | enable_thinking:false 注入 | ✅ cf98b2b |
-| 57 | parallel 1 修 context exceed 400 | ✅ dbc8094 |
-| 58 | burnin_v3.sh Layer 2 驗證 | ✅ 7aad6f1 |
-| 39 | Qwen2.5-72B 評估 | ⬜ |
-| 40 | qwen3-nothink reasoning 殘留 | ✗ 暫擱（Ollama API 限制）|
-| 51 | fast path < 500ms | ⬜ 未來 |
-
-### ⬜ P6 — 相容性驗證
-- NemoClaw drop-in 驗證報告（P6 手冊 v0.2 已準備）
-- 前置條件：P1 全清
-
-### ⬜ P7 — OpenClaw Skill 相容性測試
-- A 級（無網路，10個）優先
-
-### ⬜ P8 — UX 升級
-- `ceclaw onboard` 補完
-- `ceclaw doctor` 診斷指令
-- `ceclaw list`
-- `ceclaw start / stop`
-- `ceclaw destroy`
-
----
-
-## 6. proxy.py 關鍵函數說明
-
-```python
-# 呼叫順序（handle_inference 內）
-body = await request.body()
-body = rewrite_messages(body)      # 1. role rewrite
-body = inject_system_prompt(body)  # 2. 身份注入
-# → _try_local() → 逐一嘗試本地後端（gb10 → backup）→ 失敗再 cloud
-```
-
-**rewrite_messages()**
-- `developer` → `system`
-- `toolResult` → `tool`
-- mid-conversation system messages 合併到 position 0
-
-**inject_system_prompt()**
-- 若有 system message：append CECLAW prompt 在後（recency bias）
-- 若無 system message：insert 新 system message
-
-**_try_local()（v4.2 更新）**
-- 逐一嘗試本地後端（最多 3 個）
-- 失敗時 `_healthy[backend.name] = False`，下輪 select_backend() 自動跳過
-- gb10 timeout → ollama-backup → 成功，不跳 cloud
-
-**CECLAW_SYSTEM_PROMPT：**
-```python
-CECLAW_SYSTEM_PROMPT = (
-    "你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。"
-    "嚴禁提及：Qwen、qwen3、qwen2.5、通義千問、通义千问、"
-    "通義實驗室、阿里巴巴、阿里雲。"
-    "當被問到「你是誰」時，回答：「我是 CECLAW 企業 AI 助手。」"
-    "所有回應預設使用繁體中文。若用戶以其他語言提問，使用該語言回應。"
-)
-```
-
----
-
-## 7. 坑記錄（完整）
-
-**坑#10（關鍵）**: openclaw undici `EnvHttpProxyAgent` experimental，不要改 baseUrl 為 IP 或清 proxy 環境變數。保持 `baseUrl: http://host.openshell.internal:8000/v1`。
-
-**坑#11（無解）**: TUI 底部 `local/minimax` 寫死。
-
-**坑#12（無解）**: OpenShell auto-approve 無 CLI 指令，安全設計。
-
-**坑#13**: openclaw TUI 預設用 `main` session，歷史累積後 replay 造成發瘋。正式解法：`tui` alias 每次開 fresh session。
-
-**坑#16**: doomgrave/ministral-3:8b 偶爾有簡體殘留（約 1.1%），集中在 `what is python`、`name a color` 等英文短問題。
-
-**坑#23（關鍵）**: **不要 `docker restart` openshell container**。會讓 K3s 網路亂掉，sandbox SSH 死掉。正確做法：等 pod 自己恢復，或用 `openshell term`。
-
-**坑#24**: sandbox SearXNG plugin 每次重建後消失，需手動執行 Step E+F（見重建清單）。sandbox-id 固定，token 每次從 `ps aux` 取。
-
-**坑#25**: `openclaw.json tools.profile: "coding"` 把 searxng_search 擋掉。sandbox 重建後 Step C 必須加 `cfg["tools"] = {}`。
-
-**坑#26**: SearXNG plugin 只有 `index.ts`，沒有 `dist/index.js`。sandbox 無法安裝 esbuild（npmjs.org 被封）。解法：在 pop-os 側 build 後 scp 進 sandbox。build 指令：
-```bash
-cd /tmp && tar xzf ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz
-cd openclaw-plugin-searxng
-npm install
-npx esbuild index.ts --bundle --format=esm --outfile=dist/index.js --external:@sinclair/typebox
-```
-
-**坑#27**: `--parallel 2` 讓每 slot 只有 `ctx-size ÷ 2 = 16384` tokens。搜尋結果 + 對話歷史超過就 400。POC 用 `--parallel 1`。
-
----
-
-## 8. Debug SOP
-
-### Router 問題
-```bash
-ceclaw status
-curl http://localhost:8000/ceclaw/status | python3 -m json.tool
-sudo journalctl -u ceclaw-router -f
-sudo systemctl restart ceclaw-router
-```
-
-### GB10 問題
-```bash
-curl -s --max-time 10 http://192.168.1.91:8001/v1/models | python3 -m json.tool | grep n_vocab
-ssh gb10 'sudo systemctl status llama-server'
-ssh gb10 'sudo systemctl restart llama-server'
-```
-
-### SearXNG 問題
-```bash
-# pop-os
-docker ps | grep searxng
-curl -s "http://localhost:8888/search?q=test&format=json" | head -3
-# Router proxy
-curl -s "http://localhost:8000/search?q=test&format=json" | head -3
-```
-
-### Sandbox 連線問題
-```bash
-openshell sandbox list        # 確認 Ready
-openshell term                # 用 TUI 方式進入（不走 SSH）
-# 最後手段：重建 sandbox（照上方 6 步清單）
-```
-
-### TUI 問題
-```bash
-# session 發瘋 → 用 tui alias（已自動開 fresh session）
 tui
-# 503 → 確認後端
-curl http://localhost:8000/ceclaw/status
-curl -s http://192.168.1.91:8001/health
-```
-
-### Audit Log 驗證
-```bash
-python3 -c "
-import sys; sys.path.insert(0, '/home/zoe_ai/ceclaw')
-from router.audit import verify
-ok, msg = verify()
-print(msg)
-"
+# 問：你是誰 → 我是 CECLAW 企業 AI 助手
+# 問：今天台北天氣如何？ → 有搜尋結果（非 Brave API 錯誤）
 ```
 
 ---
 
-## 9. 關鍵指令速查
+## 備份 sandbox 設定（每次設定完必做）
+
+```bash
+TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
+SANDBOX_ID=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')
+
+scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell" \
+  -o StrictHostKeyChecking=no \
+  sandbox@ceclaw-agent:/sandbox/.openclaw/openclaw.json ~/ceclaw/backup/openclaw.json.bak-$(date +%Y%m%d)
+
+echo "備份完成"
+```
+
+---
+
+## 今日新增的 iptables 規則（已 save，重開機後自動恢復）
+
+```bash
+# 這些規則今日已加入，不需重跑
+# 但若重灌 pop-os，需要加這些額外規則：
+
+# 172.19.0.0/16（openshell container 實際網段）
+sudo iptables -I FORWARD -s 172.19.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
+sudo iptables -I FORWARD -s 172.19.0.0/16 -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
+sudo iptables -I INPUT -s 172.19.0.0/16 -p tcp --dport 8000 -j ACCEPT
+sudo iptables -t nat -A POSTROUTING -s 172.19.0.0/16 -d 172.17.0.1 -j MASQUERADE
+sudo iptables -t nat -A POSTROUTING -s 172.19.0.0/16 -j MASQUERADE
+
+# UFW routed
+sudo ufw default allow routed
+sudo ufw reload
+
+sudo netfilter-persistent save
+```
+
+---
+
+## 關鍵指令速查
 
 ```bash
 # CECLAW CLI
@@ -526,11 +529,12 @@ tail -f ~/.ceclaw/router.log
 
 # Ollama
 ollama list
-ollama run doomgrave/ministral-3:8b "你是誰"
+ollama run ministral-3:14b "你是誰"
 
-# GB10 管理（免密碼）
+# GB10
 ssh gb10 'sudo systemctl status llama-server'
 ssh gb10 'sudo systemctl restart llama-server'
+curl -s http://192.168.1.91:8001/health
 
 # SearXNG
 docker ps | grep searxng
@@ -538,81 +542,141 @@ curl -s "http://localhost:8888/search?q=test&format=json" | python3 -m json.tool
 curl -s "http://localhost:8000/search?q=test&format=json" | python3 -m json.tool | head -5
 
 # Sandbox
+openshell sandbox list
 openshell sandbox connect ceclaw-agent
 tui
 
-# 燒機（sandbox 內）
-bash /tmp/burnin_v2.sh 200
-
-# Audit verify（pop-os）
-python3 -c "import sys; sys.path.insert(0,'/home/zoe_ai/ceclaw'); from router.audit import verify; ok,msg=verify(); print(msg)"
+# 取 sandbox ID（動態）
+ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}'
 
 # CoreDNS restore
 bash ~/nemoclaw-config/restore-coredns.sh
 
-# SCP plugin 到 sandbox
-TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
-scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
-  ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
+# 燒機
+bash /tmp/burnin_v3.sh 100
 ```
 
 ---
 
-## 10. 進度表
+## Debug SOP
 
-| # | 項目 | Phase | 狀態 | Commit |
-|---|------|-------|------|--------|
-| 1-35 | 歷史完成項 | P1~P5 | ✅ | — |
-| 36 | 2000輪燒機 | P1 | ✅ | — |
-| 37 | 503 fallback 修復 | P1 | ✅ | c894fc6 |
-| 38 | SearXNG 整合 | P1 | ✅ | 328d491 |
-| 39 | Qwen2.5-72B 評估 | P1 | ⬜ | — |
-| 40 | reasoning 殘留 | P1 | ✗ 暫擱 | — |
-| 41 | NemoClaw drop-in 驗證 | P6 | ⬜ | — |
-| 42-43 | Skill 相容性測試 | P7 | ⬜ | — |
-| 44-48 | UX 升級 | P8 | ⬜ | — |
-| 49 | fast path ministral-3:8b | P1 | ✅ | c853e68 |
-| 50 | fast path doomgrave/ministral-3:8b | P1 | ✅ | 1eb09d2 |
-| 51 | fast path < 500ms | P1 | ⬜ 未來 | — |
-| 52 | burnin_v2.sh（16+16+SearXNG Layer1）| P1 | ✅ | 020e797 |
-| 53 | Step E token 空值 guard | P1 | ✅ | a2e82d1 |
-| 55 | REASONING_KEYWORDS 即時性關鍵字 | P1 | ✅ | bd09a17 |
-| 56 | enable_thinking:false 注入 | P1 | ✅ | cf98b2b |
-| 57 | parallel 1 修 context exceed 400 | P1 | ✅ | dbc8094 |
-| 58 | burnin_v3.sh Layer 2 AI 決策觸發 | P1 | ✅ | 7aad6f1 |
+### TUI auth 失敗
+```
+症狀：No API key found for provider "local"
+解法：
+1. 確認 /sandbox/.openclaw/agents/main/agent/auth-profiles.json 存在
+2. 確認格式：{"local": {"apiKey": "ceclaw-local-key"}}
+3. 確認 openclaw.json models.providers.local.apiKey 也有設
+4. 重啟 gateway
+```
 
-**完成：49/58 ✅ | 待做：6 ⬜ | 無解/暫擱：3 ✗**
+### TUI 用 Brave 而非 SearXNG
+```
+症狀：回應說需要 Brave Search API 金鑰
+解法：
+1. 確認 openclaw.json tools.web.search.enabled = true
+2. 確認 plugins.allow 包含 "searxng-search"
+3. 確認 /sandbox/.openclaw/extensions/searxng-search/dist/index.js 存在
+4. 確認 plugins.entries.searxng-search.config.baseUrl 正確
+5. 重啟 gateway，看 log grep searxng
+```
+
+### Sandbox SSH 無法連線
+```
+症狀：kex_exchange_identification: Connection closed
+解法：
+1. 等 30-60 秒
+2. ssh-keygen -f "~/.ssh/known_hosts" -R "ceclaw-agent"（host key 變了）
+3. openshell term（TUI 方式進入）
+4. 最後才重建 sandbox（需重跑 6 步）
+```
+
+### Gateway 無法啟動
+```
+症狀：Gateway start blocked: set gateway.mode=local
+解法：確認 openclaw.json 有 "gateway": {"mode": "local"}
+或臨時：openclaw gateway run --allow-unconfigured
+```
+
+### sandbox 連 Router 失敗（Connection refused）
+```
+症狀：curl http://host.openshell.internal:8000 無回應或 Connection refused
+解法：
+1. 確認 pop-os Router 在跑：ceclaw status
+2. 確認 iptables 有 172.19.0.0/16 規則
+3. 確認 UFW routed 是 allow
+4. sandbox 內用 --noproxy "*" 測試
+```
 
 ---
 
-## 11. GLM-5 Turbo 督察使用指南
+## 台灣本土模型評估記錄（未入文件，需記住）
 
-### 督察 Prompt
-```
-你是一位資深AI系統評審員，負責評估一個本地部署的LLM的輸出品質。
-硬體環境：NVIDIA DGX Spark (GB10)，128GB 統一記憶體
-模型：[填入模型名稱]，[填入量化等級]
-POC 階段，量產走 vLLM + 滿級模型
-評分：✅ 通過 / ⚠️ 勉強 / ❌ 不通過
-```
+| 模型 | 淘汰原因 |
+|------|---------|
+| taiwanllm-7b | 指令遵從差（name a color → 反問）|
+| taiwanllm-13b | System prompt 洩漏、指令遵從不穩定 |
+| TAIDE-8b (ryan4559) | 速度慢（cold start 2s+）、指令遵從差 |
+| llama-3-taiwan-8b (cwchang) | 身份洩漏（直接說「我是 Taiwan-LLM」）|
 
-費用：約 $0.12 / 次完整評審，透過 OpenRouter 使用
+此資料應在 #66b 補進交接文件。
 
 ---
 
-## 12. 相關連結
+## proxy.py 關鍵函數說明
+
+```python
+# 呼叫順序（handle_inference 內）
+body = rewrite_messages(body)      # 1. role rewrite
+body = inject_system_prompt(body)  # 2. 身份注入
+
+CECLAW_SYSTEM_PROMPT = (
+    "你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。"
+    "嚴禁提及：Qwen、qwen3、通義千問..."
+    "預設使用繁體中文（台灣）回覆，嚴禁輸出簡體字。"
+)
+```
+
+**_try_local()**: 逐一嘗試本地後端，健康狀態重置週期 **30 秒**（main.py `_periodic_check()`）
+
+---
+
+## 重要注意事項
+
+**坑#10**: `baseUrl` 不能改成 IP，保持 `host.openshell.internal:8000/v1`
+**坑#23**: 不要 `docker restart openshell container`
+**坑#27**: 歷史：`--parallel 2 --ctx-size 32768` 會 400，現已改 `--ctx-size 65536 --parallel 2`
+**坑#64**: openclaw gateway dynamic reload 覆寫 `tools: {}`，必須明確設 `enabled: true`
+**坑#68**: gateway 重建（`openshell gateway start`）會讓 sandbox 消失
+**坑#69**: openclaw.json 必須有 `api: "openai-completions"` 欄位
+
+---
+
+## SOP-002 工作流程
+
+每次動手前說意圖，等 Kent 確認。格式：
+
+> 【要改什麼】/【為什麼】/【改完 Kent 會看到什麼】
+
+每步完成後：
+```
+⚠️ 記得 commit：git add -A && git commit -m "..."
+```
+
+---
+
+## 相關連結
 
 - OpenShell docs: https://docs.nvidia.com/openshell/latest/
 - NemoClaw GitHub: https://github.com/NVIDIA/NemoClaw
 - CECLAW sandbox image: ghcr.io/kentgeeng/ceclaw-sandbox:latest
 - Kent GitHub: kentgeeng
-- Qwen3.5-122B GGUF: https://huggingface.co/bartowski/Qwen_Qwen3.5-122B-A10B-GGUF
-- Qwen2.5-72B GGUF: https://huggingface.co/bartowski/Qwen2.5-72B-Instruct-GGUF
+- openclaw releases: https://github.com/openclaw/openclaw/releases
 - GLM-5 Turbo（督察）: OpenRouter → zhipuai/glm-5-turbo
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
 *總工: Kent | 軟工: 下個對話 Claude | 督察: GLM-5 Turbo*
-*文件版本: v4.4 | 日期: 2026-03-24*
-*P1✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ P0全✅ P1大部分✅ | 下一步: P1#39→P6 | 最新commit: 7aad6f1*
+*文件版本: v4.5 | 日期: 2026-03-24*
+*最新狀態: TUI 身份驗證通過 ✅ | SearXNG plugin 待修 ⚠️ | 最新commit: b4e7ad3*
