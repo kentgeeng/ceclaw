@@ -1,10 +1,10 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script
+# CECLAW Sandbox Restore Script v1.1
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect ceclaw-agent
 
 BACKUP_DIR=~/ceclaw/backup
-echo "=== CECLAW Sandbox Restore ==="
+echo "=== CECLAW Sandbox Restore v1.1 ==="
 
 # Step 1: 確認 sandbox
 echo "[1/6] 確認 sandbox..."
@@ -45,11 +45,13 @@ ssh -o "$PROXY" sandbox@ceclaw-agent "mkdir -p /sandbox/.openclaw/extensions/sea
 scp -o "$PROXY" /tmp/openclaw-plugin-searxng/dist/index.js sandbox@ceclaw-agent:/sandbox/.openclaw/extensions/searxng-search/dist/index.js
 echo "  傳入完成"
 
-# Step 5: 寫 sandbox init Python script（避免 heredoc 巢狀問題）
+# Step 5: 寫 sandbox_init.py
 cat > /tmp/sandbox_init.py << 'PYEOF'
 import json, subprocess, os, shutil
 
-print("=== sandbox_init.py 開始 ===")
+print("=== sandbox_init.py v1.1 開始 ===")
+
+CFG_PATH = "/sandbox/.openclaw/openclaw.json"
 
 # Step A: install ceclaw plugin
 r = subprocess.run(["openclaw", "plugins", "install", "/opt/ceclaw"], capture_output=True, text=True)
@@ -65,16 +67,60 @@ if "alias tui=" not in bashrc:
 else:
     print("Step B: alias already exists")
 
-# Step C: openclaw.json patch
-path = "/sandbox/.openclaw/openclaw.json"
-cfg = json.load(open(path))
-for model in cfg["models"]["providers"]["local"]["models"]:
-    model["contextWindow"] = 32768
-    model["maxTokens"] = 4096
+# Step C: openclaw.json 完整 patch
+cfg = json.load(open(CFG_PATH))
+
+# models（防止 KeyError，全新 sandbox 可能無此 key）
+if "models" not in cfg:
+    cfg["models"] = {}
+if "providers" not in cfg["models"]:
+    cfg["models"]["providers"] = {}
+if "local" not in cfg["models"]["providers"]:
+    cfg["models"]["providers"]["local"] = {}
+
+local = cfg["models"]["providers"]["local"]
+local["baseUrl"] = "http://host.openshell.internal:8000/v1"
+local["apiKey"] = "ceclaw-local-key"
+local["api"] = "openai-completions"   # 坑#69 關鍵欄位
+if "models" not in local:
+    local["models"] = []
+minimax = next((m for m in local["models"] if m.get("id") == "minimax"), None)
+if minimax is None:
+    local["models"].append({"id": "minimax", "name": "minimax", "contextWindow": 32768, "maxTokens": 4096})
+else:
+    minimax["contextWindow"] = 32768
+    minimax["maxTokens"] = 4096
+
+# gateway
+if "gateway" not in cfg:
+    cfg["gateway"] = {}
+cfg["gateway"]["mode"] = "local"
+
+# agents
+if "agents" not in cfg:
+    cfg["agents"] = {}
+if "defaults" not in cfg["agents"]:
+    cfg["agents"]["defaults"] = {}
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
-cfg["tools"] = {"web": {"search": {"enabled": True}, "fetch": {"enabled": True}}}
-json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("Step C: openclaw.json patched")
+cfg["agents"]["defaults"]["model"] = {"primary": "local/minimax"}
+
+# tools（坑#64：明確 enabled，防 dynamic reload 覆寫）
+cfg["tools"] = {
+    "web": {
+        "search": {"enabled": True},
+        "fetch": {"enabled": True}
+    }
+}
+
+# plugins allow（坑#74：2026.3.11+ 需要白名單）
+if "plugins" not in cfg:
+    cfg["plugins"] = {}
+if "entries" not in cfg["plugins"]:
+    cfg["plugins"]["entries"] = {}
+cfg["plugins"]["allow"] = ["searxng-search", "ceclaw"]
+
+json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
+print("Step C: openclaw.json patched (含 api/apiKey/gateway/model/allow)")
 
 # Step D: gateway autostart
 bashrc = open(bashrc_path).read()
@@ -90,11 +136,9 @@ shutil.rmtree(os.path.expanduser("~/.openclaw/extensions/searxng-search"), ignor
 r = subprocess.run(["openclaw", "plugins", "install", "/tmp/openclaw-plugin-searxng"], capture_output=True, text=True)
 print("Step F install:", "OK" if r.returncode == 0 else r.stderr.strip())
 
-# 複製 dist/index.js（plugin install 可能沒有）
-dist_src = "/sandbox/.openclaw/extensions/searxng-search/dist"
-os.makedirs(dist_src, exist_ok=True)
-# dist 已由 pop-os scp 進來，確認存在
-if os.path.exists(dist_src + "/index.js"):
+# 確認 dist/index.js（由 pop-os scp 進來）
+dist_path = "/sandbox/.openclaw/extensions/searxng-search/dist/index.js"
+if os.path.exists(dist_path):
     print("Step F dist: index.js OK")
 else:
     print("Step F dist: WARNING - index.js not found!")
@@ -109,14 +153,20 @@ if os.path.exists(pkg_path):
     print("Step F package.json: fixed")
 
 # Fix openclaw.json plugin config
-cfg = json.load(open(path))
-if "searxng-search" not in cfg["plugins"]["entries"]:
-    cfg["plugins"]["entries"]["searxng-search"] = {"enabled": True}
-if "config" not in cfg["plugins"]["entries"]["searxng-search"]:
-    cfg["plugins"]["entries"]["searxng-search"]["config"] = {}
-cfg["plugins"]["entries"]["searxng-search"]["config"]["baseUrl"] = "http://host.openshell.internal:8000"
-json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("Step F openclaw.json: baseUrl set")
+cfg = json.load(open(CFG_PATH))
+entry = cfg["plugins"]["entries"].setdefault("searxng-search", {})
+entry["enabled"] = True
+entry.setdefault("config", {})["baseUrl"] = "http://host.openshell.internal:8000"
+json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
+print("Step F openclaw.json: searxng baseUrl set")
+
+# auth-profiles.json（無此檔 → No API key found）
+auth_dir = "/sandbox/.openclaw/agents/main/agent"
+os.makedirs(auth_dir, exist_ok=True)
+auth_path = os.path.join(auth_dir, "auth-profiles.json")
+auth = {"local": {"apiKey": "ceclaw-local-key"}}
+json.dump(auth, open(auth_path, "w"), indent=4)
+print("auth-profiles.json: created")
 
 print("=== ALL DONE ===")
 PYEOF
@@ -127,10 +177,9 @@ scp -o "$PROXY" /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/
 ssh -o "$PROXY" sandbox@ceclaw-agent "python3 /tmp/sandbox_init.py"
 
 echo "[6/6] 重啟 gateway..."
-ssh -o "$PROXY" sandbox@ceclaw-agent "pkill -f 'openclaw-gatewa' 2>/dev/null || true; sleep 2; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 6; tail -4 /tmp/openclaw-gateway.log"
+ssh -o "$PROXY" sandbox@ceclaw-agent "pkill -f 'openclaw-gatewa' 2>/dev/null || true; sleep 2; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 8; tail -5 /tmp/openclaw-gateway.log"
 
 echo ""
 echo "✅ Restore 完成！"
-echo ""
 echo "驗證（在 sandbox 終端）："
 echo "  tui → 問：你是誰 / 今天台北天氣如何？"
