@@ -3,7 +3,7 @@
 
 **預估時間**: 1~2 小時（不含模型下載）
 **適用**: pop-os 重灌或全新機器
-**SOP 版本**: 1.9 | **日期**: 2026-03-23
+**SOP 版本**: 2.0 | **日期**: 2026-03-24
 
 ---
 
@@ -78,10 +78,10 @@ scp ~/ceclaw/backup/start_llama.sh.bak zoe_gb@192.168.1.91:~/start_llama.sh
 ssh gb10 "chmod +x ~/start_llama.sh"
 ```
 
-⚠️ **確認 `--parallel 1`**：parallel 2 會讓每 slot 只有 16384 tokens，搜尋結果超出後 400。
+⚠️ **確認 `--parallel 2` + `--ctx-size 65536`**：每 slot 獨享 32768 tokens，支援雙並發。
 ```bash
-ssh gb10 'grep "parallel" ~/start_llama.sh'
-# 預期：--parallel 1
+ssh gb10 'grep "parallel\|ctx-size" ~/start_llama.sh'
+# 預期：--ctx-size 65536 --parallel 2
 ```
 
 ---
@@ -119,7 +119,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 1
-        model: doomgrave/ministral-3:8b
+        model: ministral-3:14b
         use_for: [simple_query]
 
       - name: gb10-llama
@@ -253,11 +253,11 @@ ceclaw status
 ollama --version
 
 # 下載模型
-ollama pull doomgrave/ministral-3:8b   # fast path，5.8GB
+ollama pull ministral-3:14b            # fast path，9.1GB
 ollama pull qwen3:8b                    # backup 路徑，5.2GB
 
 # 驗證 fast path
-ollama run doomgrave/ministral-3:8b "你是誰"
+ollama run ministral-3:14b "你是誰"
 # 預期：不會說出 Mistral（身份由 Router inject 控制）
 ```
 
@@ -422,7 +422,12 @@ for model in cfg["models"]["providers"]["local"]["models"]:
     model["contextWindow"] = 32768
     model["maxTokens"] = 4096
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
-cfg["tools"] = {}  # 移除 coding profile，讓 searxng_search 可用
+cfg["tools"] = {
+    "web": {
+        "search": {"enabled": True},
+        "fetch": {"enabled": True}
+    }
+}  # 明確設 enabled:true，防止 openclaw dynamic reload 覆寫（坑#64）
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 print("done")
 EOF
@@ -527,7 +532,7 @@ tui
 
 **坑#24**: sandbox SearXNG plugin 每次重建後消失，必須執行 Step E+F
 
-**坑#25（關鍵）**: `openclaw.json tools.profile: "coding"` 會擋住 searxng_search。Step C 必須加 `cfg["tools"] = {}`
+**坑#25（關鍵）**: `openclaw.json tools.web.search.enabled` 預設 false 會擋住 searxng_search。openclaw gateway dynamic reload 會覆寫 `tools: {}`，必須明確設 `enabled: true` 才能持久化（見坑#64）
 
 **坑#26**: SearXNG plugin 缺少 `dist/index.js`（需在 pop-os 側 esbuild 編譯後 scp 進 sandbox）
 
@@ -538,4 +543,4 @@ tui
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*SOP 版本: 1.9 | 日期: 2026-03-23*
+*SOP 版本: 2.0 | 日期: 2026-03-24*

@@ -88,6 +88,12 @@ for model in cfg["models"]["providers"]["local"]["models"]:
     model["contextWindow"] = 32768
     model["maxTokens"] = 4096
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
+cfg["tools"] = {
+    "web": {
+        "search": {"enabled": True},
+        "fetch": {"enabled": True}
+    }
+}  # 明確設 enabled:true，防止 openclaw dynamic reload 覆寫（坑#64）
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 print("done")
 EOF
@@ -587,5 +593,5 @@ POC 階段，量產走 vLLM + 滿級模型
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
 *總工: Kent | 軟工: 下個對話 Claude | 督察: GLM-5 Turbo*
-*文件版本: v4.3 | 日期: 2026-03-23*
+*文件版本: v4.4 | 日期: 2026-03-24*
 *P1✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ P0全✅ P1大部分✅ | 下一步: P1#39→P6 | 最新commit: 7aad6f1*

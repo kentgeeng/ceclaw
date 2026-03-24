@@ -1,6 +1,6 @@
 # CECLAW Easy Setup 快速上手手冊
 
-**版本**: 1.6 | **日期**: 2026-03-23
+**版本**: 1.7 | **日期**: 2026-03-24
 **適用**: 快速建立可用的 CECLAW 環境
 **預估時間**: 15 分鐘（環境已備齊）/ 1~2 小時（全新機器）
 
@@ -62,7 +62,12 @@ for model in cfg["models"]["providers"]["local"]["models"]:
     model["contextWindow"] = 32768
     model["maxTokens"] = 4096
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
-cfg["tools"] = {}  # 移除 coding profile，讓 searxng_search 可用
+cfg["tools"] = {
+    "web": {
+        "search": {"enabled": True},
+        "fetch": {"enabled": True}
+    }
+}  # 明確設 enabled:true，防止 openclaw dynamic reload 覆寫（坑#64）
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 print("done")
 EOF
@@ -165,11 +170,11 @@ openshell term
 
 | 模型 | 速度 | 用途 | 身份 |
 |------|------|------|------|
-| doomgrave/ministral-3:8b | ~850ms | fast：簡單對話 | CECLAW（Router inject）|
+| ministral-3:14b | ~650ms | fast：簡單對話 | CECLAW（Router inject）|
 | qwen3:8b | ~1.3s | backup：GB10 掛時 | CECLAW（Router inject）|
 | GB10 Qwen3.5-122B | 15-36s | main：主力 | CECLAW（Router inject）|
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*版本: 1.6 | 日期: 2026-03-23*
+*版本: 1.7 | 日期: 2026-03-24*

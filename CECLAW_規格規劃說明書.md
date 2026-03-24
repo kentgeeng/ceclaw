@@ -1,9 +1,9 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.4.1
+**版本**: 0.4.2
 **作者**: Kent (總工)
-**日期**: 2026-03-23
+**日期**: 2026-03-24
 **狀態**: Alpha — P0~P1 大部分完成，SearXNG E2E ✅，POC 展示就緒
 
 ---
@@ -275,7 +275,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 1
-        model: doomgrave/ministral-3:8b    # ✅ v0.4.0 更新
+        model: ministral-3:14b    # ✅ v0.4.0 更新
         use_for: [simple_query]
 
       - name: gb10-llama
