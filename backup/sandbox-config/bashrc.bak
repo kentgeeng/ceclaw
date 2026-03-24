@@ -1,0 +1,8 @@
+export PATH="/sandbox/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+export VIRTUAL_ENV="/sandbox/.venv"
+export UV_PYTHON_INSTALL_DIR="/sandbox/.uv/python"
+export PS1="\u@\h:\w\$ "
+alias tui='openclaw tui --session fresh-$(date +%s) --history-limit 20'
+if ! pgrep -f "openclaw-gatewa" > /dev/null 2>&1; then
+    openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
+fi
