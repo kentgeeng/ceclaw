@@ -158,12 +158,12 @@ PYEOF
 
 # Step 5: 執行初始化
 echo "[5/9] 執行 sandbox 初始化..."
-eval "$SCP /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/"
-eval "$SSH sandbox@ceclaw-agent 'python3 /tmp/sandbox_init.py'"
+eval "$SCP /tmp/sandbox_init.py sandbox@$SANDBOX_NAME:/tmp/"
+eval "$SSH sandbox@$SANDBOX_NAME 'python3 /tmp/sandbox_init.py'"
 
 # Step 6: 重啟 gateway
 echo "[6/9] 重啟 gateway..."
-eval "$SSH sandbox@ceclaw-agent 'pkill -9 -f openclaw-gatewa 2>/dev/null; sleep 3; source ~/.bashrc; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 10; tail -3 /tmp/openclaw-gateway.log'"
+eval "$SSH sandbox@$SANDBOX_NAME 'pkill -9 -f openclaw-gatewa 2>/dev/null; sleep 3; source ~/.bashrc; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 10; tail -3 /tmp/openclaw-gateway.log'"
 
 # Step 7: 同步 workspace（SOUL/TOOLS/AGENTS/USER.md）
 echo "[7/9] 同步 workspace..."
@@ -171,7 +171,7 @@ WORKSPACE_FILES="SOUL.md TOOLS.md AGENTS.md USER.md HEARTBEAT.md"
 for f in $WORKSPACE_FILES; do
     LOCAL="$WORKSPACE_SRC/$f"
     if [ -f "$LOCAL" ]; then
-        eval "$SCP $LOCAL sandbox@ceclaw-agent:/sandbox/.openclaw/workspace/$f"
+        eval "$SCP $LOCAL sandbox@$SANDBOX_NAME:/sandbox/.openclaw/workspace/$f"
         echo "  ✅ $f"
     else
         echo "  ⚠️ $f 不存在於 $WORKSPACE_SRC，跳過"
@@ -194,13 +194,13 @@ sleep 10
 echo "✅ 進入 TUI"
 openclaw tui --session fresh-$(date +%s) --history-limit 20
 STARTEOF
-eval "$SCP /tmp/ceclaw-start.sh sandbox@ceclaw-agent:~/ceclaw-start.sh"
-eval "$SSH sandbox@ceclaw-agent 'chmod +x ~/ceclaw-start.sh'"
+eval "$SCP /tmp/ceclaw-start.sh sandbox@$SANDBOX_NAME:~/ceclaw-start.sh"
+eval "$SSH sandbox@$SANDBOX_NAME 'chmod +x ~/ceclaw-start.sh'"
 echo "  ✅ ceclaw-start.sh 部署完成"
 
 # Step 9: 七層健康檢查（從 sandbox 內跑）
 echo "[9/9] 七層健康檢查（sandbox 內）..."
-eval "$SSH sandbox@ceclaw-agent 'source ~/.bashrc; python3 << CHECKEOF
+eval "$SSH sandbox@$SANDBOX_NAME 'source ~/.bashrc; python3 << CHECKEOF
 import json, os, subprocess, urllib.request
 
 PASS, FAIL, WARN = \"✅\", \"❌\", \"⚠️\"
