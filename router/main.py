@@ -116,6 +116,27 @@ async def proxy_search(request: Request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=502)
 
+@app.get("/v1/fetch")
+async def proxy_fetch(url: str, request: Request):
+    """D方案：代抓外部 URL，讓 sandbox 透過 Router 存取外部內容"""
+    # allowed_domains 白名單佔位（空 = 全放行，量產前需設定）
+    ALLOWED_DOMAINS: list[str] = []
+    if ALLOWED_DOMAINS:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc
+        if not any(domain.endswith(d) for d in ALLOWED_DOMAINS):
+            return JSONResponse({"error": f"domain not allowed: {domain}"}, status_code=403)
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True, verify=False) as client:
+            resp = await client.get(url, headers={"User-Agent": "CECLAW-Proxy/1.0"})
+            return JSONResponse({
+                "content": resp.text,
+                "url": str(resp.url),
+                "status": resp.status_code
+            })
+    except Exception as e:
+        return JSONResponse({"error": str(e), "url": url}, status_code=502)
+
 @app.get("/ceclaw/status")
 async def status():
     cfg = get_config()
