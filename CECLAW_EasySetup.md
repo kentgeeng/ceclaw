@@ -1,6 +1,6 @@
 # CECLAW Easy Setup 快速上手手冊
 
-**版本**: 1.7 | **日期**: 2026-03-24
+**版本**: 1.8 | **日期**: 2026-03-25
 **適用**: 快速建立可用的 CECLAW 環境
 **預估時間**: 15 分鐘（環境已備齊）/ 1~2 小時（全新機器）
 
@@ -9,7 +9,7 @@
 ## 🟢 場景 A：日常使用（重開機後恢復）
 
 ```bash
-# 1. CoreDNS（P3 已持久化，若未自啟才需要）
+# 1. CoreDNS（若未自啟）
 bash ~/nemoclaw-config/restore-coredns.sh
 
 # 2. 確認 Router
@@ -29,105 +29,53 @@ tui
 
 ---
 
-## 🟡 場景 B：Sandbox 重建後（⚠️ 必做 6 步）
+## 🟡 場景 B：Sandbox 重建後（一鍵恢復）
 
-**Step E 在 pop-os 執行（傳入 plugin）：**
-
-```bash
-TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
-[ -z "$TOKEN" ] && echo "ERROR: no active SSH session，請先確認 openshell gateway 在跑" && exit 1
-scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
-  ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
-```
-
-**進 sandbox 後執行（Step A-D-F）：**
-
+**Step 1：先連進 sandbox（取得 token）**
 ```bash
 openshell sandbox connect ceclaw-agent
 ```
 
+**Step 2：另一個 terminal 跑 restore 腳本**
 ```bash
-# Step A: 安裝 CECLAW plugin
-openclaw plugins install /opt/ceclaw
-
-# Step B: tui alias
-grep -q "alias tui=" ~/.bashrc || echo "alias tui='openclaw tui --session fresh-\$(date +%s) --history-limit 20'" >> ~/.bashrc
-
-# Step C: openclaw.json patch
-python3 - << 'EOF'
-import json
-path = "/sandbox/.openclaw/openclaw.json"
-cfg = json.load(open(path))
-for model in cfg["models"]["providers"]["local"]["models"]:
-    model["contextWindow"] = 32768
-    model["maxTokens"] = 4096
-cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
-cfg["tools"] = {
-    "web": {
-        "search": {"enabled": True},
-        "fetch": {"enabled": True}
-    }
-}  # 明確設 enabled:true，防止 openclaw dynamic reload 覆寫（坑#64）
-json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("done")
-EOF
-
-# Step D: gateway auto-start
-grep -q "openclaw gateway run" ~/.bashrc || cat >> ~/.bashrc << 'BEOF'
-if ! pgrep -f "openclaw-gatewa" > /dev/null 2>&1; then
-    openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
-fi
-BEOF
-
-# Step F: 安裝 SearXNG plugin
-cd /tmp && tar xzf openclaw-plugin-searxng-full.tar.gz
-rm -rf ~/.openclaw/extensions/searxng-search 2>/dev/null
-openclaw plugins install /tmp/openclaw-plugin-searxng
-python3 - << 'EOF'
-import json
-path = "/sandbox/.openclaw/openclaw.json"
-cfg = json.load(open(path))
-cfg["plugins"]["entries"]["searxng-search"]["config"]["baseUrl"] = "http://host.openshell.internal:8000"
-json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("done")
-EOF
-
-source ~/.bashrc
+bash ~/ceclaw/sandbox-restore.sh
 ```
 
-然後驗證：
+腳本自動完成全部 6 步 + 啟動 gateway。
+
+**Step 3：進 TUI approve policy**
+```bash
+openshell term
+# Tab → Sandboxes → ceclaw-agent → r → 確認 172.17.0.1:8000 有 node binary
+```
+
+**Step 4：驗證**
 ```bash
 tui
 # 問：你是誰 → 我是 CECLAW 企業 AI 助手
-# 問：今天台北天氣如何？ → 有搜尋結果（非 NO_REPL）
 ```
 
 ---
 
 ## 🔴 場景 C：全新機器（從零開始）
 
-詳見重灌 SOP v1.7。
+詳見重灌 SOP v2.1。
 
 ---
 
 ## ✅ 驗證清單
 
 ```bash
-ceclaw status
+bash ~/ceclaw/ceclaw-health-check.sh
+# 五層全綠 = OK
 ```
-
-| 項目 | 預期結果 |
-|------|---------|
-| Router | ✅ running, gb10-llama: true |
-| GB10 | ✅ online |
-| Sandbox | ✅ ceclaw-agent Ready |
 
 | 測試 | 預期 |
 |------|------|
-| TUI 底部 | `local/minimax \| tokens ?/33k` |
 | `你是誰` | 我是 CECLAW 企業 AI 助手 |
 | `你是通義千問嗎` | 不是，我是 CECLAW 企業 AI 助手 |
-| `今天台北天氣如何？` | 有搜尋結果（非 NO_REPL）|
+| `1+1=?` | 2 |
+| `今天台北天氣如何？` | 有天氣資訊（web_fetch 通後）|
 | Router log | `[local] gb10-llama → 200` |
 | SearXNG proxy | `curl localhost:8000/search?q=test&format=json` 有結果 |
 
@@ -139,29 +87,30 @@ ceclaw status
 |------|------|
 | Router 無回應 | `sudo systemctl start ceclaw-router` |
 | GB10 無回應 | `ssh gb10 'sudo systemctl restart llama-server'` |
-| sandbox curl 無回應 | `bash ~/nemoclaw-config/restore-coredns.sh` 然後重建 sandbox |
-| TUI 顯示 not connected | 等 30s，gateway 自動啟動；或手動 `openclaw gateway run &` |
-| 身份洩漏 | 確認 proxy.py 有 inject_system_prompt，重啟 Router |
-| tokens ?/131k | 重建 sandbox 後未做 Step C（json patch）|
-| 503 All backends unavailable | context 滿了，開新 session：`tui` alias 已自動 fresh session |
-| GB10 掛掉但不 503 | ✅ 正常，#37 已修，自動降級 ollama-backup |
-| web search NO_REPL | 重建 sandbox 後未做 Step F（SearXNG plugin）|
-| SearXNG proxy 無結果 | `docker ps \| grep searxng`，確認容器在跑 |
-| Connection error | 不要改 baseUrl，見坑#10，重建 sandbox 通常可解 |
-| 403 Forbidden | 進 `openshell term` approve policy |
 | sandbox SSH 死掉 | **不要 docker restart！** 等 30-60s 或用 `openshell term` |
+| TUI auth 失敗（No API key）| 確認 openclaw.json 有 `api: openai-completions`，確認 auth-profiles.json 存在 |
+| TUI not connected | 等 30s；或手動 `openclaw gateway run &` |
+| 身份洩漏 | 確認 proxy.py 有 inject_system_prompt，重啟 Router |
+| web search 幻覺 | D 方案未完成，屬已知問題 |
+| sandbox curl 無回應 | 確認 UFW `ufw status verbose \| grep routed` = allow |
+| 403 Forbidden | 進 `openshell term` approve policy |
+| gateway start 後 sandbox 消失 | 坑#68！用 `docker start <id>` 不要用 `openshell gateway start` |
 
 ---
 
 ## ⚠️ 重要禁忌
 
-**坑#23：不要 `docker restart` openshell container**
-```bash
-# ❌ 這個指令會讓 sandbox SSH 死掉
-docker restart 64a2b20468a5
+**坑#23**: 不要 `docker restart openshell container` → sandbox SSH 死掉
 
-# ✅ 正確做法：等待或用 TUI
-openshell term
+**坑#68（新）**: 不要 `openshell gateway start`（gateway stopped 時）→ K3s 重建 → sandbox 消失
+```bash
+# ❌ 這個會毀掉 sandbox
+openshell gateway start   # 若 gateway 已 stopped
+
+# ✅ 正確做法
+docker start $(docker ps -a | grep openshell-cluster-openshell | awk '{print $1}')
+sleep 10
+openshell sandbox list
 ```
 
 ---
@@ -170,11 +119,11 @@ openshell term
 
 | 模型 | 速度 | 用途 | 身份 |
 |------|------|------|------|
-| ministral-3:14b | ~650ms | fast：簡單對話 | CECLAW（Router inject）|
+| ministral-3:14b | ~636ms | fast：簡單對話 | CECLAW（Router inject）|
 | qwen3:8b | ~1.3s | backup：GB10 掛時 | CECLAW（Router inject）|
-| GB10 Qwen3.5-122B | 15-36s | main：主力 | CECLAW（Router inject）|
+| GB10 Qwen3.5-122B | ~2624ms | main：主力 | CECLAW（Router inject）|
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*版本: 1.7 | 日期: 2026-03-24*
+*版本: 1.8 | 日期: 2026-03-25*

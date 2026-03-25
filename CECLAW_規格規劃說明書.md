@@ -1,10 +1,10 @@
 # CECLAW 規格規劃說明書
 ## ColdElectric Claw — 本地優先 AI Agent 推論路由系統
 
-**版本**: 0.4.2
+**版本**: 0.4.3
 **作者**: Kent (總工)
-**日期**: 2026-03-24
-**狀態**: Alpha — P0~P1 大部分完成，SearXNG E2E ✅，POC 展示就緒
+**日期**: 2026-03-25
+**狀態**: Alpha — P0~P1 大部分完成，TUI 身份驗證 ✅，web search 待修（D方案）
 
 ---
 
@@ -29,7 +29,9 @@ NV 的設計有三道關卡逆著我們走：
 |------|------------|------------|
 | `inference.local` DNS | 鎖死指向 NV Cloud | 改用 `host.openshell.internal` |
 | OpenShell Proxy | deny-all | network_policies + allowed_ips + binaries |
-| K3s 跨網段 | 網路隔離 | iptables FORWARD + MASQUERADE |
+| K3s 跨網段 | 網路隔離 | iptables FORWARD + MASQUERADE（172.19 網段）|
+| UFW routed | deny by default | `ufw default allow routed` |
+| sandbox DNS | 只解析 internal | 外部查詢必須走 Router proxy（D方案）|
 
 ### 1.3 POC vs 量產定位
 
@@ -37,8 +39,8 @@ NV 的設計有三道關卡逆著我們走：
 |------|-----------|-----------|
 | 推論框架 | llama.cpp | vLLM（等 Blackwell 支援成熟）|
 | 模型精度 | Q4_K_M GGUF | FP8/NVFP4 滿級 |
-| 模型大小 | 47-70GB | 依需求選擇 |
-| 並發 | 2 slots（parallel 2 + ctx-size 65536，每 slot 32768，#59）| 數十~數百 |
+| 並發 | 2 slots（parallel 2，ctx-size 65536，每 slot 32768）| 數十~數百 |
+| web search | SearXNG via Router proxy（D方案）| 企業內搜尋 + 外網 |
 | 目標 | 驗證架構 + 展示 | 企業生產 |
 
 ---
@@ -49,24 +51,15 @@ NV 的設計有三道關卡逆著我們走：
 
 | 項目 | NemoClaw | CECLAW |
 |------|---------|--------|
-| 執行環境 | OpenShell sandbox | OpenShell sandbox |
 | 推論目標 | NVIDIA Cloud | 本地 GB10 + 雲端備援 |
 | 資料流向 | 出內網 | 留在內網 |
 | 推論成本 | 按 token | 本地 GPU 免費 |
 | Router 層 | 無 | CECLAW Router ✅ |
 | 降級策略 | 掛了就掛 | GB10 → ollama-backup → Cloud |
-| 模型選擇 | NV 指定 | 任意 GGUF |
-| CLI 入口 | `nemoclaw` | `ceclaw`（對齊設計）|
-| **審計記錄** | 無 | **Chain Audit Log（P5）** |
-| **多後端** | 無 | **P4：Ollama + llama.cpp** |
-| **身份白標化** | 無 | **P0：inject_system_prompt** |
-| **Role 相容** | 無 | **P0：rewrite_messages** |
-| **本地搜尋** | 無 | **P0+P1：SearXNG + Router proxy** |
-| **自動 fallback** | 無 | **P1：gb10→backup 自動降級** |
-
-**核心差異：**
-> NemoClaw = Secure Execution（安全執行）
-> CECLAW = Secure + Sovereign Inference（安全 + 主權推論）
+| 身份白標化 | 無 | inject_system_prompt ✅ |
+| 本地搜尋 | 無 | SearXNG + Router proxy ✅ |
+| 審計記錄 | 無 | Chain Audit Log（P5）✅ |
+| 外部資訊 | 不適用 | D方案：Router fetch proxy（待實作）|
 
 ---
 
@@ -78,386 +71,104 @@ NV 的設計有三道關卡逆著我們走：
 ┌─────────────────────────────────────────────────────────────┐
 │                    CECLAW 系統元件                           │
 ├─────────────────────────────────────────────────────────────┤
-│  ① CECLAW Inference Router (ceclaw/router/)                │
-│     - FastAPI + uvicorn，監聽 0.0.0.0:8000                 │
-│     - Smart routing：fast → main → backup → cloud          │
-│     - rewrite_messages()：role 相容性修復                   │
-│     - inject_system_prompt()：CECLAW 身份注入               │
-│     - _try_local()：逐一嘗試本地後端，自動降級              │
-│     - /search proxy：轉發 SearXNG 搜尋                     │
-│     - systemd 管理，開機自啟                                │
-│                                                             │
-│  ② CECLAW Plugin (ceclaw/plugin/)                          │
-│     - TypeScript, openclaw plugin v1                        │
-│     - registerCommand 無解（openclaw 不支援此 API）          │
-│                                                             │
-│  ③ Sandbox Image (ghcr.io/kentgeeng/ceclaw-sandbox)        │
-│     - B方案 5 個 bug 已全部修正                             │
-│                                                             │
-│  ④ OpenShell Policy                                        │
-│     - network_policies + allowed_ips + binaries             │
-│                                                             │
-│  ⑤ GB10 推論機（主力）✅                                    │
-│     - llama.cpp，Qwen3.5-122B Q4_K_M，192.168.1.91:8001   │
-│     - systemd 開機自啟                                      │
-│     - 備選：Qwen2.5-72B Q4_K_M（已下載，待評估）           │
-│                                                             │
-│  ⑥ Ollama（本地後端）                                       │
-│     - ministral-3:14b（fast，9.1GB，#51）                   │
-│     - qwen3:8b（backup，5.2GB）                             │
-│     - localhost:11434                                        │
-│                                                             │
-│  ⑦ SearXNG（本地搜尋）✅ 完整整合                           │
-│     - Docker，port 8888                                     │
-│     - Router /search proxy（sandbox 透過 8000 存取）        │
-│     - sandbox plugin：openclaw-plugin-searxng               │
+│  OpenShell Sandbox (ceclaw-agent)                           │
+│  ├── openclaw gateway (ws://127.0.0.1:18789)                │
+│  ├── TUI / Skills                                           │
+│  └── SearXNG plugin (searxng_search tool)                   │
+│       ↓ http://host.openshell.internal:8000                 │
+│  CECLAW Router (pop-os:8000)                                │
+│  ├── /v1/chat/completions → smart routing                   │
+│  ├── /search → SearXNG proxy (port 8888)                    │
+│  └── /v1/fetch → 外部 URL proxy（D方案，待實作）             │
+│       ↓ smart routing                                       │
+│  ├── ollama-fast (ministral-3:14b, ~636ms)                  │
+│  ├── gb10-llama (Qwen3.5-122B, ~2624ms)                     │
+│  └── ollama-backup (qwen3:8b, fallback)                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Router API 端點
+### 3.2 網路拓樸（已確認）
 
 ```
-CECLAW Inference Router
-├── GET  /ceclaw/status          健康狀態 + 後端清單
-├── POST /ceclaw/reload          熱重載設定檔
-├── GET  /v1/models              列出可用模型
-├── POST /v1/chat/completions    推論（含 role rewrite + identity inject）
-├── POST /v1/completions         推論
-├── GET  /search                 SearXNG proxy（sandbox web search）✅ 新增
-└── POST /search                 SearXNG proxy
+sandbox (10.200.0.2 / 172.19.0.2)
+    ↓ host.openshell.internal = 172.17.0.1
+pop-os docker bridge (172.17.0.1)
+    ↓ Router port 8000
+CECLAW Router (0.0.0.0:8000)
+    ↓
+GB10 (192.168.1.91:8001)
 ```
 
-### 3.3 推論流程（P1 後）
+### 3.3 關鍵設計決策
 
-```
-Request 進來
-     │
-     ▼
-rewrite_messages()
-     │ developer→system, toolResult→tool, system merge
-     ▼
-inject_system_prompt()
-     │ CECLAW 身份注入（最後位置，recency bias）
-     ▼
-_try_local()（逐一嘗試）
-     │
-     ├── 身份問題 / 複雜問題
-     │   → GB10 Qwen3.5-122B（main，15-36s）
-     │   → timeout/失敗 → 標記不健康
-     │             ↓
-     ├── 簡單問題
-     │   → Ollama ministral-3:14b（fast，~650ms）
-     │
-     ├── GB10 掛掉/timeout
-     │   → Ollama qwen3:8b（backup，~1.3s）✅ 自動降級
-     │
-     └── 全部掛掉
-         → 雲端 fallback（Groq → Anthropic → OpenAI → NV）
-```
+**為什麼不讓 sandbox 直接連外網：**
+OpenShell sandbox 設計就是要隔離外部網路（安全賣點）。CECLAW 不破壞這個隔離，而是讓 Router 作為唯一出口，代理所有外部請求。
 
-### 3.4 Web Search 流程（P1 後）
-
+**D 方案（Router fetch proxy）：**
 ```
-TUI 問需要搜尋的問題
-     │
-     ▼
-openclaw gateway 觸發 searxng_search tool
-     │
-     ▼
-openclaw-plugin-searxng
-     │ baseUrl: http://host.openshell.internal:8000
-     ▼
-CECLAW Router /search endpoint
-     │
-     ▼
-SearXNG:8888（本地搜尋）
-     │
-     ▼
-結果回傳 → LLM 整理回應
-```
-
-### 3.5 商業部署架構（三層推論）
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Tier 1: 本地小伺服器                                    │
-│  ├─ 模型：Ollama / 小型 GGUF                            │
-│  ├─ 用途：快速反應 (~850ms)                              │
-│  └─ 資料不離開設備                                       │
-│           ↓ Smart Routing ↓                             │
-│  Tier 2: GPU 推論伺服器（GB10 / AI CDC）                 │
-│  ├─ 模型：大型 GPU 叢集（llama.cpp / vLLM）             │
-│  ├─ 用途：複雜推理、長文分析 (15-36s)                    │
-│  └─ 資料不出自家機房                                     │
-│           ↓ Cloud Fallback ↓                            │
-│  Tier 3: 任意模型 API                                    │
-│  ├─ 模型：OpenAI / Anthropic / Groq / NVIDIA            │
-│  └─ 最強能力、按需付費                                   │
-└─────────────────────────────────────────────────────────┘
+模型呼叫 web_search / web_fetch
+→ 走 host.openshell.internal:8000
+→ Router 代為查詢 SearXNG 或抓取外部 URL
+→ 回傳結果給模型
 ```
 
 ---
 
-## 4. 已完成功能
+## 4. 燒機結果
 
-### 4.1 功能清單
+### 6000 輪（v3 腳本）
+| 項目 | 結果 |
+|------|------|
+| 總成功率 | 6000/6000 ✅ 100% |
+| Fast path avg | 621ms |
+| Main path avg | 2594ms |
+| SearXNG 60/60 | 100% |
+| 全簡體異常 | 1/3000（0.03%）|
 
-| 功能 | 狀態 | Commit |
-|------|------|--------|
-| Inference Router | ✅ | — |
-| 本地優先路由 | ✅ | — |
-| 雲端降級 | ✅ | — |
-| 後端健康檢查 | ✅ | 65f5d89 |
-| SIGHUP 熱重載 | ✅ | — |
-| OpenShell Policy | ✅ | — |
-| Sandbox Image | ✅ | 2dfab79 |
-| CoreDNS 持久化 | ✅ | 1bffd63 |
-| 監控腳本 + logrotate | ✅ | 70175b6 |
-| ceclaw CLI v0.1.0 | ✅ | c412038 |
-| Ollama multi-backend | ✅ | 756a1a0 |
-| Smart routing | ✅ | 986a7b5 |
-| 多後端燒機 200 輪 | ✅ | 3bac2a5 |
-| Chain Audit Log | ✅ | 40ac82a |
-| 燒機 3000 輪 100% | ✅ | — |
-| GB10 Qwen3.5-122B | ✅ | — |
-| GB10 systemd 開機自啟 | ✅ | — |
-| GLM-5 Turbo 評審通過 | ✅ | — |
-| P0-2 Role 相容性 | ✅ | ada85a7 |
-| P0-3 tui alias + history-limit | ✅ | 903e8cc |
-| P0-1 身份白標化 | ✅ | 4c1e888 |
-| P0-4a SearXNG 自架 | ✅ | cf44a1f |
-| contextWindow 32768 修正 | ✅ | db24708 |
-| 30題壓力測試通過 | ✅ | — |
-| **#37 503 fallback 修復** | ✅ | c894fc6 |
-| **#49 fast path ministral-3:8b** | ✅ | c853e68 |
-| **#50 fast path doomgrave/ministral-3:8b** | ✅ | 1eb09d2 |
-| **#38 SearXNG web search 整合** | ✅ | 328d491 |
-| **burnin_v2.sh（16+16題+SearXNG驗證）** | ✅ | — |
-
-### 4.2 驗證記錄
-
-```
-2026-03-21 P1~P5 全部完成驗證
-2026-03-22 GB10 Qwen3.5 8/8 ✅（GLM-5 Turbo 評審），燒機 2000 輪 100% ✅
-2026-03-22 P0 全部完成（role rewrite, 身份白標化, contextWindow, SearXNG）
-2026-03-23 P1 進展：
-  - #37 fallback：停 GB10 → ollama-backup → 200 ✅
-  - #50 fast path：doomgrave/ministral-3:8b 3000輪 100%，身份 0 洩漏，簡體 1.1% ✅
-  - #38 SearXNG：TUI 問天氣 → searxng_search 觸發 → 回傳真實結果 ✅
-  - #53 Step E token guard ✅
-  - #55 REASONING_KEYWORDS 即時性關鍵字 ✅
-  - #56 enable_thinking:false 注入（ZengboJamesWang proxy 修法）✅
-  - #57 --parallel 1 修 context exceed 400 ✅
-  - #59 --ctx-size 65536 --parallel 2，每 slot 32768 ✅
-  - #58 burnin_v3.sh Layer 2 AI 決策觸發 3/3 ✅
-  - SearXNG E2E 完整通（stock price, bitcoin, 天氣 均有真實數據）✅
-  - audit 10144+ 條鏈完整 ✅
-```
+### 3000 輪（追加）
+| 項目 | 結果 |
+|------|------|
+| 總成功率 | 3000/3000 ✅ 100% |
+| Fast path avg | 636ms |
+| Main path avg | 2624ms |
+| 簡體字率 | 0.87%（26/3000）|
+| 日期幻覺率 | 85%（`what day is today`）|
+| 正確率（嚴格）| 97.1% |
+| 正確率（排除日期）| 99.3% |
 
 ---
 
-## 5. 設定檔規格
+## 5. 已知問題與技術債
 
-### 5.1 ceclaw.yaml 現有規格（最新）
+### P0（阻擋 POC）
+- **web_fetch 全 EAI_AGAIN**：sandbox DNS 隔離，外部查詢全幻覺
+  - 解法：D 方案（Router /v1/fetch proxy）
+  - 影響：所有 Skills 需要外網的功能不可用
 
-```yaml
-version: 1
-router:
-  listen_host: "0.0.0.0"
-  listen_port: 8000
-  tls: false
-  reload_on_sighup: true
-inference:
-  strategy: smart-routing
-  timeout_local_ms: 60000
-  local:
-    backends:
-      - name: ollama-fast
-        type: ollama
-        base_url: http://127.0.0.1:11434/v1
-        priority: 1
-        model: ministral-3:14b    # ✅ v0.4.0 更新
-        use_for: [simple_query]
-
-      - name: gb10-llama
-        type: llama.cpp
-        base_url: http://192.168.1.91:8001/v1
-        priority: 2
-        models:
-          - id: minimax
-            alias: default
-            context_window: 32768
-
-      - name: ollama-backup
-        type: ollama
-        base_url: http://127.0.0.1:11434/v1
-        priority: 3
-        model: qwen3:8b
-        options:
-          think: false
-        use_for: [fallback]
-
-  cloud_fallback:
-    enabled: true
-    priority:
-      - provider: groq
-        env_key: GROQ_API_KEY
-        models: [llama-3.3-70b-versatile]
-      - provider: anthropic
-        env_key: ANTHROPIC_API_KEY
-        models: [claude-sonnet-4-6]
-      - provider: openai
-        env_key: OPENAI_API_KEY
-        models: [gpt-4.1]
-      - provider: nvidia
-        env_key: NVIDIA_API_KEY
-        models: [nvidia/nemotron-3-super-120b-a12b]
-```
-
-### 5.2 sandbox openclaw.json 關鍵設定（重建後需 patch）
-
-```json
-{
-  "models": {
-    "providers": {
-      "local": {
-        "baseUrl": "http://host.openshell.internal:8000/v1",
-        "apiKey": "ceclaw-local",
-        "api": "openai-completions",
-        "models": [{
-          "id": "minimax",
-          "name": "CECLAW Local",
-          "contextWindow": 32768,
-          "maxTokens": 4096
-        }]
-      }
-    }
-  },
-  "agents": {
-    "defaults": {
-      "model": {"primary": "local/minimax"},
-      "compaction": {
-        "mode": "safeguard",
-        "reserveTokens": 8000
-      }
-    }
-  },
-  "plugins": {
-    "entries": {
-      "searxng-search": {
-        "enabled": true,
-        "config": {
-          "baseUrl": "http://host.openshell.internal:8000"
-        }
-      }
-    }
-  }
-}
-```
+### 技術債
+- **日期幻覺 85%**：system prompt 加「嚴禁編造日期」可修
+- **簡體字率 0.87%**：集中在 `what is python`，已知 ministral-3:14b 限制
+- **sandbox openclaw 2026.3.11**：base image ARM64 無法直接升級，需重建 image
+- **台灣本土模型淘汰未入文件**（#66b）
 
 ---
 
-## 6. 路線圖
+## 6. 進度表
 
-### Phase 0~5（✅ 完成）
-- P0：Role 相容、身份白標化、context 修正、SearXNG 自架
-- P1~P5：Router, Policy, iptables, CoreDNS, CLI, 監控, Audit, Smart Routing
-
-### Phase 1（進行中）
-- [x] #37 503 fallback（gb10→ollama-backup）✅
-- [x] #38 SearXNG web search 整合 ✅
-- [x] #49/#50 fast path doomgrave/ministral-3:8b ✅
-- [ ] #39 Qwen2.5-72B 評估（47GB，穩定區間）
-- [ ] #51 fast path < 500ms（未來）
-- [x] 身份關鍵字補充 ✅（commit 89f4819）
-- [x] qwen3-nothink reasoning 殘留 ✗ 暫擱（Ollama API 限制）
-
-### Phase 6 — 相容性驗證
-- [ ] NemoClaw drop-in 驗證報告（手冊 v0.2 已準備）
-- 前置條件：P1 全清
-
-### Phase 7 — OpenClaw Skill 相容性測試
-- [ ] A 級（無網路，10個）優先
-
-### Phase 8 — UX 升級
-- [ ] `ceclaw onboard` 補完
-- [ ] `ceclaw doctor` 診斷指令
-- [ ] `ceclaw list`
-- [ ] `ceclaw start / stop`
-- [ ] `ceclaw destroy`
-
----
-
-## 7. 已知限制
-
-| 限制 | 說明 | 計劃解法 |
-|------|------|---------|
-| doomgrave 簡體殘留 | 1.1%，集中在英文短問題 | 接受，已知限制 |
-| Qwen3.5-122B 極限 | ~86GB/128GB，不是穩定區間 | 待評估 Qwen2.5-72B |
-| TUI 底部顯示 | openclaw 寫死 `local/minimax` | 無解，坑#11 |
-| Auto-approve | OpenShell 安全設計 | 無解，坑#12 |
-| sandbox 重建後需手動 6 步 | 見交接文件 | P8 自動化 |
-| docker restart → sandbox 死 | 坑#23 | 不要 restart container |
-| SearXNG plugin 重建後消失 | 坑#24 | 手動執行 Step E+F |
-| tools.profile: coding 擋 searxng | 坑#25 | Step C 加 `cfg["tools"] = {}` |
-| plugin 無 dist/index.js | 坑#26 | pop-os esbuild + scp |
-| parallel 2 → 16384 token 上限 | 坑#27 | 已改 parallel 2 + ctx-size 65536（#59）|
-| fast path > 500ms | doomgrave avg ~850ms | 未來找更快模型 |
-
----
-
-## 8. 技術債
-
-1. **Qwen2.5-72B 評估** — #39 待做，更穩定區間
-2. **qwen3-nothink reasoning 殘留** — 11% 洩漏率，Ollama API 限制暫擱
-3. **registerCommand**（坑#5）— openclaw 不支援，無解
-4. **undici EnvHttpProxyAgent** — experimental，長期關注
-5. **MiniMax Q3_K_XL 未清理** — 95GB，`~/MiniMax-M2.5-GGUF/UD-Q3_K_XL/`
-6. **ceclaw onboard 不完整** — P8 待做
-7. **sandbox plugin 固化** — 每次重建需手動 Step E+F，P8 自動化
-
----
-
-## 9. 本地模型能力評估（v4.2 最新）
-
-| 模型 | 大小 | 速度 | 繁體 | 身份安全 | 狀態 |
-|------|------|------|------|---------|------|
-| ministral-3:14b | 9.1GB | ~650ms | ✅ 穩定 | ✅ 優秀 | **當前 fast path** |
-| ministral-3:8b | 6.0GB | ~1.3s | ✅ 穩定 | ✅ 優秀 | 備用 |
-| Qwen3.5-122B Q4_K_M | 70GB | 15-36s | ✅ | ✅ | **GB10 主力** |
-| Qwen2.5-72B Q4_K_M | 47GB | 待測 | ✅ | ✅ | 待評估 |
-| qwen3:8b | 5.2GB | ~1.3s | ⚠️ | ✅ | backup |
-| MiniMax IQ2_M | 74GB | 29t/s | ❌ | N/A | 淘汰 |
-
----
-
-## 10. 競爭定位
-
-```
-NemoClaw = Secure Execution
-CECLAW   = Secure + Sovereign Inference
-
-                    本地推論 ◄─────────────────► 雲端推論
-  CECLAW ●──────────────┘           NemoClaw ───────┘
-  Ollama ●── 本地單機，無沙盒
-  原生SDK ─────────────────────────────────────── 雲端
-```
-
----
-
-## 11. 參考資料
-
-- OpenShell docs: https://docs.nvidia.com/openshell/latest/
-- NemoClaw GitHub: https://github.com/NVIDIA/NemoClaw
-- CECLAW sandbox image: ghcr.io/kentgeeng/ceclaw-sandbox:latest
-- CECLAW repo: github.com/kentgeeng/ceclaw
-- Qwen3.5-122B GGUF: https://huggingface.co/bartowski/Qwen_Qwen3.5-122B-A10B-GGUF
-- Qwen2.5-72B GGUF: https://huggingface.co/bartowski/Qwen2.5-72B-Instruct-GGUF
-- openclaw-plugin-searxng: https://github.com/5p00kyy/openclaw-plugin-searxng
-- GLM-5 Turbo 督察: OpenRouter → zhipuai/glm-5-turbo
+| Phase | 狀態 |
+|-------|------|
+| P0（身份白標化、Role rewrite）| ✅ 完成 |
+| P1（Smart routing、SearXNG、燒機）| ✅ 大部分完成 |
+| P1 web search D方案 | ⚠️ 進行中 |
+| P2（HTTPS）| ✅ 完成 |
+| P3（CoreDNS 持久化）| ✅ 完成 |
+| P4（Multi-backend）| ✅ 完成 |
+| P5（Chain Audit Log）| ✅ 完成 |
+| P6（NemoClaw drop-in）| ⬜ 待做 |
+| P7（Skill 相容性）| ⬜ 待做 |
+| P8（UX 升級）| ⬜ 待做 |
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*總工: Kent | 版本: 0.4.1 | 日期: 2026-03-23*
-*P0✅ P1大部分✅ P2✅ B方案✅ P3✅ P4✅ P5✅ GB10✅ SearXNG E2E✅ | 下一步: P1#39→P6*
+*版本: 0.4.3 | 日期: 2026-03-25*

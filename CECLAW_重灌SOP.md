@@ -3,7 +3,7 @@
 
 **預估時間**: 1~2 小時（不含模型下載）
 **適用**: pop-os 重灌或全新機器
-**SOP 版本**: 2.0 | **日期**: 2026-03-24
+**SOP 版本**: 2.1 | **日期**: 2026-03-25
 
 ---
 
@@ -49,13 +49,14 @@ Host gb10
     HostName 192.168.1.91
     User zoe_gb
     IdentityFile ~/.ssh/id_gb10
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
 EOF
 
-# 驗證
 ssh gb10 'echo OK'
 ```
 
-GB10 設定 sudo NOPASSWD（需登入 GB10）：
+GB10 設定 sudo NOPASSWD：
 ```bash
 ssh gb10
 sudo visudo
@@ -72,16 +73,23 @@ sleep 30
 curl -s http://192.168.1.91:8001/v1/models | python3 -m json.tool
 ```
 
-`~/start_llama.sh` 若遺失，從 pop-os 備份還原：
-```bash
-scp ~/ceclaw/backup/start_llama.sh.bak zoe_gb@192.168.1.91:~/start_llama.sh
-ssh gb10 "chmod +x ~/start_llama.sh"
-```
-
 ⚠️ **確認 `--parallel 2` + `--ctx-size 65536`**：每 slot 獨享 32768 tokens，支援雙並發。
 ```bash
 ssh gb10 'grep "parallel\|ctx-size" ~/start_llama.sh'
 # 預期：--ctx-size 65536 --parallel 2
+```
+
+`start_llama.sh` 正確內容：
+```bash
+#!/bin/bash
+/home/zoe_gb/llama.cpp/build/bin/llama-server \
+  --model /home/zoe_gb/Qwen3.5-122B/Qwen_Qwen3.5-122B-A10B-Q4_K_M/Qwen_Qwen3.5-122B-A10B-Q4_K_M-00001-of-00002.gguf \
+  --alias minimax --host 0.0.0.0 --port 8001 \
+  --ctx-size 65536 --parallel 2 \
+  --flash-attn on --n-gpu-layers 99 --threads 20 \
+  --cache-type-k q4_0 --cache-type-v q4_0 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --reasoning off --jinja
 ```
 
 ---
@@ -179,18 +187,34 @@ curl -s http://localhost:8000/ceclaw/status | python3 -m json.tool
 ```bash
 sudo apt install iptables-persistent -y
 
-# Port 8000（Router）
+# Port 8000（Router）— 多個網段（172.19 是 openshell container 實際網段）
 sudo iptables -I FORWARD -s 172.20.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
 sudo iptables -I FORWARD -s 10.42.0.0/16  -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
 sudo iptables -I FORWARD -s 10.200.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
+sudo iptables -I FORWARD -s 172.19.0.0/16 -d 172.17.0.1 -p tcp --dport 8000 -j ACCEPT
+sudo iptables -I FORWARD -i br-bb3142766d63 -o docker0 -j ACCEPT
+sudo iptables -I FORWARD -i docker0 -o br-bb3142766d63 -j ACCEPT
+
 sudo iptables -t nat -A POSTROUTING -s 172.20.0.0/16 -d 172.17.0.1 -j MASQUERADE
 sudo iptables -t nat -A POSTROUTING -s 10.42.0.0/16  -d 172.17.0.1 -j MASQUERADE
-sudo ufw allow from 172.20.0.0/16 to any port 8000
+sudo iptables -t nat -A POSTROUTING -s 172.19.0.0/16 -d 172.17.0.1 -j MASQUERADE
+sudo iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -d 172.17.0.1 -j MASQUERADE
 
-# Port 8888（SearXNG，透過 Router proxy 存取）
+# INPUT（允許 sandbox 連 Router）
+sudo iptables -I INPUT -s 172.19.0.0/16 -p tcp --dport 8000 -j ACCEPT
+sudo iptables -I INPUT -s 10.200.0.0/16 -p tcp --dport 8000 -j ACCEPT
+
+# UFW（重要：必須允許 routed）
+sudo ufw allow from 172.20.0.0/16 to any port 8000
+sudo ufw allow from 172.19.0.0/16 to any port 8000
+sudo ufw default allow routed
+sudo ufw reload
+
+# Port 8888（SearXNG）
 sudo iptables -I FORWARD -s 172.20.0.0/16 -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
 sudo iptables -I FORWARD -s 10.42.0.0/16  -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
 sudo iptables -I FORWARD -s 10.200.0.0/16 -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
+sudo iptables -I FORWARD -s 172.19.0.0/16 -d 172.17.0.1 -p tcp --dport 8888 -j ACCEPT
 
 sudo netfilter-persistent save
 ```
@@ -204,9 +228,11 @@ mkdir -p ~/nemoclaw-config
 cat > ~/nemoclaw-config/restore-coredns.sh << 'EOF'
 #!/bin/bash
 CONTAINER=$(docker ps --format "{{.ID}}" | head -1)
+docker exec $CONTAINER /usr/bin/kubectl patch configmap coredns -n kube-system --type merge \
+  -p '{"data":{"NodeHosts":"172.17.0.1 inference.local\n172.17.0.1 host.openshell.internal\n"}}' 2>/dev/null || \
 docker exec $CONTAINER kubectl patch configmap coredns -n kube-system --type merge \
-  -p '{"data":{"NodeHosts":"172.17.0.1 inference.local\n172.17.0.1 host.openshell.internal\n"}}'
-docker exec $CONTAINER kubectl rollout restart deployment/coredns -n kube-system
+  -p '{"data":{"NodeHosts":"172.17.0.1 inference.local\n172.17.0.1 host.openshell.internal\n"}}' 2>/dev/null || \
+echo "CoreDNS patch failed (may be OK if /etc/hosts handles it)"
 echo "CoreDNS patched"
 EOF
 chmod +x ~/nemoclaw-config/restore-coredns.sh
@@ -236,11 +262,16 @@ EOF
 
 ---
 
-## Step 8d：安裝 ceclaw CLI
+## Step 8d：安裝 ceclaw CLI + 工具腳本
 
 ```bash
 chmod +x ~/ceclaw/ceclaw.py
 sudo ln -sf /home/zoe_ai/ceclaw/ceclaw.py /usr/local/bin/ceclaw
+
+# 工具腳本（新增）
+chmod +x ~/ceclaw/sandbox-restore.sh
+chmod +x ~/ceclaw/ceclaw-health-check.sh
+
 ceclaw status
 ```
 
@@ -249,29 +280,30 @@ ceclaw status
 ## Step 8e：安裝 Ollama + ministral-3:14b
 
 ```bash
-# 確認已裝
 ollama --version
-
-# 下載模型
 ollama pull ministral-3:14b            # fast path，9.1GB
 ollama pull qwen3:8b                    # backup 路徑，5.2GB
 
-# 驗證 fast path
+# 驗證（身份由 Router inject，應回 CECLAW）
 ollama run ministral-3:14b "你是誰"
-# 預期：不會說出 Mistral（身份由 Router inject 控制）
 ```
 
 ---
 
-## Step 8f：啟動 SearXNG（本地搜尋）
+## Step 8f：安裝 openclaw 2026.3.13（pop-os 側）
+
+```bash
+npm install -g openclaw@2026.3.13
+openclaw --version   # 預期: OpenClaw 2026.3.13
+```
+
+---
+
+## Step 8g：啟動 SearXNG
 
 ```bash
 mkdir -p ~/searxng-config
 
-# 取得預設設定
-docker run --rm searxng/searxng:latest cat /etc/searxng/settings.yml > ~/searxng-config/settings.yml
-
-# 寫入正式設定（加 json format + 可靠引擎）
 sudo tee ~/searxng-config/settings.yml << 'EOF'
 use_default_settings: true
 server:
@@ -300,7 +332,6 @@ engines:
     disabled: false
 EOF
 
-# 啟動
 docker run -d --name searxng \
   --restart=always \
   -p 8888:8080 \
@@ -308,13 +339,9 @@ docker run -d --name searxng \
   searxng/searxng:latest
 
 sleep 5
-# 驗證 pop-os 直接存取
-curl -s "http://localhost:8888/search?q=NVIDIA+stock&format=json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('results:', len(d.get('results',[])))"
-# 驗證 Router proxy
+curl -s "http://localhost:8888/search?q=test&format=json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('results:', len(d.get('results',[])))"
 curl -s "http://localhost:8000/search?q=test&format=json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('results:', len(d.get('results',[])))"
 ```
-
-⚠️ `~/searxng-config/settings.yml` 擁有者是 uid 977（docker 內的 searxng），需用 `sudo tee` 修改。
 
 ---
 
@@ -367,116 +394,33 @@ openshell term
 1. Tab → **Sandboxes** 面板
 2. `j/k` 選 ceclaw-agent → `Enter`
 3. `r` 看 Network Rules
-4. 有 pending（黃色）→ `A` Approve All
+4. 確認 `172.17.0.1:8000` 有 node binary
 
 ---
 
-## Step 12：Sandbox 初始化（⚠️ 重要，必做 6 步）
-
-### Step E（pop-os）：Build plugin + 傳入 sandbox
-
-⚠️ sandbox 無法安裝 esbuild（npmjs.org 被封），需在 pop-os 側 build：
+## Step 12：Sandbox 初始化（一鍵）
 
 ```bash
-# Step E-1: Build dist/index.js（若 tar.gz 內無 dist/）
-cd /tmp && tar xzf ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz
-cd openclaw-plugin-searxng
-npm install
-npx esbuild index.ts --bundle --format=esm --outfile=dist/index.js --external:@sinclair/typebox
-ls dist/index.js && echo "build OK"
-
-# Step E-2: 取 token（需有活著的 SSH session）
-TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
-[ -z "$TOKEN" ] && echo "ERROR: no active SSH session，請先確認 openshell gateway 在跑" && exit 1
-
-# Step E-3: 傳 plugin tar.gz
-scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
-  ~/ceclaw/backup/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
-
-# Step E-4: 建立 dist/ 並傳入編譯好的 index.js
-ssh -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
-  sandbox@ceclaw-agent "mkdir -p /sandbox/.openclaw/extensions/searxng-search/dist"
-scp -o ProxyCommand="/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id f24db4d6-9135-416c-a090-dbd281ebcd75 --token $TOKEN --gateway-name openshell" \
-  /tmp/openclaw-plugin-searxng/dist/index.js sandbox@ceclaw-agent:/sandbox/.openclaw/extensions/searxng-search/dist/index.js
-```
-
-### 進 sandbox 執行：
-
-```bash
+# 先連進 sandbox
 openshell sandbox connect ceclaw-agent
+
+# 另一個 terminal
+bash ~/ceclaw/sandbox-restore.sh
 ```
 
-```bash
-# Step A: 安裝 CECLAW plugin
-openclaw plugins install /opt/ceclaw
-
-# Step B: tui alias
-grep -q "alias tui=" ~/.bashrc || echo "alias tui='openclaw tui --session fresh-\$(date +%s) --history-limit 20'" >> ~/.bashrc
-
-# Step C: openclaw.json patch（contextWindow + compaction + tools）
-python3 - << 'EOF'
-import json
-path = "/sandbox/.openclaw/openclaw.json"
-cfg = json.load(open(path))
-for model in cfg["models"]["providers"]["local"]["models"]:
-    model["contextWindow"] = 32768
-    model["maxTokens"] = 4096
-cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
-cfg["tools"] = {
-    "web": {
-        "search": {"enabled": True},
-        "fetch": {"enabled": True}
-    }
-}  # 明確設 enabled:true，防止 openclaw dynamic reload 覆寫（坑#64）
-json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("done")
-EOF
-
-# Step D: gateway auto-start
-grep -q "openclaw gateway run" ~/.bashrc || cat >> ~/.bashrc << 'BEOF'
-if ! pgrep -f "openclaw-gatewa" > /dev/null 2>&1; then
-    openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
-fi
-BEOF
-
-# Step F: 安裝 SearXNG plugin + 修正 package.json
-cd /tmp && tar xzf openclaw-plugin-searxng-full.tar.gz
-rm -rf ~/.openclaw/extensions/searxng-search 2>/dev/null
-openclaw plugins install /tmp/openclaw-plugin-searxng
-
-# 修正 package.json（name + extensions 指向 dist/index.js）
-python3 - << 'EOF'
-import json
-path = "/sandbox/.openclaw/extensions/searxng-search/package.json"
-pkg = json.load(open(path))
-pkg["name"] = "searxng-search"
-pkg["openclaw"]["extensions"] = ["./dist/index.js"]
-json.dump(pkg, open(path, "w"), indent=2, ensure_ascii=False)
-print("package.json done")
-EOF
-
-# 修正 openclaw.json plugin config
-python3 - << 'EOF'
-import json
-path = "/sandbox/.openclaw/openclaw.json"
-cfg = json.load(open(path))
-cfg["plugins"]["entries"]["searxng-search"]["config"]["baseUrl"] = "http://host.openshell.internal:8000"
-json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
-print("openclaw.json done")
-EOF
-
-source ~/.bashrc
-```
+腳本自動完成 Step A-F + 啟動 gateway。
 
 ---
 
 ## Step 13：端到端驗證
 
 ```bash
+bash ~/ceclaw/ceclaw-health-check.sh
+# 五層全綠
+
 # sandbox 內
 tui
 # 問：你是誰 → 我是 CECLAW 企業 AI 助手
-# 問：今天台北天氣如何？ → 有搜尋結果
 ```
 
 ```bash
@@ -488,13 +432,21 @@ ceclaw status   # 三項全綠
 
 ---
 
-## Step 14：備份關鍵檔案
+## Step 14：備份
 
 ```bash
 mkdir -p ~/ceclaw/backup
 scp gb10:~/start_llama.sh ~/ceclaw/backup/start_llama.sh.bak
 cp ~/.ceclaw/ceclaw.yaml ~/ceclaw/backup/ceclaw.yaml.bak
 cp ~/nemoclaw-config/restore-coredns.sh ~/ceclaw/backup/
+
+# 備份 sandbox openclaw.json（每次設定完必做）
+TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
+SANDBOX_ID=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')
+scp -o "ProxyCommand=/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell" \
+  -o StrictHostKeyChecking=no \
+  sandbox@ceclaw-agent:/sandbox/.openclaw/openclaw.json ~/ceclaw/backup/openclaw.json.bak-$(date +%Y%m%d)
+
 echo "備份完成"
 ```
 
@@ -506,16 +458,16 @@ echo "備份完成"
 # 1. CoreDNS（若未自啟）
 bash ~/nemoclaw-config/restore-coredns.sh
 
-# 2. Router（systemd 自啟，確認）
+# 2. Router（systemd 自啟）
 sudo systemctl status ceclaw-router
 
-# 3. GB10（systemd 自啟，確認）
+# 3. GB10（systemd 自啟）
 ssh gb10 'sudo systemctl status llama-server'
 
-# 4. SearXNG（docker --restart=always，自動起）
+# 4. SearXNG（docker --restart=always）
 docker ps | grep searxng
 
-# 5. 連 sandbox（gateway 自動啟動）
+# 5. 連 sandbox
 openshell sandbox connect ceclaw-agent
 tui
 ```
@@ -524,23 +476,23 @@ tui
 
 ## ⚠️ 關鍵注意事項
 
-**坑#10（關鍵）**: 不要改 `baseUrl` 為 IP，保持 `host.openshell.internal:8000/v1`
+**坑#10**: `baseUrl` 不能改成 IP，保持 `host.openshell.internal:8000/v1`
 
-**坑#23（關鍵）**: **不要 `docker restart` openshell container**
-- 會讓 K3s 網路混亂，sandbox SSH 死掉
-- 正確做法：等 pod 自己恢復，或用 `openshell term`
+**坑#23**: 不要 `docker restart openshell container`
 
-**坑#24**: sandbox SearXNG plugin 每次重建後消失，必須執行 Step E+F
+**坑#27（歷史）**: `--parallel 2 --ctx-size 32768` 讓每 slot 16384 tokens → 400。現已改 `--ctx-size 65536`（#59）
 
-**坑#25（關鍵）**: `openclaw.json tools.web.search.enabled` 預設 false 會擋住 searxng_search。openclaw gateway dynamic reload 會覆寫 `tools: {}`，必須明確設 `enabled: true` 才能持久化（見坑#64）
+**坑#68（新，關鍵）**: 不要 `openshell gateway start`（gateway stopped 時）→ sandbox 消失
+- 正確：`docker start <container_id>`
 
-**坑#26**: SearXNG plugin 缺少 `dist/index.js`（需在 pop-os 側 esbuild 編譯後 scp 進 sandbox）
+**坑#69（新，關鍵）**: openclaw.json 必須有 `api: "openai-completions"` 才能通
 
-**坑#27（歷史）**: 舊版 `--parallel 2 --ctx-size 32768` 讓每 slot 只有 16384 tokens → 400。現已改 `--ctx-size 65536 --parallel 2`，每 slot 獨享 32768（#59）
+**坑#71（新）**: openshell 實際網段是 `172.19.0.0/16`，不是 `172.20.0.0/16`
 
-**sandbox 重建後**：必須執行 Step 12 的全部 6 步（A + B + C + D + E + F）
+**坑#72（新）**: UFW `deny (routed)` 會擋掉 sandbox → Router 的流量
+- 解法：`sudo ufw default allow routed`
 
 ---
 
 *CECLAW — Secure local AI agents, your inference, your rules.*
-*SOP 版本: 2.0 | 日期: 2026-03-24*
+*SOP 版本: 2.1 | 日期: 2026-03-25*
