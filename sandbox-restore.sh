@@ -1,30 +1,28 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v3.3
+# CECLAW Sandbox Restore Script v3.4
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect <sandbox-name>
 #
-# v3.3 新功能：內建七層檢測 + 自動修復
-#   L1: proxy 環境變數
-#   L2: openclaw.json 關鍵欄位
-#   L3: gateway 是否在跑
-#   L4: Router 連線
-#   L5: 身份注入（CECLAW）
-#   L6: 外網 web_fetch（https）
-#   L7: searxng-search 目錄（避免 config invalid）
-# v3.2: http+https proxy，no_proxy 最小化，環境自我檢查
+# v3.4 新功能：
+#   - Step G: workspace 同步（SOUL/TOOLS/AGENTS/USER.md 從 ceclaw-agent 複製）
+#   - Step H: ceclaw-start.sh 部署進 sandbox
+#   - 七層健康檢查改為從 sandbox 內跑（修正 L4/L5/L6 403 假陰性）
+# v3.3: 七層檢測 + 自動修復
+# v3.2: http+https proxy，no_proxy 最小化
 # v3.1: UserKnownHostsFile=/dev/null
 # v3.0: searxng 移除，policy 自動套用
 
 SANDBOX_NAME="ceclaw-agent"
 BACKUP_DIR=~/ceclaw/backup
-echo "=== CECLAW Sandbox Restore v3.3 ==="
+WORKSPACE_SRC=~/ceclaw/config  # workspace 備份來源
+echo "=== CECLAW Sandbox Restore v3.4 ==="
 
 # Step 1: 確認 sandbox
-echo "[1/7] 確認 sandbox..."
+echo "[1/9] 確認 sandbox..."
 openshell sandbox list | grep -q "$SANDBOX_NAME" || { echo "ERROR: $SANDBOX_NAME 不存在"; exit 1; }
 
 # Step 2: 動態取 sandbox-id + token
-echo "[2/7] 取得 sandbox-id + token..."
+echo "[2/9] 取得 sandbox-id + token..."
 SANDBOX_ID=${SANDBOX_ID:-$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')}
 TOKEN=${TOKEN:-$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')}
 
@@ -37,30 +35,28 @@ echo "  sandbox-id: $SANDBOX_ID"
 echo "  token: OK"
 
 PROXY="ProxyCommand=/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell"
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o \"$PROXY\""
+SCP="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o \"$PROXY\""
 
-# Step 3: 套用 openshell policy（外網 TLD 全開）
-echo "[3/7] 套用 network policy..."
+# Step 3: 套用 openshell policy
+echo "[3/9] 套用 network policy..."
 openshell policy set "$SANDBOX_NAME" --policy ~/ceclaw/config/ceclaw-policy.yaml --wait 2>/dev/null && \
     echo "  ✅ policy OK" || echo "  ⚠️ policy set 失敗，繼續..."
 
-# Step 4: 寫 sandbox_init.py（含七層檢測修復邏輯）
+# Step 4: 寫 sandbox_init.py
 cat > /tmp/sandbox_init.py << 'PYEOF'
-import json, subprocess, os, shutil, urllib.request, urllib.error
+import json, subprocess, os, shutil
 
-print("=== sandbox_init.py v3.3 開始 ===")
+print("=== sandbox_init.py v3.4 開始 ===")
 
 CFG_PATH = "/sandbox/.openclaw/openclaw.json"
 bashrc_path = os.path.expanduser("~/.bashrc")
-PASS = "✅"
-FAIL = "❌"
-WARN = "⚠️"
 
-# ── Step A: install ceclaw plugin ───────────────────────────
+# Step A: install ceclaw plugin
 r = subprocess.run(["openclaw", "plugins", "install", "/opt/ceclaw"], capture_output=True, text=True)
 print("Step A:", "OK" if r.returncode == 0 else r.stderr.strip())
 
-# ── Step B: tui alias ───────────────────────────────────────
+# Step B: tui alias
 bashrc = open(bashrc_path).read()
 if "alias tui=" not in bashrc:
     with open(bashrc_path, "a") as f:
@@ -69,11 +65,8 @@ if "alias tui=" not in bashrc:
 else:
     print("Step B: alias already exists")
 
-# ── Step C: openclaw.json 完整 patch ────────────────────────
+# Step C: openclaw.json 完整 patch
 cfg = json.load(open(CFG_PATH))
-
-for key in ["models", "providers", "local"]:
-    pass
 if "models" not in cfg: cfg["models"] = {}
 if "providers" not in cfg["models"]: cfg["models"]["providers"] = {}
 if "local" not in cfg["models"]["providers"]: cfg["models"]["providers"]["local"] = {}
@@ -105,7 +98,7 @@ cfg["plugins"]["entries"].pop("searxng-search", None)
 json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
 print("Step C: openclaw.json patched")
 
-# ── Step D: gateway autostart ───────────────────────────────
+# Step D: gateway autostart
 bashrc = open(bashrc_path).read()
 if "openclaw gateway run" not in bashrc:
     with open(bashrc_path, "a") as f:
@@ -114,7 +107,7 @@ if "openclaw gateway run" not in bashrc:
 else:
     print("Step D: already exists")
 
-# ── Step E: proxy 持久化（http+https，no_proxy 最小）──────────
+# Step E: proxy 持久化（http+https，no_proxy 最小）
 lines = open(bashrc_path).read().splitlines()
 clean_lines = []
 skip = False
@@ -132,7 +125,7 @@ for line in lines:
 
 clean_lines += [
     '',
-    '# CECLAW proxy v3.3（http+https 都走 K3s proxy）',
+    '# CECLAW proxy v3.4（http+https 都走 K3s proxy）',
     'unset ALL_PROXY HTTPS_PROXY HTTP_PROXY http_proxy https_proxy grpc_proxy no_proxy NO_PROXY',
     'export http_proxy=http://10.200.0.1:3128',
     'export https_proxy=http://10.200.0.1:3128',
@@ -145,7 +138,7 @@ with open(bashrc_path, 'w') as f:
     f.write('\n'.join(clean_lines) + '\n')
 print("Step E: proxy 設定寫入完成")
 
-# ── Step F: 移除 searxng-search 目錄（坑#77）────────────────
+# Step F: 移除壞掉的 searxng-search 目錄
 searxng_dir = "/sandbox/.openclaw/extensions/searxng-search"
 if os.path.exists(searxng_dir):
     shutil.rmtree(searxng_dir)
@@ -153,129 +146,138 @@ if os.path.exists(searxng_dir):
 else:
     print("Step F: searxng-search 不存在，跳過")
 
-# ── auth-profiles.json ───────────────────────────────────────
+# auth-profiles.json
 auth_dir = "/sandbox/.openclaw/agents/main/agent"
 os.makedirs(auth_dir, exist_ok=True)
 json.dump({"local": {"apiKey": "ceclaw-local-key"}},
           open(os.path.join(auth_dir, "auth-profiles.json"), "w"), indent=4)
 print("auth-profiles.json: created")
 
-print("")
 print("=== ALL DONE ===")
-
-# ══════════════════════════════════════════════════════════
-# ── 七層健康檢查 ──────────────────────────────────────────
-# ══════════════════════════════════════════════════════════
-import subprocess, time
-
-print("")
-print("=== 七層健康檢查 ===")
-
-# 重新 source proxy（非互動 shell 不繼承）
-os.environ['http_proxy'] = 'http://10.200.0.1:3128'
-os.environ['https_proxy'] = 'http://10.200.0.1:3128'
-os.environ['HTTP_PROXY'] = 'http://10.200.0.1:3128'
-os.environ['HTTPS_PROXY'] = 'http://10.200.0.1:3128'
-os.environ.pop('no_proxy', None)
-os.environ.pop('NO_PROXY', None)
-
-results = []
-
-# L1: proxy 環境變數
-http_p = os.environ.get('http_proxy', '')
-l1 = PASS if '10.200.0.1' in http_p else FAIL
-results.append(f"L1 proxy env    : {l1} http_proxy={http_p}")
-
-# L2: openclaw.json 關鍵欄位
-try:
-    cfg2 = json.load(open(CFG_PATH))
-    api = cfg2['models']['providers']['local'].get('api', '')
-    has_tools = 'web' in cfg2.get('tools', {})
-    no_searxng = 'searxng-search' not in cfg2.get('plugins', {}).get('entries', {})
-    l2 = PASS if api == 'openai-completions' and has_tools and no_searxng else FAIL
-    results.append(f"L2 openclaw.json: {l2} api={api} tools={has_tools} no_searxng={no_searxng}")
-except Exception as e:
-    results.append(f"L2 openclaw.json: {FAIL} {e}")
-
-# L3: gateway 是否在跑
-r = subprocess.run(['pgrep', '-f', 'openclaw-gatewa'], capture_output=True)
-l3 = PASS if r.returncode == 0 else FAIL
-results.append(f"L3 gateway       : {l3} pid={r.stdout.decode().strip()[:20]}")
-
-# L4: Router 連線
-try:
-    req = urllib.request.Request('http://host.openshell.internal:8000/ceclaw/status')
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        data = json.loads(resp.read())
-        l4 = PASS
-        results.append(f"L4 Router        : {l4} version={data.get('version')}")
-except Exception as e:
-    l4 = FAIL
-    results.append(f"L4 Router        : {FAIL} {e}")
-
-# L5: 身份注入
-try:
-    payload = json.dumps({"model": "minimax", "messages": [{"role": "user", "content": "你是誰"}], "max_tokens": 30}).encode()
-    req = urllib.request.Request(
-        'http://host.openshell.internal:8000/v1/chat/completions',
-        data=payload,
-        headers={'Content-Type': 'application/json'}
-    )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read())
-        reply = data['choices'][0]['message']['content']
-        is_ceclaw = 'CECLAW' in reply
-        l5 = PASS if is_ceclaw else FAIL
-        results.append(f"L5 身份注入      : {l5} reply={reply[:40]}")
-except Exception as e:
-    results.append(f"L5 身份注入      : {FAIL} {e}")
-
-# L6: 外網 HTTPS（wttr.in）
-try:
-    req = urllib.request.Request('https://wttr.in/taipei?format=3')
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        weather = resp.read().decode().strip()[:30]
-        l6 = PASS
-        results.append(f"L6 外網 https    : {l6} {weather}")
-except Exception as e:
-    results.append(f"L6 外網 https    : {WARN} {e}")
-
-# L7: extensions 目錄乾淨
-exts = os.listdir('/sandbox/.openclaw/extensions') if os.path.exists('/sandbox/.openclaw/extensions') else []
-bad = [e for e in exts if e == 'searxng-search']
-l7 = PASS if not bad else FAIL
-results.append(f"L7 extensions    : {l7} dirs={exts}")
-
-print("")
-for r in results:
-    print(r)
-
-# 總結
-fails = [r for r in results if FAIL in r]
-print("")
-if not fails:
-    print(f"{PASS} 全部 7 層通過，sandbox 狀態正常")
-else:
-    print(f"{FAIL} {len(fails)} 層失敗，請檢查以上項目")
-
 PYEOF
 
 # Step 5: 執行初始化
-echo "[5/7] 執行 sandbox 初始化..."
-scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o "$PROXY" /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o "$PROXY" sandbox@ceclaw-agent "python3 /tmp/sandbox_init.py"
+echo "[5/9] 執行 sandbox 初始化..."
+eval "$SCP /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/"
+eval "$SSH sandbox@ceclaw-agent 'python3 /tmp/sandbox_init.py'"
 
-# Step 6: 重啟 gateway（source .bashrc 後再啟動）
-echo "[6/7] 重啟 gateway..."
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o "$PROXY" sandbox@ceclaw-agent \
-    "pkill -9 -f 'openclaw-gatewa' 2>/dev/null; sleep 3; source ~/.bashrc; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 10; tail -3 /tmp/openclaw-gateway.log"
+# Step 6: 重啟 gateway
+echo "[6/9] 重啟 gateway..."
+eval "$SSH sandbox@ceclaw-agent 'pkill -9 -f openclaw-gatewa 2>/dev/null; sleep 3; source ~/.bashrc; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 10; tail -3 /tmp/openclaw-gateway.log'"
 
-echo "[7/7] 完成"
+# Step 7: 同步 workspace（SOUL/TOOLS/AGENTS/USER.md）
+echo "[7/9] 同步 workspace..."
+WORKSPACE_FILES="SOUL.md TOOLS.md AGENTS.md USER.md HEARTBEAT.md"
+for f in $WORKSPACE_FILES; do
+    LOCAL="$WORKSPACE_SRC/$f"
+    if [ -f "$LOCAL" ]; then
+        eval "$SCP $LOCAL sandbox@ceclaw-agent:/sandbox/.openclaw/workspace/$f"
+        echo "  ✅ $f"
+    else
+        echo "  ⚠️ $f 不存在於 $WORKSPACE_SRC，跳過"
+    fi
+done
+
+# Step 8: 部署 ceclaw-start.sh
+echo "[8/9] 部署 ceclaw-start.sh..."
+cat > /tmp/ceclaw-start.sh << 'STARTEOF'
+#!/bin/bash
+# CECLAW Sandbox Start
+echo "🔄 清除殘留進程..."
+pkill -9 -f 'openclaw' 2>/dev/null
+sleep 3
+echo "🔌 載入環境..."
+source ~/.bashrc
+echo "🚀 啟動 gateway..."
+openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 &
+sleep 10
+echo "✅ 進入 TUI"
+openclaw tui --session fresh-$(date +%s) --history-limit 20
+STARTEOF
+eval "$SCP /tmp/ceclaw-start.sh sandbox@ceclaw-agent:~/ceclaw-start.sh"
+eval "$SSH sandbox@ceclaw-agent 'chmod +x ~/ceclaw-start.sh'"
+echo "  ✅ ceclaw-start.sh 部署完成"
+
+# Step 9: 七層健康檢查（從 sandbox 內跑）
+echo "[9/9] 七層健康檢查（sandbox 內）..."
+eval "$SSH sandbox@ceclaw-agent 'source ~/.bashrc; python3 << CHECKEOF
+import json, os, subprocess, urllib.request
+
+PASS, FAIL, WARN = \"✅\", \"❌\", \"⚠️\"
+os.environ[\"http_proxy\"] = \"http://10.200.0.1:3128\"
+os.environ[\"https_proxy\"] = \"http://10.200.0.1:3128\"
+os.environ[\"HTTP_PROXY\"] = \"http://10.200.0.1:3128\"
+os.environ[\"HTTPS_PROXY\"] = \"http://10.200.0.1:3128\"
+os.environ.pop(\"no_proxy\", None)
+os.environ.pop(\"NO_PROXY\", None)
+
+results = []
+
+# L1: proxy
+http_p = os.environ.get(\"http_proxy\", \"\")
+results.append(f\"L1 proxy    : {PASS if \"10.200.0.1\" in http_p else FAIL} {http_p}\")
+
+# L2: openclaw.json
+try:
+    cfg = json.load(open(\"/sandbox/.openclaw/openclaw.json\"))
+    api = cfg[\"models\"][\"providers\"][\"local\"].get(\"api\", \"\")
+    ok = api == \"openai-completions\" and \"web\" in cfg.get(\"tools\", {}) and \"searxng-search\" not in cfg.get(\"plugins\", {}).get(\"entries\", {})
+    results.append(f\"L2 config   : {PASS if ok else FAIL} api={api}\")
+except Exception as e:
+    results.append(f\"L2 config   : {FAIL} {e}\")
+
+# L3: gateway
+r = subprocess.run([\"pgrep\", \"-f\", \"openclaw-gatewa\"], capture_output=True)
+results.append(f\"L3 gateway  : {PASS if r.returncode == 0 else FAIL} pid={r.stdout.decode().strip()[:20]}\")
+
+# L4: Router
+try:
+    with urllib.request.urlopen(\"http://host.openshell.internal:8000/ceclaw/status\", timeout=5) as resp:
+        v = json.loads(resp.read()).get(\"version\")
+    results.append(f\"L4 Router   : {PASS} version={v}\")
+except Exception as e:
+    results.append(f\"L4 Router   : {FAIL} {e}\")
+
+# L5: 身份注入
+try:
+    payload = json.dumps({\"model\":\"minimax\",\"messages\":[{\"role\":\"user\",\"content\":\"你是誰\"}],\"max_tokens\":30}).encode()
+    req = urllib.request.Request(\"http://host.openshell.internal:8000/v1/chat/completions\", data=payload, headers={\"Content-Type\":\"application/json\"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        reply = json.loads(resp.read())[\"choices\"][0][\"message\"][\"content\"]
+        results.append(f\"L5 身份     : {PASS if \"CECLAW\" in reply else FAIL} {reply[:40]}\")
+except Exception as e:
+    results.append(f\"L5 身份     : {FAIL} {e}\")
+
+# L6: 外網 HTTPS
+try:
+    with urllib.request.urlopen(\"https://wttr.in/taipei?format=3\", timeout=10) as resp:
+        weather = resp.read().decode().strip()[:30]
+    results.append(f\"L6 外網     : {PASS} {weather}\")
+except Exception as e:
+    results.append(f\"L6 外網     : {WARN} {e}\")
+
+# L7: extensions 乾淨
+exts = os.listdir(\"/sandbox/.openclaw/extensions\") if os.path.exists(\"/sandbox/.openclaw/extensions\") else []
+bad = [e for e in exts if e == \"searxng-search\"]
+results.append(f\"L7 extensions: {PASS if not bad else FAIL} {exts}\")
+
+print(\"\")
+for r in results:
+    print(r)
+fails = [r for r in results if FAIL in r]
+print(f\"\n{PASS if not fails else FAIL} {\"全部通過\" if not fails else str(len(fails)) + \" 層失敗\"}\")
+CHECKEOF
+'"
+
 echo ""
-echo "✅ Restore v3.3 完成！"
+echo "✅ Restore v3.4 完成！"
 echo ""
 echo "驗證（在 sandbox 終端）："
-echo "  tui → 問：你是誰 / 今天台北天氣如何？"
+echo "  bash ~/ceclaw-start.sh"
+echo "  問：你是誰 → 我是 CECLAW 企業 AI 助手"
 echo ""
 echo "⚠️ 坑#77：searxng plugin 暫停（openclaw 2026.3.11 extensions path bug）"
 echo "⚠️ 新 host 的 web_fetch 需在 openshell term approve 一次"
+echo ""
+echo "📁 Workspace 來源：$WORKSPACE_SRC"
+echo "   如需更新 SOUL.md 等請修改該目錄後重跑 restore"
