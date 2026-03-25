@@ -147,16 +147,6 @@ async def _try_local(
             except Exception:
                 pass
 
-        # 注入 tool_choice: required，讓模型主動呼叫 tool (#73)
-        if _has_tools_in_body(current_body):
-            try:
-                import json as _json
-                _data = _json.loads(current_body)
-                if "tool_choice" not in _data:
-                    _data["tool_choice"] = "required"
-                    current_body = _json.dumps(_data).encode()
-            except Exception:
-                pass
         clean_path = path.lstrip("/")
         clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path
         url = f"{backend.base_url.rstrip('/')}/{clean_path}"
