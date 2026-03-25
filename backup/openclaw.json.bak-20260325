@@ -1,0 +1,107 @@
+{
+    "meta": {
+        "lastTouchedVersion": "2026.3.11",
+        "lastTouchedAt": "2026-03-24T14:32:45.587Z"
+    },
+    "wizard": {
+        "lastRunAt": "2026-03-24T12:45:15.749Z",
+        "lastRunVersion": "2026.3.11",
+        "lastRunCommand": "onboard",
+        "lastRunMode": "local"
+    },
+    "models": {
+        "providers": {
+            "local": {
+                "baseUrl": "http://host.openshell.internal:8000/v1",
+                "apiKey": "ceclaw-local-key",
+                "api": "openai-completions",
+                "models": [
+                    {
+                        "id": "minimax",
+                        "name": "minimax",
+                        "contextWindow": 32768,
+                        "maxTokens": 4096
+                    }
+                ]
+            }
+        }
+    },
+    "agents": {
+        "defaults": {
+            "model": {
+                "primary": "local/minimax"
+            },
+            "workspace": "/sandbox/.openclaw/workspace",
+            "compaction": {
+                "mode": "safeguard",
+                "reserveTokens": 8000
+            }
+        }
+    },
+    "tools": {
+        "web": {
+            "search": {
+                "enabled": true
+            },
+            "fetch": {
+                "enabled": true
+            }
+        }
+    },
+    "commands": {
+        "native": "auto",
+        "nativeSkills": "auto",
+        "restart": true,
+        "ownerDisplay": "raw"
+    },
+    "session": {
+        "dmScope": "per-channel-peer"
+    },
+    "gateway": {
+        "port": 18789,
+        "mode": "local",
+        "bind": "loopback",
+        "auth": {
+            "mode": "token",
+            "token": "e731bf8bf6aad62526c60defde3e4f94668866aedab8ace5"
+        },
+        "tailscale": {
+            "mode": "off",
+            "resetOnExit": false
+        }
+    },
+    "skills": {
+        "install": {
+            "nodeManager": "npm"
+        }
+    },
+    "plugins": {
+        "entries": {
+            "ceclaw": {
+                "enabled": true
+            },
+            "searxng-search": {
+                "enabled": true,
+                "config": {
+                    "baseUrl": "http://host.openshell.internal:8000"
+                }
+            }
+        },
+        "installs": {
+            "ceclaw": {
+                "source": "path",
+                "sourcePath": "/opt/ceclaw",
+                "installPath": "/sandbox/.openclaw/extensions/ceclaw",
+                "version": "0.1.0",
+                "installedAt": "2026-03-24T12:53:13.852Z"
+            },
+            "searxng-search": {
+                "source": "path",
+                "sourcePath": "/tmp/openclaw-plugin-searxng",
+                "installPath": "/sandbox/.openclaw/extensions/searxng-search",
+                "version": "1.0.0",
+                "installedAt": "2026-03-24T14:32:45.485Z"
+            }
+        }
+    }
+}
