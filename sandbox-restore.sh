@@ -37,7 +37,7 @@ echo "  sandbox-id: $SANDBOX_ID"
 echo "  token: OK"
 
 PROXY="ProxyCommand=/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell"
-SSH_OPTS="StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
 
 # Step 3: 套用 openshell policy（外網 TLD 全開）
 echo "[3/7] 套用 network policy..."
@@ -262,12 +262,12 @@ PYEOF
 
 # Step 5: 執行初始化
 echo "[5/7] 執行 sandbox 初始化..."
-scp -o "$SSH_OPTS" -o "$PROXY" /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/
-ssh -o "$SSH_OPTS" -o "$PROXY" sandbox@ceclaw-agent "python3 /tmp/sandbox_init.py"
+scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o "$PROXY" /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o "$PROXY" sandbox@ceclaw-agent "python3 /tmp/sandbox_init.py"
 
 # Step 6: 重啟 gateway（source .bashrc 後再啟動）
 echo "[6/7] 重啟 gateway..."
-ssh -o "$SSH_OPTS" -o "$PROXY" sandbox@ceclaw-agent \
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o "$PROXY" sandbox@ceclaw-agent \
     "pkill -9 -f 'openclaw-gatewa' 2>/dev/null; sleep 3; source ~/.bashrc; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 10; tail -3 /tmp/openclaw-gateway.log"
 
 echo "[7/7] 完成"
