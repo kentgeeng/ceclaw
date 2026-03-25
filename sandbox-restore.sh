@@ -1,29 +1,30 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v3.1
+# CECLAW Sandbox Restore Script v3.2
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect <sandbox-name>
-# v3.1 修正：UserKnownHostsFile=/dev/null，避免 known_hosts 衝突
-# v3.0 修正：proxy 只設 https_proxy，searxng 移除，policy 自動套用
+# v3.2 修正：
+#   - http_proxy 也要設（gateway 連 Router 需要）
+#   - no_proxy 不包含 host.openshell.internal（讓 http_proxy 幫轉發）
+#   - 加 Step G: 環境自我檢查
+# v3.1 修正：UserKnownHostsFile=/dev/null
+# v3.0 修正：searxng 移除，policy 自動套用
 
 SANDBOX_NAME="ceclaw-agent"
 BACKUP_DIR=~/ceclaw/backup
-echo "=== CECLAW Sandbox Restore v3.1 ==="
+echo "=== CECLAW Sandbox Restore v3.2 ==="
 
 # Step 1: 確認 sandbox
 echo "[1/7] 確認 sandbox..."
 openshell sandbox list | grep -q "$SANDBOX_NAME" || { echo "ERROR: $SANDBOX_NAME 不存在"; exit 1; }
 
-# Step 2: 動態取 sandbox-id + token（支援環境變數覆蓋）
+# Step 2: 動態取 sandbox-id + token
 echo "[2/7] 取得 sandbox-id + token..."
 SANDBOX_ID=${SANDBOX_ID:-$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')}
 TOKEN=${TOKEN:-$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')}
 
 if [ -z "$TOKEN" ] || [ -z "$SANDBOX_ID" ]; then
-    echo ""
     echo "ERROR: 需要先建立 SSH session"
-    echo "請在另一個終端執行："
     echo "  openshell sandbox connect $SANDBOX_NAME"
-    echo "然後重新執行此腳本"
     exit 1
 fi
 echo "  sandbox-id: $SANDBOX_ID"
@@ -32,16 +33,16 @@ echo "  token: OK"
 PROXY="ProxyCommand=/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell"
 SSH_OPTS="StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
 
-# Step 3: 套用 openshell policy（外網全開放 TLD）
+# Step 3: 套用 openshell policy
 echo "[3/7] 套用 network policy..."
 openshell policy set "$SANDBOX_NAME" --policy ~/ceclaw/config/ceclaw-policy.yaml --wait 2>/dev/null && \
-    echo "  policy 套用 OK" || echo "  policy set 失敗（可能是舊版 openshell），繼續..."
+    echo "  policy OK" || echo "  policy set 失敗，繼續..."
 
 # Step 4: 寫 sandbox_init.py
 cat > /tmp/sandbox_init.py << 'PYEOF'
 import json, subprocess, os, shutil
 
-print("=== sandbox_init.py v3.1 開始 ===")
+print("=== sandbox_init.py v3.2 開始 ===")
 
 CFG_PATH = "/sandbox/.openclaw/openclaw.json"
 bashrc_path = os.path.expanduser("~/.bashrc")
@@ -93,7 +94,6 @@ if "defaults" not in cfg["agents"]:
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
 cfg["agents"]["defaults"]["model"] = {"primary": "local/minimax"}
 
-# tools（web_fetch 啟用，web_search 停用）
 cfg["tools"] = {
     "web": {
         "search": {"enabled": False},
@@ -101,7 +101,6 @@ cfg["tools"] = {
     }
 }
 
-# plugins（移除 searxng-search，坑#77：extensions path bug）
 if "plugins" not in cfg:
     cfg["plugins"] = {}
 if "entries" not in cfg["plugins"]:
@@ -121,7 +120,9 @@ if "openclaw gateway run" not in bashrc:
 else:
     print("Step D: already exists")
 
-# Step E: proxy 持久化（只設 https_proxy，不設 http_proxy 避免攔截 Router）
+# Step E: proxy 持久化
+# 關鍵：http_proxy 也要設，gateway 透過 K3s proxy 連 Router
+# no_proxy 不加 host.openshell.internal（讓 proxy 幫做 DNS 解析）
 lines = open(bashrc_path).read().splitlines()
 clean_lines = []
 skip = False
@@ -139,21 +140,25 @@ for line in lines:
 
 clean_lines += [
     '',
-    '# CECLAW proxy - 只走 https_proxy（不設 http_proxy 避免攔截 Router）',
+    '# CECLAW proxy（v3.2：http+https 都走 K3s proxy）',
     'unset ALL_PROXY HTTPS_PROXY HTTP_PROXY http_proxy https_proxy grpc_proxy no_proxy NO_PROXY',
+    'export http_proxy=http://10.200.0.1:3128',
     'export https_proxy=http://10.200.0.1:3128',
-    'export no_proxy="host.openshell.internal,172.17.0.1,127.0.0.1,localhost"',
-    'export NO_PROXY="host.openshell.internal,172.17.0.1,127.0.0.1,localhost"',
+    'export HTTP_PROXY=http://10.200.0.1:3128',
+    'export HTTPS_PROXY=http://10.200.0.1:3128',
+    '# no_proxy 不含 host.openshell.internal（讓 proxy 幫做 DNS）',
+    'export no_proxy="127.0.0.1,localhost"',
+    'export NO_PROXY="127.0.0.1,localhost"',
 ]
 with open(bashrc_path, 'w') as f:
     f.write('\n'.join(clean_lines) + '\n')
-print("Step E: proxy 設定寫入完成")
+print("Step E: proxy 設定寫入完成（http+https，no_proxy 最小化）")
 
 # Step F: 移除壞掉的 searxng-search 目錄
 searxng_dir = "/sandbox/.openclaw/extensions/searxng-search"
 if os.path.exists(searxng_dir):
     shutil.rmtree(searxng_dir)
-    print("Step F: searxng-search 目錄已移除（坑#77）")
+    print("Step F: searxng-search 移除（坑#77）")
 else:
     print("Step F: searxng-search 不存在，跳過")
 
@@ -175,16 +180,24 @@ ssh -o "$SSH_OPTS" -o "$PROXY" sandbox@ceclaw-agent "python3 /tmp/sandbox_init.p
 # Step 6: 重啟 gateway
 echo "[6/7] 重啟 gateway..."
 ssh -o "$SSH_OPTS" -o "$PROXY" sandbox@ceclaw-agent \
-    "pkill -f 'openclaw-gatewa' 2>/dev/null || true; sleep 2; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 8; tail -5 /tmp/openclaw-gateway.log"
+    "pkill -9 -f 'openclaw-gatewa' 2>/dev/null; sleep 3; source ~/.bashrc; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 10; tail -3 /tmp/openclaw-gateway.log"
 
-echo "[7/7] 完成"
+# Step 7: 自我檢查
+echo "[7/7] 環境自我檢查..."
+CHECK=$(ssh -o "$SSH_OPTS" -o "$PROXY" sandbox@ceclaw-agent '
+echo "proxy: http_proxy=$http_proxy"
+echo "gateway: $(pgrep -f openclaw-gatewa > /dev/null && echo running || echo DEAD)"
+echo "router: $(curl -s -m 3 http://host.openshell.internal:8000/ceclaw/status | python3 -c "import json,sys; print(json.load(sys.stdin)[\"version\"])" 2>/dev/null || echo FAIL)"
+echo "identity: $(curl -s -m 10 -X POST http://host.openshell.internal:8000/v1/chat/completions -H "Content-Type: application/json" -d "{\"model\":\"minimax\",\"messages\":[{\"role\":\"user\",\"content\":\"你是誰\"}],\"max_tokens\":30}" | python3 -c "import json,sys; print(json.load(sys.stdin)[\"choices\"][0][\"message\"][\"content\"][:30])" 2>/dev/null || echo FAIL)"
+' 2>/dev/null)
+
+echo "$CHECK"
+
 echo ""
-echo "✅ Restore v3.1 完成！"
+echo "✅ Restore v3.2 完成！"
 echo ""
 echo "驗證（在 sandbox 終端）："
-echo "  source ~/.bashrc && tui"
-echo "  問：你是誰 → 我是 CECLAW 企業 AI 助手"
-echo "  問：今天台北天氣如何 → 真實天氣數據"
+echo "  tui → 問：你是誰 / 今天台北天氣如何？"
 echo ""
-echo "⚠️ 坑#77：searxng plugin 暫停，openclaw 2026.3.11 extensions path bug"
+echo "⚠️ 坑#77：searxng plugin 暫停（openclaw 2026.3.11 extensions path bug）"
 echo "⚠️ 新 host 的 web_fetch 需在 openshell term approve 一次"
