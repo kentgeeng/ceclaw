@@ -4,7 +4,6 @@ network_policies:
     endpoints:
       - host: host.openshell.internal
         port: 8000
-        access: full
         allowed_ips:
           - 172.17.0.1
     binaries:
@@ -13,6 +12,20 @@ network_policies:
       - path: /usr/local/bin/openclaw
   external_web:
     endpoints:
+      - host: "*.yahoo.com"
+        port: 443
+      - host: "*.google.com"
+        port: 443
+      - host: "*.twse.com.tw"
+        port: 443
+      - host: "*.tpex.org.tw"
+        port: 443
+      - host: "technews.tw"
+        port: 443
+      - host: "*.github.com"
+        port: 443
+      - host: "openweathermap.org"
+        port: 443
       - host: "*.com"
         port: 443
       - host: "*.tw"
