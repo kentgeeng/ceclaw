@@ -137,6 +137,23 @@ async def proxy_fetch(url: str, request: Request):
     except Exception as e:
         return JSONResponse({"error": str(e), "url": url}, status_code=502)
 
+@app.get("/v1/dns")
+async def proxy_dns(name: str):
+    """DNS over HTTPS proxy - sandbox 內 DNS resolver 用"""
+    try:
+        async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
+            resp = await client.get(
+                f"https://1.1.1.1/dns-query?name={name}&type=A",
+                headers={"accept": "application/dns-json"}
+            )
+            data = resp.json()
+            answers = [r["data"] for r in data.get("Answer", []) if r.get("type") == 1]
+            if not answers:
+                return JSONResponse({"error": "no A record", "name": name}, status_code=404)
+            return JSONResponse({"name": name, "addresses": answers})
+    except Exception as e:
+        return JSONResponse({"error": str(e), "name": name}, status_code=502)
+
 @app.get("/ceclaw/status")
 async def status():
     cfg = get_config()
