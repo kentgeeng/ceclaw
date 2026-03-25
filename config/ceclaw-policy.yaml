@@ -11,3 +11,21 @@ network_policies:
       - path: /usr/bin/curl
       - path: /usr/bin/node
       - path: /usr/local/bin/openclaw
+  external_web:
+    endpoints:
+      - host: "*.com"
+        port: 443
+      - host: "*.tw"
+        port: 443
+      - host: "*.net"
+        port: 443
+      - host: "*.org"
+        port: 443
+      - host: "*.io"
+        port: 443
+      - host: "*.in"
+        port: 443
+    binaries:
+      - path: /usr/bin/node
+      - path: /usr/local/bin/openclaw
+      - path: /usr/bin/curl

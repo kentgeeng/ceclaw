@@ -175,20 +175,12 @@ def main(config_path: Optional[str] = None):
     logger.info(f"  Strategy: {_config.inference.strategy}")
     logger.info("=" * 50)
 
-    async def _serve():
-        from .tcp_mux import run_tcp_mux
-        uvicorn_config = uvicorn.Config(
-            app, host="127.0.0.1", port=18080, log_level="info"
-        )
-        uvicorn_server = uvicorn.Server(uvicorn_config)
-        await asyncio.gather(
-            uvicorn_server.serve(),
-            run_tcp_mux(
-                host=_config.router.listen_host,
-                port=_config.router.listen_port,
-            ),
-        )
-    asyncio.run(_serve())
+    uvicorn.run(
+        app,
+        host=_config.router.listen_host,
+        port=_config.router.listen_port,
+        log_level="info",
+    )
 
 
 if __name__ == "__main__":

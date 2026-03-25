@@ -1,25 +1,31 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v1.2
+# CECLAW Sandbox Restore Script v3.0
 # 用法：bash ~/ceclaw/sandbox-restore.sh
-# 前置：需要先在另一個終端 openshell sandbox connect ceclaw-agent
+# 前置：需要先在另一個終端 openshell sandbox connect <sandbox-name>
+# v3.0 修正：
+#   - proxy 只設 https_proxy（不設 http_proxy，避免攔截 Router http 請求）
+#   - no_proxy 排除 host.openshell.internal
+#   - searxng plugin 移除（openclaw 2026.3.11 extensions path bug，坑#77）
+#   - 自動套用 openshell policy（外網全開放 TLD 清單）
 
+SANDBOX_NAME="ceclaw-agent"
 BACKUP_DIR=~/ceclaw/backup
-echo "=== CECLAW Sandbox Restore v1.2 ==="
+echo "=== CECLAW Sandbox Restore v3.0 ==="
 
 # Step 1: 確認 sandbox
-echo "[1/6] 確認 sandbox..."
-openshell sandbox list | grep -q "ceclaw-agent" || { echo "ERROR: ceclaw-agent 不存在"; exit 1; }
+echo "[1/7] 確認 sandbox..."
+openshell sandbox list | grep -q "$SANDBOX_NAME" || { echo "ERROR: $SANDBOX_NAME 不存在"; exit 1; }
 
-# Step 2: 動態取 sandbox-id + token
-echo "[2/6] 取得 sandbox-id + token..."
-SANDBOX_ID=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')
-TOKEN=$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')
+# Step 2: 動態取 sandbox-id + token（支援環境變數覆蓋）
+echo "[2/7] 取得 sandbox-id + token..."
+SANDBOX_ID=${SANDBOX_ID:-$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "sandbox-id [a-z0-9-]*" | head -1 | awk '{print $2}')}
+TOKEN=${TOKEN:-$(ps aux | grep "openshell ssh-proxy" | grep -v grep | grep -o "token [a-z0-9-]*" | head -1 | awk '{print $2}')}
 
 if [ -z "$TOKEN" ] || [ -z "$SANDBOX_ID" ]; then
     echo ""
     echo "ERROR: 需要先建立 SSH session"
     echo "請在另一個終端執行："
-    echo "  openshell sandbox connect ceclaw-agent"
+    echo "  openshell sandbox connect $SANDBOX_NAME"
     echo "然後重新執行此腳本"
     exit 1
 fi
@@ -28,37 +34,25 @@ echo "  token: OK"
 
 PROXY="ProxyCommand=/usr/local/bin/openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh --sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell"
 
-# Step 3: Build plugin
-echo "[3/6] Build SearXNG plugin..."
-cd /tmp
-rm -rf openclaw-plugin-searxng 2>/dev/null
-tar xzf $BACKUP_DIR/openclaw-plugin-searxng-full.tar.gz
-cd openclaw-plugin-searxng
-npm install --silent 2>/dev/null
-npx esbuild index.ts --bundle --format=esm --outfile=dist/index.js --external:@sinclair/typebox --log-level=silent
-[ -f dist/index.js ] && echo "  build OK" || { echo "ERROR: build failed"; exit 1; }
+# Step 3: 套用 openshell policy（外網全開放 TLD）
+echo "[3/7] 套用 network policy..."
+openshell policy set "$SANDBOX_NAME" --policy ~/ceclaw/config/ceclaw-policy.yaml --wait 2>/dev/null && \
+    echo "  policy 套用 OK" || echo "  policy set 失敗（可能是舊版 openshell），繼續..."
 
-# Step 4: 傳入 sandbox
-echo "[4/6] 傳入檔案..."
-scp -o "$PROXY" $BACKUP_DIR/openclaw-plugin-searxng-full.tar.gz sandbox@ceclaw-agent:/tmp/
-ssh -o "$PROXY" sandbox@ceclaw-agent "mkdir -p /sandbox/.openclaw/extensions/searxng-search/dist"
-scp -o "$PROXY" /tmp/openclaw-plugin-searxng/dist/index.js sandbox@ceclaw-agent:/sandbox/.openclaw/extensions/searxng-search/dist/index.js
-echo "  傳入完成"
-
-# Step 5: 寫 sandbox_init.py
+# Step 4: 寫 sandbox_init.py
 cat > /tmp/sandbox_init.py << 'PYEOF'
 import json, subprocess, os, shutil
 
-print("=== sandbox_init.py v1.2 開始 ===")
+print("=== sandbox_init.py v3.0 開始 ===")
 
 CFG_PATH = "/sandbox/.openclaw/openclaw.json"
+bashrc_path = os.path.expanduser("~/.bashrc")
 
 # Step A: install ceclaw plugin
 r = subprocess.run(["openclaw", "plugins", "install", "/opt/ceclaw"], capture_output=True, text=True)
 print("Step A:", "OK" if r.returncode == 0 else r.stderr.strip())
 
 # Step B: tui alias
-bashrc_path = os.path.expanduser("~/.bashrc")
 bashrc = open(bashrc_path).read()
 if "alias tui=" not in bashrc:
     with open(bashrc_path, "a") as f:
@@ -70,7 +64,6 @@ else:
 # Step C: openclaw.json 完整 patch
 cfg = json.load(open(CFG_PATH))
 
-# models（防止 KeyError，全新 sandbox 可能無此 key）
 if "models" not in cfg:
     cfg["models"] = {}
 if "providers" not in cfg["models"]:
@@ -81,7 +74,7 @@ if "local" not in cfg["models"]["providers"]:
 local = cfg["models"]["providers"]["local"]
 local["baseUrl"] = "http://host.openshell.internal:8000/v1"
 local["apiKey"] = "ceclaw-local-key"
-local["api"] = "openai-completions"   # 坑#69 關鍵欄位
+local["api"] = "openai-completions"
 if "models" not in local:
     local["models"] = []
 minimax = next((m for m in local["models"] if m.get("id") == "minimax"), None)
@@ -91,12 +84,10 @@ else:
     minimax["contextWindow"] = 32768
     minimax["maxTokens"] = 4096
 
-# gateway
 if "gateway" not in cfg:
     cfg["gateway"] = {}
 cfg["gateway"]["mode"] = "local"
 
-# agents
 if "agents" not in cfg:
     cfg["agents"] = {}
 if "defaults" not in cfg["agents"]:
@@ -104,25 +95,24 @@ if "defaults" not in cfg["agents"]:
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
 cfg["agents"]["defaults"]["model"] = {"primary": "local/minimax"}
 
-# tools（Bug#3修復：停用內建 web search，強制模型只能用 searxng_search）
-# 注意：plugins.allow 不設（Bug#1修復：設了反而讓 plugin 不載入，用 auto-load）
+# tools（web_fetch 啟用，web_search 停用）
 cfg["tools"] = {
     "web": {
-        "search": {"enabled": False},  # 停用內建 Brave，模型才會選 searxng_search
-        "fetch": {"enabled": False}
+        "search": {"enabled": False},
+        "fetch": {"enabled": True}
     }
 }
 
-# plugins（不設 allow，讓 auto-load 生效）
+# plugins（移除 searxng-search，坑#77：extensions path bug）
 if "plugins" not in cfg:
     cfg["plugins"] = {}
 if "entries" not in cfg["plugins"]:
     cfg["plugins"]["entries"] = {}
-# 移除 allow key（如果存在）
 cfg["plugins"].pop("allow", None)
+cfg["plugins"]["entries"].pop("searxng-search", None)
 
 json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
-print("Step C: openclaw.json patched (api/apiKey/gateway/model, tools disabled, no allow)")
+print("Step C: openclaw.json patched")
 
 # Step D: gateway autostart
 bashrc = open(bashrc_path).read()
@@ -133,55 +123,71 @@ if "openclaw gateway run" not in bashrc:
 else:
     print("Step D: already exists")
 
-# Step F: install searxng plugin
-shutil.rmtree(os.path.expanduser("~/.openclaw/extensions/searxng-search"), ignore_errors=True)
-r = subprocess.run(["openclaw", "plugins", "install", "/tmp/openclaw-plugin-searxng"], capture_output=True, text=True)
-print("Step F install:", "OK" if r.returncode == 0 else r.stderr.strip())
+# Step E: proxy 持久化（關鍵修正：只設 https_proxy，不設 http_proxy）
+# http_proxy 會攔截 openclaw→Router 的 http 連線導致 LLM timeout
+lines = open(bashrc_path).read().splitlines()
+clean_lines = []
+skip = False
+for line in lines:
+    if '# CECLAW proxy' in line or '# override openshell' in line:
+        skip = True
+        continue
+    if skip and (line.startswith('export') or line.startswith('unset')) and \
+       any(k in line for k in ['PROXY', 'proxy']):
+        continue
+    if skip and line.strip() == '':
+        skip = False
+        continue
+    clean_lines.append(line)
 
-# 確認 dist/index.js（由 pop-os scp 進來）
-dist_path = "/sandbox/.openclaw/extensions/searxng-search/dist/index.js"
-if os.path.exists(dist_path):
-    print("Step F dist: index.js OK")
+clean_lines += [
+    '',
+    '# CECLAW proxy - 只走 https_proxy（不設 http_proxy 避免攔截 Router）',
+    'unset ALL_PROXY HTTPS_PROXY HTTP_PROXY http_proxy https_proxy grpc_proxy no_proxy NO_PROXY',
+    'export https_proxy=http://10.200.0.1:3128',
+    'export no_proxy="host.openshell.internal,172.17.0.1,127.0.0.1,localhost"',
+    'export NO_PROXY="host.openshell.internal,172.17.0.1,127.0.0.1,localhost"',
+]
+with open(bashrc_path, 'w') as f:
+    f.write('\n'.join(clean_lines) + '\n')
+print("Step E: proxy 設定寫入完成")
+
+# Step F: 移除壞掉的 searxng-search 目錄
+searxng_dir = "/sandbox/.openclaw/extensions/searxng-search"
+if os.path.exists(searxng_dir):
+    shutil.rmtree(searxng_dir)
+    print("Step F: searxng-search 目錄已移除（坑#77）")
 else:
-    print("Step F dist: WARNING - index.js not found!")
+    print("Step F: searxng-search 不存在，跳過")
 
-# Fix package.json（Bug#2修復：用 dist/index.js 不是 ./dist/index.js）
-pkg_path = "/sandbox/.openclaw/extensions/searxng-search/package.json"
-if os.path.exists(pkg_path):
-    pkg = json.load(open(pkg_path))
-    pkg["name"] = "searxng-search"
-    pkg["openclaw"]["extensions"] = ["dist/index.js"]  # 不加 ./，避免 escapes package directory 錯誤
-    json.dump(pkg, open(pkg_path, "w"), indent=2, ensure_ascii=False)
-    print("Step F package.json: fixed")
-
-# Fix openclaw.json plugin config
-cfg = json.load(open(CFG_PATH))
-entry = cfg["plugins"]["entries"].setdefault("searxng-search", {})
-entry["enabled"] = True
-entry.setdefault("config", {})["baseUrl"] = "http://host.openshell.internal:8000"
-json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
-print("Step F openclaw.json: searxng baseUrl set")
-
-# auth-profiles.json（無此檔 → No API key found）
+# auth-profiles.json
 auth_dir = "/sandbox/.openclaw/agents/main/agent"
 os.makedirs(auth_dir, exist_ok=True)
-auth_path = os.path.join(auth_dir, "auth-profiles.json")
 auth = {"local": {"apiKey": "ceclaw-local-key"}}
-json.dump(auth, open(auth_path, "w"), indent=4)
+json.dump(auth, open(os.path.join(auth_dir, "auth-profiles.json"), "w"), indent=4)
 print("auth-profiles.json: created")
 
 print("=== ALL DONE ===")
 PYEOF
 
-# Step 6: 執行
-echo "[5/6] 執行 sandbox 初始化..."
-scp -o "$PROXY" /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/
-ssh -o "$PROXY" sandbox@ceclaw-agent "python3 /tmp/sandbox_init.py"
+# Step 5: 執行初始化
+echo "[5/7] 執行 sandbox 初始化..."
+scp -o "StrictHostKeyChecking=no" -o "$PROXY" /tmp/sandbox_init.py sandbox@ceclaw-agent:/tmp/
+ssh -o "StrictHostKeyChecking=no" -o "$PROXY" sandbox@ceclaw-agent "python3 /tmp/sandbox_init.py"
 
-echo "[6/6] 重啟 gateway..."
-ssh -o "$PROXY" sandbox@ceclaw-agent "pkill -f 'openclaw-gatewa' 2>/dev/null || true; sleep 2; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 8; tail -5 /tmp/openclaw-gateway.log"
+# Step 6: 重啟 gateway
+echo "[6/7] 重啟 gateway..."
+ssh -o "StrictHostKeyChecking=no" -o "$PROXY" sandbox@ceclaw-agent \
+    "pkill -f 'openclaw-gatewa' 2>/dev/null || true; sleep 2; openclaw gateway run > /tmp/openclaw-gateway.log 2>&1 & sleep 8; tail -5 /tmp/openclaw-gateway.log"
 
+echo "[7/7] 完成"
 echo ""
-echo "✅ Restore 完成！"
+echo "✅ Restore v3.0 完成！"
+echo ""
 echo "驗證（在 sandbox 終端）："
-echo "  tui → 問：你是誰 / 今天台北天氣如何？"
+echo "  source ~/.bashrc && tui"
+echo "  問：你是誰 → 我是 CECLAW 企業 AI 助手"
+echo "  問：今天台北天氣如何 → 真實天氣數據"
+echo ""
+echo "⚠️ 坑#77：searxng plugin 暫停，openclaw 2026.3.11 extensions path bug"
+echo "⚠️ 新 host 的 web_fetch 需在 openshell term approve 一次"
