@@ -174,6 +174,17 @@ async def _try_local(
             if resp.status_code in (200, 201):
                 logger.info(f"[local] {backend.name} → {resp.status_code}")
                 return resp
+            if backend.name == "gb10-llama" and resp.status_code in (400, 500, 503):
+                logger.warning(f"[local] gb10-llama → {resp.status_code}, retry in 3s")
+                await asyncio.sleep(3)
+                try:
+                    resp2 = await client.post(url, content=current_body, headers=headers)
+                    resp2._ceclaw_backend = backend.name
+                    if resp2.status_code in (200, 201):
+                        logger.info(f"[local] gb10-llama retry → 200")
+                        return resp2
+                except Exception:
+                    pass
             logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
             _healthy[backend.name] = False
         except httpx.TimeoutException:
