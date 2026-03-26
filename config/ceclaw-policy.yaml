@@ -42,3 +42,31 @@ network_policies:
       - path: /usr/bin/node
       - path: /usr/local/bin/openclaw
       - path: /usr/bin/curl
+  ollama_local:
+    endpoints:
+      - host: "172.17.0.1"
+        port: 11434
+        allowed_ips:
+          - 172.17.0.1
+    binaries:
+      - path: /usr/bin/curl
+      - path: /usr/bin/node
+  gb10_llama:
+    endpoints:
+      - host: "192.168.1.91"
+        port: 8001
+        allowed_ips:
+          - 192.168.1.91
+    binaries:
+      - path: /usr/bin/curl
+      - path: /usr/bin/node
+  npm_registry:
+    endpoints:
+      - host: "registry.npmjs.org"
+        port: 443
+      - host: "*.npmjs.org"
+        port: 443
+    binaries:
+      - path: /usr/bin/node
+      - path: /usr/local/bin/npm
+      - path: /usr/bin/npm
