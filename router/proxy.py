@@ -135,14 +135,6 @@ async def _try_local(
     for _ in range(3):
         if force_gb10:
             backend = next((b for b in config.inference.local.backends if b.name == "gb10-llama" and _healthy.get(b.name, True)), None)
-            # GB10 不支援 tools schema，移除後再送
-            try:
-                _d = json.loads(current_body)
-                _d.pop("tools", None)
-                _d.pop("tool_choice", None)
-                current_body = json.dumps(_d, ensure_ascii=False).encode()
-            except Exception:
-                pass
         elif strategy == "smart-routing":
             backend = select_backend(config, query, tokens)
         else:
@@ -153,6 +145,15 @@ async def _try_local(
         tried.add(backend.name)
 
         current_body = body
+        # GB10 不支援 tools schema，移除後再送
+        if backend and backend.name == "gb10-llama":
+            try:
+                _d = json.loads(current_body)
+                _d.pop("tools", None)
+                _d.pop("tool_choice", None)
+                current_body = json.dumps(_d, ensure_ascii=False).encode()
+            except Exception:
+                pass
         if backend.type == "ollama" and backend.model:
             try:
                 import json as _json
