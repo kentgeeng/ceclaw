@@ -143,6 +143,28 @@ async def _try_local(
         if not backend or backend.name in tried:
             break
         tried.add(backend.name)
+
+        current_body = body
+        # GB10 不支援 tools schema，移除後再送
+        if backend and backend.name == "gb10-llama":
+            try:
+                _d = json.loads(current_body)
+                _d.pop("tools", None)
+                _d.pop("tool_choice", None)
+                # 移除 messages 裡的 tool role 和 assistant tool_calls
+                msgs = _d.get("messages", [])
+                clean_msgs = []
+                for m in msgs:
+                    if m.get("role") == "tool":
+                        continue
+                    if m.get("role") == "assistant" and m.get("tool_calls"):
+                        m = {k: v for k, v in m.items() if k != "tool_calls"}
+                    clean_msgs.append(m)
+                _d["messages"] = clean_msgs
+                current_body = json.dumps(_d, ensure_ascii=False).encode()
+                logger.info(f"[gb10-debug] body={current_body[:500]}")
+            except Exception:
+                pass
         if backend.type == "ollama" and backend.model:
             try:
                 import json as _json
