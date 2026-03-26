@@ -162,7 +162,7 @@ async def _try_local(
                     clean_msgs.append(m)
                 _d["messages"] = clean_msgs
                 current_body = json.dumps(_d, ensure_ascii=False).encode()
-                logger.debug(f"[gb10-debug] body={current_body[:500]}")
+                logger.info(f"[gb10-debug] body={current_body[:500]}")
             except Exception:
                 pass
         if backend.type == "ollama" and backend.model:
