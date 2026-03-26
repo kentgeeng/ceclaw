@@ -133,7 +133,7 @@ async def _try_local(
 
     for _ in range(3):
         if force_gb10:
-            backend = next((b for b in config.backends if b.name == "gb10-llama" and _healthy.get(b.name, True)), None)
+            backend = next((b for b in config.inference.local.backends if b.name == "gb10-llama" and _healthy.get(b.name, True)), None)
         elif strategy == "smart-routing":
             backend = select_backend(config, query, tokens)
         else:
