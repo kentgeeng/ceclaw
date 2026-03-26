@@ -1,8 +1,11 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v3.5-net
+# CECLAW Sandbox Restore Script v3.6
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect <sandbox-name>
 #
+# v3.6 新功能：
+#   - Step C: plugins.allow = ["searxng-search"]（pin trust，不再顯示 optional 警告）
+#   - Step C: agents.list main tools.allow = ["web_search"]（讓 web_search 出現在 system prompt）
 # v3.5-net 新功能：
 #   - 支援 test-net（base image，無 /opt/ceclaw）
 #   - Step C: fetch: false（讓 drawliin-searxng 接管）
@@ -17,7 +20,7 @@
 
 SANDBOX_NAME="${SANDBOX_NAME:-test-net}"
 WORKSPACE_SRC=~/ceclaw/config
-echo "=== CECLAW Sandbox Restore v3.5-net ==="
+echo "=== CECLAW Sandbox Restore v3.6 ==="
 echo "  target: $SANDBOX_NAME"
 
 # Step 1: 確認 sandbox
@@ -109,7 +112,6 @@ cfg["tools"] = {"web": {"search": {"enabled": False}, "fetch": {"enabled": False
 
 if "plugins" not in cfg: cfg["plugins"] = {}
 if "entries" not in cfg["plugins"]: cfg["plugins"]["entries"] = {}
-cfg["plugins"].pop("allow", None)
 
 # 移除舊 plugin 名稱
 for old_key in ["ceclaw", "@drawliin/searxng-search", "drawliin-searxng"]:
@@ -123,10 +125,26 @@ cfg["plugins"]["entries"]["searxng-search"] = {
     }
 }
 
+# pin trust：讓 openclaw 信任此 plugin，停止 "optional" 警告
+cfg["plugins"]["allow"] = ["searxng-search"]
+
+# agents.list main：讓 web_search tool 出現在 system prompt（今晚 debug 發現必要）
+if "list" not in cfg["agents"]: cfg["agents"]["list"] = []
+main_agent = next((a for a in cfg["agents"]["list"] if a.get("id") == "main"), None)
+if main_agent is None:
+    main_agent = {"id": "main"}
+    cfg["agents"]["list"].append(main_agent)
+if "tools" not in main_agent: main_agent["tools"] = {}
+if "allow" not in main_agent["tools"]: main_agent["tools"]["allow"] = []
+if "web_search" not in main_agent["tools"]["allow"]:
+    main_agent["tools"]["allow"].append("web_search")
+
 json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
 print("Step C: openclaw.json patched")
 print("  tools.web.fetch:", cfg["tools"]["web"]["fetch"])
-print("  plugins:", list(cfg["plugins"]["entries"].keys()))
+print("  plugins.allow:", cfg["plugins"]["allow"])
+print("  plugins.entries:", list(cfg["plugins"]["entries"].keys()))
+print("  agents.list main tools.allow:", main_agent["tools"]["allow"])
 
 # Step D: gateway autostart
 bashrc = open(bashrc_path).read()
@@ -256,8 +274,10 @@ try:
     api = cfg['models']['providers']['local'].get('api', '')
     fetch_off = not cfg.get('tools', {}).get('web', {}).get('fetch', {}).get('enabled', True)
     has_searxng = 'searxng-search' in cfg.get('plugins', {}).get('entries', {})
-    ok = api == 'openai-completions' and fetch_off and has_searxng
-    results.append(f'L2 config   : {PASS if ok else FAIL} api={api} fetch_off={fetch_off} searxng={has_searxng}')
+    has_allow = 'searxng-search' in cfg.get('plugins', {}).get('allow', [])
+    has_web_search = 'web_search' in (cfg.get('agents', {}).get('list', [{}]) or [{}])[0].get('tools', {}).get('allow', []) if cfg.get('agents', {}).get('list') else False
+    ok = api == 'openai-completions' and fetch_off and has_searxng and has_allow and has_web_search
+    results.append(f'L2 config   : {PASS if ok else FAIL} api={api} fetch_off={fetch_off} searxng={has_searxng} allow={has_allow} web_search={has_web_search}')
 except Exception as e:
     results.append(f'L2 config   : {FAIL} {e}')
 
@@ -310,7 +330,7 @@ CHECKEOF
 "
 
 echo ""
-echo "✅ Restore v3.5-net 完成！"
+echo "✅ Restore v3.6 完成！"
 echo ""
 echo "驗證（在 sandbox 終端）："
 echo "  bash ~/ceclaw-start.sh"
