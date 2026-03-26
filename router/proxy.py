@@ -126,9 +126,15 @@ async def _try_local(
 ) -> Optional[httpx.Response]:
     strategy = config.inference.strategy
     tried = set()
+    # tools request → 強制走 GB10（ministral-3 tool calling 不穩定）
+    force_gb10 = _has_tools_in_body(body)
+    if force_gb10:
+        logger.info("[local] tools detected → force gb10-llama")
 
     for _ in range(3):
-        if strategy == "smart-routing":
+        if force_gb10:
+            backend = next((b for b in config.backends if b.name == "gb10-llama" and _healthy.get(b.name, True)), None)
+        elif strategy == "smart-routing":
             backend = select_backend(config, query, tokens)
         else:
             backend = get_healthy_backend(config)
