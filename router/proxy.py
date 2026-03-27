@@ -143,6 +143,8 @@ async def _try_local(
                 import json as _json
                 data = _json.loads(current_body)
                 data["model"] = backend.model
+                if backend.name == "ollama-fast":
+                    data.setdefault("num_ctx", 32768)
                 current_body = _json.dumps(data).encode()
             except Exception:
                 pass
