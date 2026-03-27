@@ -115,7 +115,7 @@ for i in $(seq 1 $ROUNDS); do
         WS_RESP=$(curl -s --max-time 30 -X POST "$ENDPOINT" \
             -H "Content-Type: application/json" \
             -H "Authorization: $AUTH" \
-            -d '{"model":"minimax","messages":[{"role":"user","content":"台積電今天股價"}],"max_tokens":80}' 2>/dev/null)
+            -d '{"model":"minimax","messages":[{"role":"user","content":"台積電今天股價"}],"max_tokens":80,"tools":[{"type":"function","function":{"name":"web_search","description":"Search the web","parameters":{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}}}]}' 2>/dev/null)
         WS_CONTENT=$(echo "$WS_RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'][:60])" 2>/dev/null)
         sleep 3
         AFTER=$(grep -c "GET /search" ~/.ceclaw/router.log 2>/dev/null || echo 0)
