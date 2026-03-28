@@ -97,7 +97,7 @@ local["api"] = "openai-completions"
 if "models" not in local: local["models"] = []
 minimax = next((m for m in local["models"] if m.get("id") == "minimax"), None)
 if minimax is None:
-    local["models"].append({"id": "minimax", "name": "minimax", "contextWindow": 32768, "maxTokens": 4096})
+    local["models"].append({"id": "minimax", "name": "minimax", "contextWindow": 16384, "maxTokens": 4096})
 else:
     minimax["contextWindow"] = 32768
     minimax["maxTokens"] = 4096
