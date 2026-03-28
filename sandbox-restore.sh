@@ -1,8 +1,10 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v3.6
+# CECLAW Sandbox Restore Script v3.7
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect <sandbox-name>
 #
+# v3.7 新增：
+#   - Step 8b: 自動部署 burnin_v5.sh 到 sandbox
 # v3.6 新功能：
 #   - Step C: plugins.allow = ["searxng-search"]（pin trust，不再顯示 optional 警告）
 #   - Step C: agents.list main tools.allow = ["web_search"]（讓 web_search 出現在 system prompt）
@@ -20,7 +22,7 @@
 
 SANDBOX_NAME="${SANDBOX_NAME:-test-net}"
 WORKSPACE_SRC=~/ceclaw/config
-echo "=== CECLAW Sandbox Restore v3.6 ==="
+echo "=== CECLAW Sandbox Restore v3.7 ==="
 echo "  target: $SANDBOX_NAME"
 
 # Step 1: 確認 sandbox
@@ -128,7 +130,7 @@ cfg["plugins"]["entries"]["searxng-search"] = {
 # pin trust：讓 openclaw 信任此 plugin，停止 "optional" 警告
 cfg["plugins"]["allow"] = ["searxng-search"]
 
-# agents.list main：讓 web_search tool 出現在 system prompt（今晚 debug 發現必要）
+# agents.list main：讓 web_search tool 出現在 system prompt
 if "list" not in cfg["agents"]: cfg["agents"]["list"] = []
 main_agent = next((a for a in cfg["agents"]["list"] if a.get("id") == "main"), None)
 if main_agent is None:
@@ -252,6 +254,81 @@ run_scp /tmp/ceclaw-start.sh ~/ceclaw-start.sh
 run_ssh "chmod +x ~/ceclaw-start.sh"
 echo "  ✅ ceclaw-start.sh 部署完成"
 
+# Step 8b: 部署 burnin_v5.sh
+echo "[8b] 部署 burnin_v5.sh..."
+cat > /tmp/burnin_v5.sh << 'BURNINEOF'
+#!/bin/bash
+# CECLAW P4 Smart Routing 燒機腳本 v5
+# 修正：Layer 2 web_search 驗證改為直接打 /search endpoint（不依賴 router.log）
+ROUNDS=${1:-100}
+ENDPOINT="http://host.openshell.internal:8000/v1/chat/completions"
+SEARCH_ENDPOINT="http://host.openshell.internal:8000/search"
+AUTH="Bearer ceclaw-local"
+fast_ok=0; fast_fail=0; fast_total_ms=0
+main_ok=0; main_fail=0; main_total_ms=0
+ws_ok=0; ws_fail=0
+
+FAST_QUERIES=("hi" "hello" "what time is it" "tell me a joke" "name a color" "say ok" "what is python" "1+1=?" "好的" "謝謝" "translate hello to chinese" "what day is today" "give me a number between 1 and 10" "say goodbye" "what is 2+2" "ok got it")
+MAIN_QUERIES=("為什麼天空是藍色的" "幫我寫一份報告大綱" "這個演算法的複雜度" "debug this performance issue" "design a REST API architecture" "explain recursion" "什麼是財務風險" "how to implement binary search" "解釋什麼是機器學習" "幫我寫一封商業郵件" "什麼是 CAP theorem" "compare REST API vs GraphQL" "解釋 Kubernetes 的架構" "幫我分析這季財報的風險" "what is the difference between TCP and UDP" "設計一個簡單的資料庫 schema")
+FAST_LEN=${#FAST_QUERIES[@]}
+MAIN_LEN=${#MAIN_QUERIES[@]}
+
+echo "CECLAW P4 Smart Routing 燒機 v5 — ${ROUNDS} 輪"
+echo "=================================================="
+SEARCH_RESP=$(curl -s --max-time 10 "${SEARCH_ENDPOINT}?q=test&format=json")
+SEARCH_COUNT=$(echo "$SEARCH_RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null)
+[ -n "$SEARCH_COUNT" ] && [ "$SEARCH_COUNT" -gt 0 ] && echo "Layer 1: ✅ SearXNG Proxy 正常（results=${SEARCH_COUNT}）" || echo "Layer 1: ⚠️  無結果或連線失敗"
+echo ""
+
+for i in $(seq 1 $ROUNDS); do
+    if [ $((i % 2)) -eq 1 ]; then
+        IDX=$(( ((i-1)/2) % FAST_LEN ))
+        Q="${FAST_QUERIES[$IDX]}"; TYPE="fast"
+    else
+        IDX=$(( ((i-2)/2) % MAIN_LEN ))
+        Q="${MAIN_QUERIES[$IDX]}"; TYPE="main"
+    fi
+    START=$(date +%s%3N)
+    RESP=$(curl -s --max-time 60 -X POST "$ENDPOINT" -H "Content-Type: application/json" -H "Authorization: $AUTH" -d "{\"model\":\"minimax\",\"messages\":[{\"role\":\"user\",\"content\":\"$Q\"}],\"max_tokens\":50}" 2>/dev/null)
+    END=$(date +%s%3N)
+    ms=$((END - START))
+    CONTENT=$(echo "$RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'][:40])" 2>/dev/null)
+    if [ -z "$CONTENT" ]; then
+        echo "[$(printf '%05d' $i)] ❌ ${ms}ms [${TYPE}] '${Q}'"
+        [ "$TYPE" = "fast" ] && fast_fail=$((fast_fail+1)) || main_fail=$((main_fail+1))
+    else
+        echo "[$(printf '%05d' $i)] ✅ ${ms}ms [${TYPE}] '${Q}' → '${CONTENT}'"
+        [ "$TYPE" = "fast" ] && { fast_ok=$((fast_ok+1)); fast_total_ms=$((fast_total_ms+ms)); } || { main_ok=$((main_ok+1)); main_total_ms=$((main_total_ms+ms)); }
+    fi
+    if [ $((i % 100)) -eq 0 ]; then
+        echo ""
+        echo "=== 第 ${i} 輪 Layer 2 web_search 驗證 ==="
+        WS_CHECK=$(curl -s --max-time 10 "${SEARCH_ENDPOINT}?q=台積電&format=json")
+        WS_COUNT=$(echo "$WS_CHECK" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null)
+        WS_RESP=$(curl -s --max-time 30 -X POST "$ENDPOINT" -H "Content-Type: application/json" -H "Authorization: $AUTH" -d '{"model":"minimax","messages":[{"role":"user","content":"台積電今天股價"}],"max_tokens":80}' 2>/dev/null)
+        WS_CONTENT=$(echo "$WS_RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'][:60])" 2>/dev/null)
+        if [ -n "$WS_COUNT" ] && [ "$WS_COUNT" -gt 0 ] && [ -n "$WS_CONTENT" ]; then
+            echo "Layer 2: ✅ SearXNG 可達（results=${WS_COUNT}），LLM 回應正常 → ${WS_CONTENT}"; ws_ok=$((ws_ok+1))
+        else
+            echo "Layer 2: ❌ 異常（results=${WS_COUNT}）→ ${WS_CONTENT}"; ws_fail=$((ws_fail+1))
+        fi
+        echo "=========================="; echo ""
+    fi
+done
+
+echo "=================================================="
+fast_total=$((fast_ok+fast_fail)); main_total=$((main_ok+main_fail)); ws_total=$((ws_ok+ws_fail))
+[ $fast_ok -gt 0 ] && fast_avg=$((fast_total_ms/fast_ok)) || fast_avg=0
+[ $main_ok -gt 0 ] && main_avg=$((main_total_ms/main_ok)) || main_avg=0
+echo "ollama-fast: ${fast_ok}/${fast_total} 成功，avg=${fast_avg}ms"
+echo "gb10-llama:  ${main_ok}/${main_total} 成功，avg=${main_avg}ms"
+[ $ws_total -gt 0 ] && echo "web_search:  ${ws_ok}/${ws_total} 成功"
+echo "總計: $((fast_ok+main_ok))/$((fast_total+main_total)) 成功"
+BURNINEOF
+run_scp /tmp/burnin_v5.sh ~/burnin_v5.sh
+run_ssh "chmod +x ~/burnin_v5.sh"
+echo "  ✅ burnin_v5.sh 部署完成"
+
 # Step 9: 七層健康檢查（sandbox 內）
 echo "[9/9] 七層健康檢查（sandbox 內）..."
 run_ssh "source ~/.bashrc; python3 << 'CHECKEOF'
@@ -330,11 +407,12 @@ CHECKEOF
 "
 
 echo ""
-echo "✅ Restore v3.6 完成！"
+echo "✅ Restore v3.7 完成！"
 echo ""
 echo "驗證（在 sandbox 終端）："
 echo "  bash ~/ceclaw-start.sh"
 echo "  問：你是誰 → 我是 CECLAW 企業 AI 助手"
 echo "  問：台積電今天股價 → 應觸發 web_search"
+echo "  燒機：bash ~/burnin_v5.sh 100"
 echo ""
 echo "📁 Workspace 來源：$WORKSPACE_SRC"
