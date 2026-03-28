@@ -138,16 +138,21 @@ async def _try_local(
         tried.add(backend.name)
 
         current_body = body
-        if backend.type == "ollama" and backend.model:
+        _model_id = backend.model or (backend.models[0].id if backend.models else None)
+        if _model_id:
             try:
                 import json as _json
                 data = _json.loads(current_body)
-                data["model"] = backend.model
-                if backend.name == "ollama-fast":
+                data["model"] = _model_id
+                if backend.type == "ollama" and backend.name == "ollama-fast":
                     data.setdefault("num_ctx", 32768)
+                # llama.cpp 不支援 stream=True + tools 同時
+                if backend.type == "llama.cpp" and data.get("tools"):
+                    data["stream"] = False
                 current_body = _json.dumps(data).encode()
-            except Exception:
-                pass
+            except Exception as e:
+                import logging as _log
+                _log.getLogger("ceclaw.proxy").error(f"model replace error: {e}")
 
         clean_path = path.lstrip("/")
         clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path
@@ -156,6 +161,11 @@ async def _try_local(
 
         client = httpx.AsyncClient(timeout=timeout)
         try:
+            import logging as _log2
+            try:
+                _d = json.loads(current_body)
+                _log2.getLogger("ceclaw.proxy").info(f"sending to {backend.name}: model={_d.get('model')} stream={_d.get('stream')} has_tools={bool(_d.get('tools'))}")
+            except: pass
             resp = await client.post(url, content=current_body, headers=headers)
             resp._ceclaw_backend = backend.name
             if resp.status_code in (200, 201):
@@ -172,7 +182,11 @@ async def _try_local(
                         return resp2
                 except Exception:
                     pass
-            logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
+            try:
+                _dbg = json.loads(current_body)
+                logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback | resp={resp.text[:200]} | model={_dbg.get('model')} stream={_dbg.get('stream')} tools={bool(_dbg.get('tools'))}")
+            except Exception:
+                logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback | resp={resp.text[:200]}")
             _healthy[backend.name] = False
         except httpx.TimeoutException:
             logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
@@ -274,6 +288,36 @@ async def handle_inference(
         )
 
     backend_name = getattr(resp, "_ceclaw_backend", "unknown")
+
+    # 如果原始要求 streaming 但我們強制改成 non-streaming，要轉換回 SSE
+    try:
+        _orig_body = json.loads(body)
+        _was_streaming = _orig_body.get("stream", False)
+        _has_tools = bool(_orig_body.get("tools"))
+    except:
+        _was_streaming = False
+        _has_tools = False
+
+    if _was_streaming and _has_tools and "text/event-stream" not in resp.headers.get("content-type", ""):
+        try:
+            _data = resp.json()
+            _chunk = json.dumps({
+                "choices": [{"delta": {"role": "assistant",
+                             "content": _data["choices"][0]["message"].get("content", "") or "",
+                             "tool_calls": _data["choices"][0]["message"].get("tool_calls")},
+                             "finish_reason": "stop", "index": 0}],
+                "model": _data.get("model", ""),
+                "object": "chat.completion.chunk"
+            })
+            async def _fake_stream():
+                yield (f"data: {_chunk}" + "\n\n").encode()
+                yield b"data: [DONE]\n\n"
+            audit.append_entry(backend_name, query, _chunk, "ok", request_id)
+            return StreamingResponse(_fake_stream(), status_code=200,
+                media_type="text/event-stream",
+                headers={"X-CECLAW-Backend": backend_name})
+        except Exception as e:
+            logger.error(f"SSE convert error: {e}")
 
     if "text/event-stream" in resp.headers.get("content-type", ""):
         async def stream_with_audit():

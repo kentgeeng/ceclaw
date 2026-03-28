@@ -47,40 +47,18 @@ REASONING_KEYWORDS = {
     "security", "database", "deploy", "testing", "implement",
     "best practice", "design pattern", "scalability", "bottleneck",
     "concurrency", "async", "memory leak", "race condition",
-    # 身份問題 — 強制走 gb10-llama
-    "你是誰", "你是什麼", "你叫什麼", "你的名字",
-    "誰開發", "誰創造", "哪個公司", "通義千問", "通義",
-    "who developed", "who created", "which company",
-    "who are you", "what are you", "your name",
-    "あなたは誰", "お前は誰",
     # 日文
     "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
     "アルゴリズム", "システム設計", "最適化",
     "実装", "違い", "まとめ",
-    # 即時性關鍵字 — 強制走 gb10-llama
-    "今天", "今日", "現在", "最新", "即時", "剛才", "剛剛",
-    # web search 高信心關鍵字 — 需要上網才能回答
-    "股價", "匯率", "指數", "天氣", "氣溫", "降雨",
-    "新聞", "最新消息", "今日行情", "即時行情",
-    "price", "stock", "weather", "news", "latest", "current price",
     # 翻譯/語言類
     "翻譯", "翻译", "translate", "translation",
     "用中文", "用英文", "用日文", "用繁體", "用簡體",
     "in chinese", "in english", "in japanese",
     "改成中文", "改成英文",
-    # web search 補充
-    "查一下", "幫我查", "最近", "近期", "今年", "本月", "本週", "上週",
-    "利率", "油價", "黃金", "cryptocurrency", "bitcoin", "crypto",
     # 辦公室/法規
     "法規", "規定", "條款", "合規", "認證", "標準", "ISO",
     "政策", "規範", "法律", "合約",
-    # 競爭/市場
-    "競爭對手", "市場行情", "產業趨勢", "供應商", "報價", "採購",
-    "股價", "天氣", "氣溫", "匯率", "幣價", "比特幣", "漲跌",
-    "新聞", "最近", "目前", "當前", "這週", "本週", "昨天",
-    "today", "now", "current", "latest", "recent", "live",
-    "stock price", "weather", "exchange rate", "bitcoin",
-    "breaking", "this week", "yesterday", "right now",
 }
 
 def needs_reasoning(query: str) -> bool:
@@ -98,7 +76,7 @@ def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Op
     """
     backends_by_name = {b.name: b for b in config.inference.local.backends}
 
-    if not query or needs_reasoning(query):
+    if query and needs_reasoning(query):
         main = backends_by_name.get("gb10-llama")
         if main and _healthy.get("gb10-llama", False):
             return main

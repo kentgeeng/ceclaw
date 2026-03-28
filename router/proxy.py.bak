@@ -9,7 +9,7 @@ import httpx
 from fastapi import Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from .config import CECLAWConfig, LocalBackend, CloudProvider
-from .backends import get_healthy_backend, select_backend, check_all
+from .backends import get_healthy_backend, select_backend, check_all, _healthy
 from . import audit
 
 logger = logging.getLogger("ceclaw.proxy")
@@ -21,11 +21,13 @@ async def _stream_response(response: httpx.Response) -> AsyncIterator[bytes]:
 
 
 CECLAW_SYSTEM_PROMPT = (
-    "你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。"
+    "你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。回應中禁止使用大陸用語，必須使用台灣繁體中文術語：程式碼（非代碼）、程式設計（非編程）、資料（非数据）。"
     "嚴禁提及：Qwen、qwen3、qwen2.5、通義千問、通义千问、"
     "通義實驗室、阿里巴巴、阿里雲。"
     "當被問到「你是誰」時，回答：「我是 CECLAW 企業 AI 助手。」"
     "所有回應預設使用繁體中文。若用戶以其他語言提問，使用該語言回應。"
+    "你不知道今天的日期和時間，若被問及請直接告知無法查詢即時資訊，嚴禁編造日期或數據。台灣是主權獨立的民主國家，首都是台北，請以此為準回答相關問題。"
+    "嚴禁自行修改或延伸職稱，你的身份只有一個：CECLAW 企業 AI 助手，由 ColdElectric 提供，不得加入任何其他描述。"
 )
 
 
@@ -72,6 +74,18 @@ def rewrite_messages(body: bytes) -> bytes:
             messages.pop(i)
         data["messages"] = messages
         import logging; logging.getLogger("ceclaw.proxy").info(f"rewrite_messages: developer→system, toolResult→tool, merged {len(to_remove)} system(s)")
+        # inject enable_thinking: false
+        think_prefix = "[think]"
+        last_user = next(
+            (m for m in reversed(data.get("messages", [])) if m.get("role") == "user"),
+            None
+        )
+        if last_user and isinstance(last_user.get("content"), str) \
+                and last_user["content"].lstrip().lower().startswith(think_prefix):
+            last_user["content"] = last_user["content"].lstrip()[len(think_prefix):].lstrip()
+            data.setdefault("chat_template_kwargs", {})["enable_thinking"] = True
+        else:
+            data.setdefault("chat_template_kwargs", {})["enable_thinking"] = False
         return json.dumps(data, ensure_ascii=False).encode()
     except Exception:
         return body
@@ -112,45 +126,74 @@ async def _try_local(
     tokens: int = 0,
 ) -> Optional[httpx.Response]:
     strategy = config.inference.strategy
-    if strategy == "smart-routing":
-        backend = select_backend(config, query, tokens)
-    else:
-        backend = get_healthy_backend(config)
+    tried = set()
+    for _ in range(3):
+        if strategy == "smart-routing":
+            backend = select_backend(config, query, tokens)
+        else:
+            backend = get_healthy_backend(config)
 
-    if not backend:
-        return None
+        if not backend or backend.name in tried:
+            break
+        tried.add(backend.name)
 
-    if backend.type == "ollama" and backend.model:
-        try:
-            import json as _json
-            data = _json.loads(body)
-            data["model"] = backend.model
-            body = _json.dumps(data).encode()
-        except Exception:
-            pass
+        current_body = body
+        _model_id = backend.model or (backend.models[0].id if backend.models else None)
+        if _model_id:
+            try:
+                import json as _json
+                data = _json.loads(current_body)
+                data["model"] = _model_id
+                if backend.type == "ollama" and backend.name == "ollama-fast":
+                    data.setdefault("num_ctx", 32768)
+                # llama.cpp 不支援 stream=True + tools 同時
+                if backend.type == "llama.cpp" and data.get("tools"):
+                    data["stream"] = False
+                current_body = _json.dumps(data).encode()
+            except Exception as e:
+                import logging as _log
+                _log.getLogger("ceclaw.proxy").error(f"model replace error: {e}")
 
-    clean_path = path.lstrip("/")
-    clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path
-    url = f"{backend.base_url.rstrip('/')}/{clean_path}"
-    timeout = config.inference.timeout_local_ms / 1000
+        clean_path = path.lstrip("/")
+        clean_path = clean_path[3:] if clean_path.startswith("v1/") else clean_path
+        url = f"{backend.base_url.rstrip('/')}/{clean_path}"
+        timeout = config.inference.timeout_local_ms / 1000
 
-    try:
         client = httpx.AsyncClient(timeout=timeout)
-        resp = await client.post(url, content=body, headers=headers)
-        resp._ceclaw_backend = backend.name
-        if resp.status_code in (200, 201):
-            logger.info(f"[local] {backend.name} → {resp.status_code}")
-            return resp
-        logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
-        return None
-    except httpx.TimeoutException:
-        logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
-        return None
-    except Exception as e:
-        logger.warning(f"[local] {backend.name} error: {e}, falling back")
-        return None
-    finally:
-        await client.aclose()
+        try:
+            import logging as _log2
+            try:
+                _d = json.loads(current_body)
+                _log2.getLogger("ceclaw.proxy").info(f"sending to {backend.name}: model={_d.get('model')} stream={_d.get('stream')} has_tools={bool(_d.get('tools'))}")
+            except: pass
+            resp = await client.post(url, content=current_body, headers=headers)
+            resp._ceclaw_backend = backend.name
+            if resp.status_code in (200, 201):
+                logger.info(f"[local] {backend.name} → {resp.status_code}")
+                return resp
+            if backend.name == "gb10-llama" and resp.status_code in (400, 500, 503):
+                logger.warning(f"[local] gb10-llama → {resp.status_code}, retry in 3s")
+                await asyncio.sleep(3)
+                try:
+                    resp2 = await client.post(url, content=current_body, headers=headers)
+                    resp2._ceclaw_backend = backend.name
+                    if resp2.status_code in (200, 201):
+                        logger.info(f"[local] gb10-llama retry → 200")
+                        return resp2
+                except Exception:
+                    pass
+            logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
+            _healthy[backend.name] = False
+        except httpx.TimeoutException:
+            logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
+            _healthy[backend.name] = False
+        except Exception as e:
+            logger.warning(f"[local] {backend.name} error: {e}, falling back")
+            _healthy[backend.name] = False
+        finally:
+            await client.aclose()
+
+    return None
 
 
 async def _try_cloud(
@@ -241,6 +284,40 @@ async def handle_inference(
         )
 
     backend_name = getattr(resp, "_ceclaw_backend", "unknown")
+
+    # 如果原始要求 streaming 但我們強制改成 non-streaming，要轉換回 SSE
+    try:
+        _orig_body = json.loads(body)
+        _was_streaming = _orig_body.get("stream", False)
+        _has_tools = bool(_orig_body.get("tools"))
+    except:
+        _was_streaming = False
+        _has_tools = False
+
+    if _was_streaming and _has_tools and "text/event-stream" not in resp.headers.get("content-type", ""):
+        try:
+            _data = resp.json()
+            _chunk = json.dumps({
+                "choices": [{"delta": {"role": "assistant",
+                             "content": _data["choices"][0]["message"].get("content", "") or "",
+                             "tool_calls": _data["choices"][0]["message"].get("tool_calls")},
+                             "finish_reason": "stop", "index": 0}],
+                "model": _data.get("model", ""),
+                "object": "chat.completion.chunk"
+            })
+            async def _fake_stream():
+                yield f"data: {_chunk}
+
+".encode()
+                yield b"data: [DONE]
+
+"
+            audit.append_entry(backend_name, query, _chunk, "ok", request_id)
+            return StreamingResponse(_fake_stream(), status_code=200,
+                media_type="text/event-stream",
+                headers={"X-CECLAW-Backend": backend_name})
+        except Exception as e:
+            logger.error(f"SSE convert error: {e}")
 
     if "text/event-stream" in resp.headers.get("content-type", ""):
         async def stream_with_audit():
