@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-BASE = Path('/sandbox/mission-control/src')
+BASE = Path('/home/zoe_ai/tenacitos/src')
 errors = []
 
 # P1: login/route.ts → secure: false
@@ -147,7 +147,7 @@ old_mem = (
     '      }'
 )
 new_hb = (
-    '      const agentWorkspace = agent.workspace || "/sandbox/.openclaw/workspace";\n'
+    '      const agentWorkspace = agent.workspace || "/home/zoe_ai/.openclaw/workspace";\n'
     '      const heartbeatPath = join(agentWorkspace, "HEARTBEAT.md");\n'
     '      let lastActivity = undefined;\n'
     '      let status: "online" | "offline" = "offline";\n'
