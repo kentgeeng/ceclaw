@@ -41,6 +41,7 @@ network_policies:
       - host: "*.in"
         port: 443
     binaries:
+      - path: /usr/bin/git
       - path: /usr/bin/node
       - path: /usr/local/bin/openclaw
       - path: /usr/bin/curl
