@@ -1,8 +1,11 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v3.7
+# CECLAW Sandbox Restore Script v3.8
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect <sandbox-name>
 #
+# v3.8 修正：
+#   - burnin_v5.sh web_search 驗證邏輯：移除 LLM 問股價（外圍無 tool），只驗 SearXNG 可達
+#   - q=台積電 改 q=TSMC（避免中文 URL encode 問題）
 # v3.7 新增：
 #   - Step 8b: 自動部署 burnin_v5.sh 到 sandbox
 # v3.6 新功能：
@@ -22,7 +25,7 @@
 
 SANDBOX_NAME="${SANDBOX_NAME:-test-net}"
 WORKSPACE_SRC=~/ceclaw/config
-echo "=== CECLAW Sandbox Restore v3.7 ==="
+echo "=== CECLAW Sandbox Restore v3.8 ==="
 echo "  target: $SANDBOX_NAME"
 
 # Step 1: 確認 sandbox
@@ -97,7 +100,7 @@ local["api"] = "openai-completions"
 if "models" not in local: local["models"] = []
 minimax = next((m for m in local["models"] if m.get("id") == "minimax"), None)
 if minimax is None:
-    local["models"].append({"id": "minimax", "name": "minimax", "contextWindow": 16384, "maxTokens": 4096})
+    local["models"].append({"id": "minimax", "name": "minimax", "contextWindow": 32768, "maxTokens": 4096})
 else:
     minimax["contextWindow"] = 32768
     minimax["maxTokens"] = 4096
@@ -303,14 +306,13 @@ for i in $(seq 1 $ROUNDS); do
     if [ $((i % 100)) -eq 0 ]; then
         echo ""
         echo "=== 第 ${i} 輪 Layer 2 web_search 驗證 ==="
-        WS_CHECK=$(curl -s --max-time 10 "${SEARCH_ENDPOINT}?q=台積電&format=json")
+        # 只驗 SearXNG 可達（外圍腳本不經 gateway，LLM 無 tool 屬正常）
+        WS_CHECK=$(curl -s --max-time 10 "${SEARCH_ENDPOINT}?q=TSMC&format=json")
         WS_COUNT=$(echo "$WS_CHECK" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null)
-        WS_RESP=$(curl -s --max-time 30 -X POST "$ENDPOINT" -H "Content-Type: application/json" -H "Authorization: $AUTH" -d '{"model":"minimax","messages":[{"role":"user","content":"台積電今天股價"}],"max_tokens":80}' 2>/dev/null)
-        WS_CONTENT=$(echo "$WS_RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'][:60])" 2>/dev/null)
-        if [ -n "$WS_COUNT" ] && [ "$WS_COUNT" -gt 0 ] && [ -n "$WS_CONTENT" ]; then
-            echo "Layer 2: ✅ SearXNG 可達（results=${WS_COUNT}），LLM 回應正常 → ${WS_CONTENT}"; ws_ok=$((ws_ok+1))
+        if [ -n "$WS_COUNT" ] && [ "$WS_COUNT" -gt 0 ]; then
+            echo "  [ws/${i}] ✅ SearXNG 正常（results=${WS_COUNT}）"; ws_ok=$((ws_ok+1))
         else
-            echo "Layer 2: ❌ 異常（results=${WS_COUNT}）→ ${WS_CONTENT}"; ws_fail=$((ws_fail+1))
+            echo "  [ws/${i}] ❌ SearXNG 無結果（results=${WS_COUNT}）"; ws_fail=$((ws_fail+1))
         fi
         echo "=========================="; echo ""
     fi
@@ -407,7 +409,7 @@ CHECKEOF
 "
 
 echo ""
-echo "✅ Restore v3.7 完成！"
+echo "✅ Restore v3.8 完成！"
 echo ""
 echo "驗證（在 sandbox 終端）："
 echo "  bash ~/ceclaw-start.sh"
