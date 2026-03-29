@@ -57,6 +57,13 @@ run_scp() {
     $SCP_BASE -o "ProxyCommand=$PROXY_CMD" "$src" sandbox@"$SANDBOX_NAME":"$dst"
 }
 
+# Step 0: 安裝 openclaw
+echo "[0/10] 安裝 openclaw@2026.3.24..."
+run_ssh "npm install -g openclaw@2026.3.24 --prefix ~/.npm-global 2>&1 | tail -3"
+run_ssh "grep -q npm-global ~/.bashrc || echo 'export PATH=~/.npm-global/bin:\$PATH' >> ~/.bashrc"
+run_ssh "~/.npm-global/bin/openclaw --version"
+echo "  ✅ openclaw 安裝完成"
+
 # Step 3: 套用 openshell policy
 echo "[3/9] 套用 network policy..."
 openshell policy set "$SANDBOX_NAME" --policy ~/ceclaw/config/ceclaw-policy.yaml --wait 2>/dev/null && \
@@ -409,6 +416,62 @@ CHECKEOF
 "
 
 echo ""
+
+# Step 10: TenacitOS 完整安裝
+echo "[10/10] 安裝 TenacitOS + pm2..."
+
+# 10a: git config
+echo "  10a: git config..."
+run_ssh "git config --global user.email 'ceclaw@coldelectric.com'"
+run_ssh "git config --global user.name 'CECLAW Dev'"
+
+# 10b: pm2
+echo "  10b: pm2..."
+run_ssh "npm install -g pm2 --prefix ~/.npm-global 2>&1 | tail -2"
+
+# 10c: clone TenacitOS
+echo "  10c: clone TenacitOS..."
+run_ssh "rm -rf /sandbox/mission-control"
+run_ssh "git -c http.sslVerify=false clone https://github.com/carlosazaustre/tenacitOS.git /sandbox/mission-control 2>&1 | tail -3"
+
+# 10d: .env.local
+echo "  10d: .env.local..."
+$SCP_BASE -o "ProxyCommand=$PROXY_CMD" \
+  ~/ceclaw/tenacitos-env.local \
+  sandbox@$SANDBOX_NAME:/sandbox/mission-control/.env.local
+
+# 10e: npm install
+echo "  10e: npm install..."
+run_ssh "cd /sandbox/mission-control && npm install 2>&1 | tail -3"
+
+# 10f: patch
+echo "  10f: 5 patches..."
+$SCP_BASE -o "ProxyCommand=$PROXY_CMD" \
+  ~/ceclaw/tenacitos-patch.py \
+  sandbox@$SANDBOX_NAME:/tmp/tenacitos-patch.py
+run_ssh "python3 /tmp/tenacitos-patch.py"
+
+# 10g: npm run build
+echo "  10g: npm run build..."
+run_ssh "cd /sandbox/mission-control && npm run build 2>&1 | tail -5"
+
+# 10h: heartbeat-watch.sh（scp）
+echo "  10h: heartbeat-watch..."
+$SCP_BASE -o "ProxyCommand=$PROXY_CMD" \
+  ~/ceclaw/heartbeat-watch.sh \
+  sandbox@$SANDBOX_NAME:~/heartbeat-watch.sh
+run_ssh "chmod +x ~/heartbeat-watch.sh"
+
+# 10i: pm2 接管（絕對路徑）
+echo "  10i: pm2 接管..."
+run_ssh "cd /sandbox/mission-control && ~/.npm-global/bin/pm2 start npm --name tenacitos -- start -- --port 3000"
+run_ssh "~/.npm-global/bin/pm2 start ~/heartbeat-watch.sh --name heartbeat-watch"
+run_ssh "~/.npm-global/bin/pm2 save"
+run_ssh "~/.npm-global/bin/pm2 list"
+
+echo "  ✅ Step 10 完成"
+echo "📺 TenacitOS: http://172.25.0.12:3004 (密碼: ceclaw2026)"
+
 echo "✅ Restore v3.8 完成！"
 echo ""
 echo "驗證（在 sandbox 終端）："
