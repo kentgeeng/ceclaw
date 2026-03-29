@@ -1,0 +1,12 @@
+[Unit]
+Description=CECLAW Control UI Port Forward
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/bin/sleep 10
+ExecStart=/bin/bash /home/zoe_ai/ceclaw-ui-start.sh
+
+[Install]
+WantedBy=default.target
