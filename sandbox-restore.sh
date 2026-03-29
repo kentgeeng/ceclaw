@@ -1,9 +1,9 @@
 #!/bin/bash
-# CECLAW Sandbox Restore Script v3.8
+# CECLAW Sandbox Restore Script v3.9
 # 用法：bash ~/ceclaw/sandbox-restore.sh
 # 前置：需要先在另一個終端 openshell sandbox connect <sandbox-name>
 #
-# v3.8 修正：
+# v3.9 修正：
 #   - burnin_v5.sh web_search 驗證邏輯：移除 LLM 問股價（外圍無 tool），只驗 SearXNG 可達
 #   - q=台積電 改 q=TSMC（避免中文 URL encode 問題）
 # v3.7 新增：
@@ -25,7 +25,7 @@
 
 SANDBOX_NAME="${SANDBOX_NAME:-test-net}"
 WORKSPACE_SRC=~/ceclaw/config
-echo "=== CECLAW Sandbox Restore v3.8 ==="
+echo "=== CECLAW Sandbox Restore v3.9 ==="
 echo "  target: $SANDBOX_NAME"
 
 # Step 1: 確認 sandbox
@@ -114,6 +114,8 @@ else:
 
 if "gateway" not in cfg: cfg["gateway"] = {}
 cfg["gateway"]["mode"] = "local"
+cfg["gateway"]["bind"] = "lan"
+cfg["gateway"]["bind"] = "lan"
 if "agents" not in cfg: cfg["agents"] = {}
 if "defaults" not in cfg["agents"]: cfg["agents"]["defaults"] = {}
 cfg["agents"]["defaults"]["compaction"] = {"mode": "safeguard", "reserveTokens": 8000}
@@ -150,6 +152,10 @@ if "tools" not in main_agent: main_agent["tools"] = {}
 if "allow" not in main_agent["tools"]: main_agent["tools"]["allow"] = []
 if "web_search" not in main_agent["tools"]["allow"]:
     main_agent["tools"]["allow"].append("web_search")
+if "exec" not in main_agent["tools"]["allow"]:
+    main_agent["tools"]["allow"].append("exec")
+if "exec" not in main_agent["tools"]["allow"]:
+    main_agent["tools"]["allow"].append("exec")
 
 json.dump(cfg, open(CFG_PATH, "w"), indent=4, ensure_ascii=False)
 print("Step C: openclaw.json patched")
@@ -210,10 +216,12 @@ else:
 if os.path.exists(KEEP_DIR):
     print(f"Step F: drawliin-searxng 已存在，保留 ✅")
 else:
-    print(f"Step F: ⚠️ drawliin-searxng 不存在，請手動安裝：")
-    print(f"  cd ~/.openclaw/extensions")
-    print(f"  git clone https://github.com/drawliin/openclaw-searxng drawliin-searxng")
-    print(f"  cd drawliin-searxng && npm install && npm run build")
+    print(f"Step F: drawliin-searxng 不存在，自動安裝...")
+    ret = os.system("cd /sandbox/.openclaw/extensions && GIT_SSL_NO_VERIFY=1 git clone https://github.com/drawliin/openclaw-searxng drawliin-searxng 2>&1 && cd drawliin-searxng && npm install 2>&1 | tail -3 && npm run build 2>&1 | tail -3")
+    if ret != 0:
+        print(f"Step F: ⚠️ drawliin-searxng 安裝失敗，請手動安裝")
+    else:
+        print(f"Step F: drawliin-searxng 安裝完成 ✅")
 
 # auth-profiles.json
 auth_dir = "/sandbox/.openclaw/agents/main/agent"
@@ -221,6 +229,10 @@ os.makedirs(auth_dir, exist_ok=True)
 json.dump({"local": {"apiKey": "ceclaw-local-key"}},
           open(os.path.join(auth_dir, "auth-profiles.json"), "w"), indent=4)
 print("auth-profiles.json: created")
+os.chmod(os.path.join(auth_dir, "auth-profiles.json"), 0o600)
+print("auth-profiles.json: chmod 600 OK")
+os.chmod(os.path.join(auth_dir, "auth-profiles.json"), 0o600)
+print("auth-profiles.json: chmod 600 OK")
 
 print("=== ALL DONE ===")
 PYEOF
@@ -472,7 +484,7 @@ run_ssh "~/.npm-global/bin/pm2 list"
 echo "  ✅ Step 10 完成"
 echo "📺 TenacitOS: http://172.25.0.12:3004 (密碼: ceclaw2026)"
 
-echo "✅ Restore v3.8 完成！"
+echo "✅ Restore v3.9 完成！"
 echo ""
 echo "驗證（在 sandbox 終端）："
 echo "  bash ~/ceclaw-start.sh"
