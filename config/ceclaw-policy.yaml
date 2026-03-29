@@ -22,6 +22,10 @@ network_policies:
         port: 443
       - host: "technews.tw"
         port: 443
+      - host: "fonts.googleapis.com"
+        port: 443
+      - host: "fonts.gstatic.com"
+        port: 443
       - host: "github.com"
         port: 443
       - host: "*.github.com"
