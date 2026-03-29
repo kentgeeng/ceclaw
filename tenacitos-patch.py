@@ -128,8 +128,7 @@ print("P5: agents heartbeat...")
 p5 = BASE / 'app/api/agents/route.ts'
 c = p5.read_text()
 old_mem = (
-    '      const agentWorkspace = agent.workspace || "/sandbox/.openclaw/workspace";\n'
-    '      const memoryPath = join(agentWorkspace, "memory");\n'
+    '      const memoryPath = join(agent.workspace, "memory");\n'
     '      let lastActivity = undefined;\n'
     '      let status: "online" | "offline" = "offline";\n'
     '\n'
