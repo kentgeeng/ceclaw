@@ -27,6 +27,21 @@ AUTOSSH_GATETIME=0 autossh -M 0 -N \
   -o ServerAliveInterval=30 \
   -o ServerAliveCountMax=3 \
   -o "ProxyCommand=openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh \
---sandbox-id b73f31ea-d582-45a0-9a2d-ec2b3d9593a2 \
+--sandbox-id 7f346b7d-5293-486f-9e44-7c14612df7c0 \
 --token $TOKEN --gateway-name openshell" \
   sandbox@test-net &
+
+# Step 6: pm2 resurrect（等 sandbox tunnel ready）
+SANDBOX_ID=7f346b7d-5293-486f-9e44-7c14612df7c0
+for i in $(seq 1 15); do
+  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    -o ConnectTimeout=2 \
+    -o "ProxyCommand=openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh \
+--sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell" \
+    sandbox@test-net "echo ok" 2>/dev/null && break
+  sleep 2
+done
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+  -o "ProxyCommand=openshell ssh-proxy --gateway https://127.0.0.1:8080/connect/ssh \
+--sandbox-id $SANDBOX_ID --token $TOKEN --gateway-name openshell" \
+  sandbox@test-net "~/.npm-global/bin/pm2 resurrect 2>/dev/null; echo pm2-done"

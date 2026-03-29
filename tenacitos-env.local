@@ -3,3 +3,4 @@ OPENCLAW_DIR=/sandbox/.openclaw
 OPENCLAW_WORKSPACE=/sandbox/.openclaw/workspace
 NEXT_PUBLIC_AGENT_NAME=CECLAW
 NEXT_PUBLIC_AGENT_EMOJI=🤖
+AUTH_SECRET=ceclaw2026authsecret32charlong123
