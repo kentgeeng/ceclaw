@@ -96,7 +96,7 @@ def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Op
 
 async def check_backend(backend: LocalBackend) -> bool:
     timeout = (backend.health_check_timeout_ms or 15000) / 1000
-    endpoint = "/health" if backend.type == "llama.cpp" else "/models"
+    endpoint = "/health" if backend.type == "llama.cpp" else "/api/tags"
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.get(f"{backend.base_url.rstrip('/')}{endpoint}")

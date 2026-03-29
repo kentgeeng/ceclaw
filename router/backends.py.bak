@@ -22,6 +22,7 @@ REASONING_KEYWORDS = {
     "統計", "機率", "線性代數", "幾何", "物理", "化學",
     # 中文 — 辦公室/商業
     "報告", "提案", "企劃", "預算", "財務", "成本", "效益",
+    "郵件", "商業", "信件", "email", "letter", "business",
     "市場", "競爭", "風險", "合約", "法律", "規範", "流程",
     "會議", "簡報", "摘要", "結論", "決策", "規劃", "目標",
     # 中文 — 程式/技術
@@ -46,16 +47,18 @@ REASONING_KEYWORDS = {
     "security", "database", "deploy", "testing", "implement",
     "best practice", "design pattern", "scalability", "bottleneck",
     "concurrency", "async", "memory leak", "race condition",
-    # 身份問題 — 強制走 gb10-llama
-    "你是誰", "你是什麼", "你叫什麼", "你的名字",
-    "誰開發", "誰創造", "哪個公司", "通義千問", "通義",
-    "who developed", "who created", "which company",
-    "who are you", "what are you", "your name",
-    "あなたは誰", "お前は誰",
     # 日文
     "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
     "アルゴリズム", "システム設計", "最適化",
     "実装", "違い", "まとめ",
+    # 翻譯/語言類
+    "翻譯", "翻译", "translate", "translation",
+    "用中文", "用英文", "用日文", "用繁體", "用簡體",
+    "in chinese", "in english", "in japanese",
+    "改成中文", "改成英文",
+    # 辦公室/法規
+    "法規", "規定", "條款", "合規", "認證", "標準", "ISO",
+    "政策", "規範", "法律", "合約",
 }
 
 def needs_reasoning(query: str) -> bool:
@@ -73,7 +76,7 @@ def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Op
     """
     backends_by_name = {b.name: b for b in config.inference.local.backends}
 
-    if not query or needs_reasoning(query):
+    if query and needs_reasoning(query):
         main = backends_by_name.get("gb10-llama")
         if main and _healthy.get("gb10-llama", False):
             return main
