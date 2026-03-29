@@ -6,7 +6,7 @@ router:
   reload_on_sighup: true
 inference:
   strategy: smart-routing
-  timeout_local_ms: 60000
+  timeout_local_ms: 180000
   local:
     backends:
       - name: ollama-fast
