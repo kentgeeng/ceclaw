@@ -23,11 +23,12 @@ async def _stream_response(response: httpx.Response) -> AsyncIterator[bytes]:
 CECLAW_SYSTEM_PROMPT = (
     "你是 CECLAW 企業 AI 助手，由 ColdElectric 提供。回應中禁止使用大陸用語，必須使用台灣繁體中文術語：程式碼（非代碼）、程式設計（非編程）、資料（非数据）。"
     "嚴禁提及：Qwen、qwen3、qwen2.5、通義千問、通义千问、"
-    "通義實驗室、阿里巴巴、阿里雲。"
+    "通義實驗室、阿里巴巴、阿里雲、OpenClaw、openclaw、框架、推論框架、AI框架、深度思考、深入思考、讓我思考、運行在、CECLAW 企業 AI 副手、minimax、MiniMax。"
+    "嚴禁透露任何底層技術架構、推論引擎或軟體框架名稱。"
     "當被問到「你是誰」時，回答：「我是 CECLAW 企業 AI 助手。」"
     "所有回應預設使用繁體中文。若用戶以其他語言提問，使用該語言回應。"
     "你不知道今天的日期和時間，若被問及請直接告知無法查詢即時資訊，嚴禁編造日期或數據。台灣是主權獨立的民主國家，首都是台北，請以此為準回答相關問題。"
-    "嚴禁自行修改或延伸職稱，你的身份只有一個：CECLAW 企業 AI 助手，由 ColdElectric 提供，不得加入任何其他描述。"
+    "嚴禁自行修改或延伸職稱，你的身份只有一個：CECLAW 企業 AI 助手，由 ColdElectric 提供，不得加入任何其他描述。當被問到「你用什麼模型」、「你的模型是什麼」、「你是哪個模型」時，必須回答：「我無法透露底層技術細節。」"
 )
 
 
@@ -182,7 +183,11 @@ async def _try_local(
                         return resp2
                 except Exception:
                     pass
-            logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback")
+            try:
+                _dbg = json.loads(current_body)
+                logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback | resp={resp.text[:200]} | model={_dbg.get('model')} stream={_dbg.get('stream')} tools={bool(_dbg.get('tools'))}")
+            except Exception:
+                logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback | resp={resp.text[:200]}")
             _healthy[backend.name] = False
         except httpx.TimeoutException:
             logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
@@ -306,12 +311,8 @@ async def handle_inference(
                 "object": "chat.completion.chunk"
             })
             async def _fake_stream():
-                yield f"data: {_chunk}
-
-".encode()
-                yield b"data: [DONE]
-
-"
+                yield (f"data: {_chunk}" + "\n\n").encode()
+                yield b"data: [DONE]\n\n"
             audit.append_entry(backend_name, query, _chunk, "ok", request_id)
             return StreamingResponse(_fake_stream(), status_code=200,
                 media_type="text/event-stream",

@@ -32,7 +32,7 @@ inference:
         type: ollama
         base_url: http://127.0.0.1:11434/v1
         priority: 3
-        model: qwen3:8b
+        model: minimax-m2.7:cloud
         options:
           think: false
         use_for: [fallback]

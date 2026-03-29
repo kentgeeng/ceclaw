@@ -145,6 +145,8 @@ async def _try_local(
                 import json as _json
                 data = _json.loads(current_body)
                 data["model"] = _model_id
+                if backend.type == "ollama":
+                    data["think"] = False
                 if backend.type == "ollama" and backend.name == "ollama-fast":
                     data.setdefault("num_ctx", 32768)
                 # llama.cpp 不支援 stream=True + tools 同時
