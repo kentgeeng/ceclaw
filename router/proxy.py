@@ -2,6 +2,7 @@
 CECLAW Router - Proxy & Fallback Logic
 """
 import json
+import os
 import asyncio
 import logging
 from typing import Optional, AsyncIterator
@@ -32,17 +33,57 @@ CECLAW_SYSTEM_PROMPT = (
 )
 
 
-def inject_system_prompt(body: bytes) -> bytes:
+
+def load_soul_md(model: str) -> str:
+    """根據 model 名稱載入對應 SOUL.md，例如 ceclaw/inbox"""
+    if "/" not in model:
+        return ""
+    parts = model.split("/", 1)
+    if parts[0] != "ceclaw":
+        return ""
+    skill_name = f"ceclaw-{parts[1]}"
+    soul_path = os.path.expanduser(
+        f"~/.openclaw/workspace/skills/{skill_name}/SOUL.md"
+    )
+    if os.path.exists(soul_path):
+        with open(soul_path, encoding="utf-8") as f:
+            content = f.read()
+        logger.info(f"load_soul_md: loaded {soul_path}")
+        return content
+    # 也找 awesome-openclaw-agents 目錄
+    alt_map = {
+        "inbox": "productivity/inbox-zero",
+        "minutes": "productivity/meeting-notes",
+        "standup": "productivity/daily-standup",
+        "compass": "business/customer-support",
+        "ledger": "business/invoice-tracker",
+    }
+    if parts[1] in alt_map:
+        alt_path = os.path.expanduser(
+            f"~/awesome-openclaw-agents/agents/{alt_map[parts[1]]}/SOUL.md"
+        )
+        if os.path.exists(alt_path):
+            with open(alt_path, encoding="utf-8") as f:
+                content = f.read()
+            logger.info(f"load_soul_md: loaded alt {alt_path}")
+            return content
+    logger.warning(f"load_soul_md: not found for {model}")
+    return ""
+
+def inject_system_prompt(body: bytes, soul_md: str = "") -> bytes:
     """inject CECLAW identity as system prompt"""
     try:
         data = json.loads(body)
         messages = data.get("messages")
         if not messages:
             return body
+        full_prompt = CECLAW_SYSTEM_PROMPT
+        if soul_md:
+            full_prompt = soul_md + "\n\n" + CECLAW_SYSTEM_PROMPT
         if messages[0].get("role") == "system":
-            messages[0]["content"] = messages[0]["content"] + "\n\n" + CECLAW_SYSTEM_PROMPT
+            messages[0]["content"] = messages[0]["content"] + "\n\n" + full_prompt
         else:
-            messages.insert(0, {"role": "system", "content": CECLAW_SYSTEM_PROMPT})
+            messages.insert(0, {"role": "system", "content": full_prompt})
         data["messages"] = messages
         import logging; logging.getLogger("ceclaw.proxy").info(f"inject_system_prompt: full_sys={messages[0]['content']!r}")
         return json.dumps(data, ensure_ascii=False).encode()
@@ -251,7 +292,12 @@ async def handle_inference(
 ) -> StreamingResponse | JSONResponse:
     body = await request.body()
     body = rewrite_messages(body)
-    body = inject_system_prompt(body)
+    try:
+        _model_str = json.loads(body).get("model", "")
+    except Exception:
+        _model_str = ""
+    _soul_md = load_soul_md(_model_str)
+    body = inject_system_prompt(body, soul_md=_soul_md)
     headers = {
         "Content-Type": request.headers.get("Content-Type", "application/json"),
         "Accept": request.headers.get("Accept", "*/*"),
