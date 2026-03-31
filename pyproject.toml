@@ -12,3 +12,6 @@ dependencies = [
 
 [project.scripts]
 ceclaw-router = "router.main:main"
+
+[tool.pytest]
+testpaths = ["tests"]
