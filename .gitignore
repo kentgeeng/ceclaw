@@ -5,3 +5,6 @@ __pycache__/
 *.egg-info/
 plugin/node_modules/
 ceclaw-demo/
+fib.py
+script.py
+tests/
