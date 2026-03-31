@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 *.egg-info/
 plugin/node_modules/
+ceclaw-demo/
