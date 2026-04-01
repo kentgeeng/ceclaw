@@ -531,7 +531,10 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             ftype = args.get("type", "")
             cmd   = f"find {repr(fpath)} {f'-type {ftype}' if ftype else ''} -name {repr(fname)}"
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-            result = r.stdout.strip() or "(無匹配)"
+            lines = r.stdout.strip().splitlines()
+            result = "\n".join(lines[:50]) or "(無匹配)"
+            if len(lines) > 50:
+                result += f"\n...(結果過多，僅顯示前 50 筆)"
             if r.returncode != 0 and r.stderr:
                 result = f"錯誤：{r.stderr.strip()[:300]}"
             return result
