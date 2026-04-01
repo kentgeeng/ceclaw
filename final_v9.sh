@@ -29,8 +29,8 @@ for round in $(seq 1 $MAX_ROUNDS); do
   # 1. Write
   TOTAL_TESTS=$((TOTAL_TESTS + 1))
   echo -n "   [Write] 建立程式碼... "
-  timeout 120 python3 "$AGENT" --no-ws --session-id "W${round}" --steps 8 \
-    --write "Write a Python BMI calculator" --out "$WORK_DIR/bmi.py" > "$LOG_DIR/W_${round}.log" 2>&1
+  CECLAW_ENDPOINT=http://192.168.1.91:8001 timeout 120 python3 "$AGENT" --no-ws --session-id "W${round}" --steps 8 \
+    --write "Write a Python BMI calculator" --out "$WORK_DIR/bmi.py" --cwd "$WORK_DIR" > "$LOG_DIR/W_${round}.log" 2>&1
   if [ -s "$WORK_DIR/bmi.py" ]; then echo "✅ PASS"; TOTAL_PASS=$((TOTAL_PASS + 1))
   else echo "❌ FAIL"; fi
 
@@ -38,7 +38,7 @@ for round in $(seq 1 $MAX_ROUNDS); do
   echo 'def broken(a, b): reutrn a + b' > "$WORK_DIR/bug.py"
   TOTAL_TESTS=$((TOTAL_TESTS + 1))
   echo -n "   [Fix]   修復語法... "
-  timeout 120 python3 "$AGENT" --no-ws --session-id "F${round}" --steps 8 \
+  CECLAW_ENDPOINT=http://192.168.1.91:8001 timeout 120 python3 "$AGENT" --no-ws --session-id "F${round}" --steps 8 \
     --fix "Fix syntax error" --file "$WORK_DIR/bug.py" > "$LOG_DIR/F_${round}.log" 2>&1
   if python3 -m py_compile "$WORK_DIR/bug.py" 2>/dev/null; then echo "✅ PASS"; TOTAL_PASS=$((TOTAL_PASS + 1))
   else echo "❌ FAIL"; fi
@@ -56,7 +56,7 @@ for round in $(seq 1 $MAX_ROUNDS); do
   # 4. Parallel
   TOTAL_TESTS=$((TOTAL_TESTS + 1))
   echo -n "   [Par]   並行子任務... "
-  timeout 120 python3 "$AGENT" --no-ws --session-id "P${round}" --steps 8 \
+  CECLAW_ENDPOINT=http://192.168.1.91:8001 timeout 120 python3 "$AGENT" --no-ws --session-id "P${round}" --steps 8 \
     --parallel "TaskA: Say Hi" "TaskB: 25+25" > "$LOG_DIR/P_${round}.log" 2>&1
   if grep -qiE "完成|done|agent-0|agent-1" "$LOG_DIR/P_${round}.log"; then echo "✅ PASS"; TOTAL_PASS=$((TOTAL_PASS + 1))
   else echo "❌ FAIL"; fi
