@@ -600,7 +600,7 @@ def call_ceclaw_stream(messages, endpoint, model, token, silent=False):
     resp = requests.post(
         f"{endpoint.rstrip('/')}/v1/chat/completions",
         json={"model": model, "messages": messages, "tools": TOOLS,
-              "tool_choice": "auto", "temperature": 0, "max_tokens": 4096,
+              "temperature": 0, "max_tokens": 4096,
               "stream": True},
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
         stream=True, timeout=180
