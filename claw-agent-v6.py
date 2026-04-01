@@ -532,7 +532,7 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             fname = args["name"]
             fpath = str(Path(args.get("path", cwd)).expanduser())
             ftype = args.get("type", "")
-            cmd   = f"find {repr(fpath)} {f'-type {ftype}' if ftype else ''} -name {repr(fname)}"
+            cmd   = f"find {repr(fpath)} {f'-type {ftype}' if ftype else ''} -name {repr(fname)} -not -path '*/.venv/*' -not -path '*/__pycache__/*'"
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
             lines = r.stdout.strip().splitlines()
             result = "\n".join(lines[:50]) or "(無匹配)"
