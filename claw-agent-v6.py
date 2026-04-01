@@ -84,6 +84,7 @@ class WSBroker:
         self.clients: dict[str, set] = {}   # session_id → set of websockets
         self.latest_sid: str | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._lock = threading.Lock()
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
@@ -94,10 +95,11 @@ class WSBroker:
         if not self._loop:
             return
         # /ws/latest 收到所有 session 的事件（debug 用）
-        targets = (
-            self.clients.get(session_id, set()) |
-            self.clients.get("latest", set())
-        )
+        with self._lock:
+            targets = (
+                self.clients.get(session_id, set()) |
+                self.clients.get("latest", set())
+            )
         payload = json.dumps(msg, ensure_ascii=False)
         for ws in list(targets):
             asyncio.run_coroutine_threadsafe(
@@ -314,8 +316,8 @@ def build_symbol_map(cwd):
                         if m and m.group(1) and len(m.group(1)) > 2:
                             symbols.setdefault(m.group(1), []).append(
                                 {"file": rel, "line": i, "type": sym_type})
-            except Exception:
-                pass
+            except Exception as parse_err:
+                pass  # chunk 不完整，跳過
     SYMBOL_CACHE[cache_key] = symbols
     return symbols
 
@@ -840,7 +842,7 @@ def mode_fix(error_msg, filepath, endpoint, model, token, max_retries=3, cwd=Non
         task  = (f"修復 {filepath} 的 bug：\n\n錯誤：{error_msg}\n\n"
                  f"步驟：1.read_file 讀取 2.find_symbol 找定義 "
                  f"3.用 file_edit 修復（不要整個覆寫）4.執行驗證 5.DONE")
-        sid   = session_id or datetime.now().strftime("%Y%m%d_%H%M%S") + f"_fix-{attempt}"
+        sid   = session_id or datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_fix-{attempt}"
         agent = CeLawCoderAgent(session_id=sid, endpoint=endpoint, model=model, token=token)
         agent.run(task, cwd=cwd, max_steps=15, mode=f"fix-{attempt}")
         p = Path(filepath).expanduser()
@@ -870,7 +872,7 @@ def mode_test(test_cmd, filepath, endpoint, model, token, max_retries=5, cwd=Non
         if attempt >= max_retries: break
         task  = (f"測試失敗，用 file_edit 修復 {filepath}：\n\n"
                  f"測試：{test_cmd}\n失敗：{output[:1500]}\n\nDONE")
-        sid   = session_id or datetime.now().strftime("%Y%m%d_%H%M%S") + f"_test-{attempt}"
+        sid   = session_id or datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_test-{attempt}"
         agent = CeLawCoderAgent(session_id=sid, endpoint=endpoint, model=model, token=token)
         agent.run(task, cwd=cwd, max_steps=15, mode=f"test-{attempt}")
     print(f"\033[31m❌ 達到最大重試\033[0m")
