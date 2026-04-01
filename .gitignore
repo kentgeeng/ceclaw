@@ -8,3 +8,5 @@ ceclaw-demo/
 fib.py
 script.py
 tests/
+test_logs/
+test_reports/

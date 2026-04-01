@@ -1,8 +1,0 @@
-usage: claw-agent-v6.py [-h] [--endpoint ENDPOINT] [--model MODEL]
-                        [--token TOKEN] [--steps STEPS] [--retries RETRIES]
-                        [--cwd CWD] [--session-id SESSION_ID] [--no-ws]
-                        [--write REQ] [--out FILE] [--fix ERROR] [--file FILE]
-                        [--test CMD] [--parallel TASK [TASK ...]]
-                        [--resume SESSION_ID] [--sessions]
-                        [task]
-claw-agent-v6.py: error: unrecognized arguments: syntax error in /tmp/ceclaw_agent_run/2/bug.py
