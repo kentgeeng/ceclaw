@@ -666,7 +666,7 @@ class CeLawCoderAgent(OpenClawAgent):
             {"role": "user",   "content": task},
         ]
 
-        recent_fps      = deque(maxlen=3)
+        recent_fps      = deque(maxlen=5)
         last_result_text = ""
         last_content = ""
 
@@ -808,7 +808,7 @@ def run_parallel_agents(tasks, endpoint, model, token, cwd=None):
         sid = datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_parallel-{i+1}"
         print(f"  \033[35m[agent-{i+1}] 開始：{task[:50]}\033[0m")
         agent = CeLawCoderAgent(session_id=sid, endpoint=parallel_endpoint, model=parallel_model, token=token)
-        r = agent.run(task, cwd=cwd, max_steps=20, mode=f"parallel-{i+1}", silent=True)
+        r = agent.run(task, cwd=cwd, max_steps=30, mode=f"parallel-{i+1}", silent=True)
         results[i] = r
         print(f"  \033[32m[agent-{i+1}] 完成\033[0m")
 
