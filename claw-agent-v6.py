@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 CeLaw Coding Agent v6
 模式：
@@ -32,10 +33,14 @@ try:
     from websockets.asyncio.server import serve as ws_serve
 except ImportError:
     try:
-        subprocess.run([sys.executable, "-m", "pip", "install", "websockets", "-q"])
-        from websockets.asyncio.server import serve as ws_serve
+        from websockets.server import serve as ws_serve
     except ImportError:
-        ws_serve = None
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "websockets", "-q"])
+            from websockets.asyncio.server import serve as ws_serve
+        except ImportError:
+            ws_serve = None
+            print("⚠️ websockets 未安裝，WebSocket 功能將停用")
 
 import socket
 
@@ -118,6 +123,9 @@ async def _ws_server_main():
 
 def start_ws_thread():
     """在背景 thread 啟動 WS server"""
+    if ws_serve is None:
+        print("  [33m⚠️ WebSocket 功能停用（websockets 套件未安裝）[0m")
+        return
     def _run():
         asyncio.run(_ws_server_main())
     t = threading.Thread(target=_run, daemon=True)
@@ -506,9 +514,9 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
 
         elif name == "find":
             fname = args["name"]
-            fpath = args.get("path", cwd)
+            fpath = str(Path(args.get("path", cwd)).expanduser())
             ftype = args.get("type", "")
-            cmd   = f"find {repr(str(fpath))} {f'-type {ftype}' if ftype else ''} -name {repr(fname)} 2>/dev/null | head -50"
+            cmd   = f"find {repr(fpath)} {f'-type {ftype}' if ftype else ''} -name {repr(fname)} 2>/dev/null | head -50"
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
             return r.stdout or "(無匹配)"
 
