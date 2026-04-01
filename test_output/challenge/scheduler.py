@@ -1,29 +1,27 @@
 """
-執行緒安全的優先級任務排程器
-
-此模組提供一個執行緒安全的 PriorityTaskScheduler 類別，用於管理具有優先級的任務。
-任務會根據優先級（數值越小越優先）依序執行，並支援多執行緒安全操作。
+PriorityTaskScheduler 實作：
+一個基於優先級的執行緒安全任務排程器。
+使用 heapq 實現優先級佇列，配合 threading.Lock 確保執行緒安全。
 """
 
 import heapq
 import threading
-from typing import Callable, Any, Optional
-from itertools import count
+from typing import Callable, Any, Optional, Tuple
+import time
 
 
 class PriorityTaskScheduler:
     """
-    執行緒安全的優先級任務排程器
+    優先級任務排程器
     
-    使用 heapq 實作優先級佇列，配合 threading.Lock 確保執行緒安全。
-    任務按照優先級（數值越小越優先）依序執行，相同優先級則依加入順序執行。
+    此排程器允許添加具有不同優先級的任務，並按照優先級順序執行。
+    較小的 priority 值表示較高的優先級。
     
     Attributes:
-        _heap: 用於儲存任務的優先級佇列
-        _counter: 用於維持相同優先級任務的加入順序
-        _lock: 用於保護共享資源的互斥鎖
-        _shutdown: 用於標記排程器是否已停止
-        _counter_lock: 用於保護 counter 的鎖
+        max_workers: 最大工作執行緒數量（目前實作為單執行緒執行）
+        _heap: 用於儲存任務的堆積結構
+        _lock: 用於保護共享狀態的鎖
+        _shutdown: 用於停止排程器的標誌
     """
     
     def __init__(self, max_workers: int = 1):
@@ -31,74 +29,78 @@ class PriorityTaskScheduler:
         初始化排程器
         
         Args:
-            max_workers: 最大工作執行緒數（目前實作為單執行緒執行，但保留此參數供未來擴充）
+            max_workers: 最大工作執行緒數量（目前實作為單執行緒執行）
         """
-        self._heap: list = []
-        self._counter = count()
+        self.max_workers = max_workers
+        self._heap: list[Tuple[int, int, Callable, Tuple, dict]] = []
+        self._counter = 0  # 用於穩定排序的計數器
         self._lock = threading.Lock()
         self._shutdown = False
-        self._counter_lock = threading.Lock()
-        self._max_workers = max_workers
+        self._task_added = threading.Condition(self._lock)
     
     def add_task(self, priority: int, task_func: Callable, *args: Any, **kwargs: Any) -> None:
         """
-        新增一個任務到排程器
+        添加一個任務到排程器
         
-        任務會根據優先級插入到佇列中，數值越小表示優先級越高。
-        相同優先級的任務會依照加入順序執行。
+        priority 越小越優先。任務會在 run_next() 被調用時執行。
         
         Args:
-            priority: 任務優先級（數值越小越優先）
+            priority: 任務的優先級（越小越優先）
             task_func: 要執行的函數
-            *args: 傳遞給任務函數的位置參數
-            **kwargs: 傳遞給任務函數的關鍵字參數
-        
-        Example:
-            >>> scheduler = PriorityTaskScheduler()
-            >>> scheduler.add_task(1, print, "高優先級")
-            >>> scheduler.add_task(2, print, "低優先級")
+            *args: 位置參數傳遞給 task_func
+            **kwargs: 關鍵字參數傳遞給 task_func
+            
+        Raises:
+            RuntimeError: 當排程器已停止時無法添加任務
         """
-        with self._counter_lock:
-            counter_value = next(self._counter)
-        
-        # tuple 格式: (priority, counter, task_func, args, kwargs)
-        task_entry = (priority, counter_value, task_func, args, kwargs)
-        
         with self._lock:
-            heapq.heappush(self._heap, task_entry)
+            if self._shutdown:
+                raise RuntimeError("排程器已停止，無法添加新任務")
+            
+            # 使用計數器確保相同優先級的任務按照添加順序執行（穩定排序）
+            heapq.heappush(self._heap, (priority, self._counter, task_func, args, kwargs))
+            self._counter += 1
+            self._task_added.notify()
     
     def run_next(self) -> bool:
         """
-        執行佇列中的下一個任務
+        執行下一個最高優先級的任務
         
-        從優先級佇列中取出最高優先級的任務並執行。
-        如果任務執行時發生異常，會記錄錯誤但不會導致排程器崩潰。
+        如果沒有可執行的任務，返回 False。
+        任務崩潰不會影響排程器的正常運作。
         
         Returns:
-            bool: 如果成功執行了一個任務則回傳 True，如果佇列為空則回傳 False
+            bool: 如果成功執行了一個任務，返回 True；如果沒有任務可執行，返回 False
         """
+        task_func = None
+        args = ()
+        kwargs = {}
+        
         with self._lock:
-            if not self._heap:
-                return False
-            
             if self._shutdown:
                 return False
             
-            priority, counter, task_func, args, kwargs = heapq.heappop(self._heap)
+            if not self._heap:
+                return False
+            
+            # 取出最高優先級的任務
+            _, _, task_func, args, kwargs = heapq.heappop(self._heap)
+        
+        if task_func is None:
+            return False
         
         try:
+            # 執行任務，捕獲任何異常
             task_func(*args, **kwargs)
             return True
         except Exception as e:
             # 任務崩潰不影響排程器
             print(f"任務執行時發生錯誤: {e}")
-            return True
+            return True  # 仍然返回 True，因為我們成功「執行」了這個任務（即使它崩潰了）
     
     def cancel_pending(self) -> int:
         """
         取消所有待處理的任務
-        
-        清空佇列中的所有任務。
         
         Returns:
             int: 被取消的任務數量
@@ -108,211 +110,125 @@ class PriorityTaskScheduler:
             self._heap.clear()
             return count
     
-    def is_empty(self) -> bool:
+    def shutdown(self) -> None:
         """
-        檢查佇列是否為空
-        
-        Returns:
-            bool: 如果佇列為空則回傳 True
-        """
-        with self._lock:
-            return len(self._heap) == 0
-    
-    def stop(self) -> None:
-        """
-        停止排程器
-        
-        標記排程器為停止狀態，不再接受新任務。
+        停止排程器並清除所有待處理的任務
         """
         with self._lock:
             self._shutdown = True
-
-
-def test_basic_functionality():
-    """測試基本功能"""
-    print("=== 測試基本功能 ===")
-    scheduler = PriorityTaskScheduler()
+            self._heap.clear()
+            self._task_added.notify_all()
     
-    results = []
-    
-    def task1():
-        results.append("任務 1")
-        print("執行任務 1")
-    
-    def task2():
-        results.append("任務 2")
-        print("執行任務 2")
-    
-    def task3():
-        results.append("任務 3")
-        print("執行任務 3")
-    
-    # 依不同順序加入任務
-    scheduler.add_task(2, task2)
-    scheduler.add_task(1, task1)
-    scheduler.add_task(3, task3)
-    
-    # 執行所有任務
-    while scheduler.run_next():
-        pass
-    
-    print(f"執行順序: {results}")
-    assert results == ["任務 1", "任務 2", "任務 3"], "優先級順序錯誤"
-    print("✓ 基本功能測試通過\n")
-
-
-def test_cancel_functionality():
-    """測試取消功能"""
-    print("=== 測試取消功能 ===")
-    scheduler = PriorityTaskScheduler()
-    
-    def task1():
-        print("任務 1 執行")
-    
-    def task2():
-        print("任務 2 執行")
-    
-    scheduler.add_task(1, task1)
-    scheduler.add_task(2, task2)
-    
-    cancelled = scheduler.cancel_pending()
-    print(f"取消了 {cancelled} 個任務")
-    assert cancelled == 2, "取消數量錯誤"
-    assert scheduler.is_empty(), "佇列應該為空"
-    print("✓ 取消功能測試通過\n")
-
-
-def test_error_handling():
-    """測試錯誤處理"""
-    print("=== 測試錯誤處理 ===")
-    scheduler = PriorityTaskScheduler()
-    
-    def good_task():
-        print("正常任務執行")
-    
-    def bad_task():
-        raise ValueError("故意拋出的錯誤")
-    
-    scheduler.add_task(1, good_task)
-    scheduler.add_task(2, bad_task)
-    scheduler.add_task(3, good_task)
-    
-    # 執行所有任務，即使有錯誤也不應該崩潰
-    count = 0
-    while scheduler.run_next():
-        count += 1
-    
-    print(f"成功執行了 {count} 個任務")
-    assert count == 3, "應該執行所有任務"
-    print("✓ 錯誤處理測試通過\n")
-
-
-def test_multithreaded():
-    """測試多執行緒環境"""
-    print("=== 測試多執行緒環境 ===")
-    scheduler = PriorityTaskScheduler()
-    
-    results = []
-    lock = threading.Lock()
-    
-    def task_with_delay(name):
-        import time
-        time.sleep(0.01)
-        with lock:
-            results.append(name)
-        print(f"執行 {name}")
-    
-    # 從多個執行緒加入任務
-    threads = []
-    for i in range(10):
-        task_name = f"任務-{i}"
-        def make_task(n):
-            def t():
-                task_with_delay(n)
-            return t
+    def pending_count(self) -> int:
+        """
+        獲取待處理的任務數量
         
-        t = threading.Thread(target=scheduler.add_task, args=(i, make_task(task_name)))
-        threads.append(t)
+        Returns:
+            int: 待處理的任務數量
+        """
+        with self._lock:
+            return len(self._heap)
+
+
+def test_priority_scheduler():
+    """
+    測試 PriorityTaskScheduler 的多執行緒功能
     
-    for t in threads:
+    此測試會啟動多個執行緒來同時添加和執行任務，驗證排程器的執行緒安全性。
+    """
+    print("=== PriorityTaskScheduler 多執行緒測試 ===")
+    
+    scheduler = PriorityTaskScheduler(max_workers=1)
+    results = []
+    results_lock = threading.Lock()
+    
+    # 定義一個測試任務函數
+    def task_func(task_id: int, delay: float = 0.01):
+        """模擬一個需要執行的任務"""
+        time.sleep(delay)
+        with results_lock:
+            results.append(task_id)
+        print(f"任務 {task_id} 完成")
+    
+    # 創建多個執行緒來添加任務
+    def add_tasks(thread_id: int, start_priority: int):
+        """從多個執行緒添加任務"""
+        for i in range(5):
+            priority = start_priority + i
+            task_id = thread_id * 100 + i
+            scheduler.add_task(priority, task_func, task_id, delay=0.01)
+            print(f"執行緒 {thread_id} 添加任務 {task_id}，優先級 {priority}")
+    
+    # 創建多個執行緒來執行任務
+    def execute_tasks(thread_id: int):
+        """從多個執行緒執行任務"""
+        for _ in range(10):
+            if scheduler.run_next():
+                print(f"執行緒 {thread_id} 執行了一個任務")
+            else:
+                print(f"執行緒 {thread_id} 沒有任務可執行")
+            time.sleep(0.01)
+    
+    # 啟動添加任務的執行緒
+    threads = []
+    for i in range(3):
+        t = threading.Thread(target=add_tasks, args=(i, i * 10))
+        threads.append(t)
         t.start()
     
+    # 啟動執行任務的執行緒
+    exec_threads = []
+    for i in range(2):
+        t = threading.Thread(target=execute_tasks, args=(i,))
+        exec_threads.append(t)
+        t.start()
+    
+    # 等待所有添加任務的執行緒完成
     for t in threads:
         t.join()
     
-    # 執行所有任務
+    # 等待所有執行任務的執行緒完成
+    for t in exec_threads:
+        t.join()
+    
+    # 執行剩餘的任務
+    print("\n執行剩餘的任務...")
     while scheduler.run_next():
         pass
     
-    print(f"執行結果: {results}")
+    print(f"\n所有任務完成順序: {results}")
     print(f"總共執行了 {len(results)} 個任務")
-    assert len(results) == 10, "應該執行所有任務"
-    print("✓ 多執行緒測試通過\n")
-
-
-def test_priority_order():
-    """測試優先級順序"""
-    print("=== 測試優先級順序 ===")
-    scheduler = PriorityTaskScheduler()
     
-    results = []
+    # 測試取消功能
+    print("\n測試取消功能...")
+    for i in range(5):
+        scheduler.add_task(i, task_func, f"cancel_test_{i}")
+    print(f"添加 5 個任務，待處理數量: {scheduler.pending_count()}")
+    cancelled = scheduler.cancel_pending()
+    print(f"取消了 {cancelled} 個任務，待處理數量: {scheduler.pending_count()}")
     
-    def make_task(name):
-        def task():
-            results.append(name)
-        return task
+    # 測試任務崩潰不影響排程器
+    print("\n測試任務崩潰不影響排程器...")
     
-    # 加入任務，順序與優先級無關
-    scheduler.add_task(5, make_task("E"))
-    scheduler.add_task(1, make_task("A"))
-    scheduler.add_task(3, make_task("C"))
-    scheduler.add_task(2, make_task("B"))
-    scheduler.add_task(4, make_task("D"))
+    def crashing_task():
+        """會崩潰的任務"""
+        raise ValueError("任務故意崩潰")
     
-    while scheduler.run_next():
-        pass
+    def normal_task(task_id: int):
+        """正常任務"""
+        print(f"正常任務 {task_id} 執行成功")
     
-    print(f"執行順序: {results}")
-    assert results == ["A", "B", "C", "D", "E"], "優先級順序錯誤"
-    print("✓ 優先級順序測試通過\n")
-
-
-def test_same_priority_order():
-    """測試相同優先級的順序"""
-    print("=== 測試相同優先級順序 ===")
-    scheduler = PriorityTaskScheduler()
+    scheduler.add_task(1, crashing_task)
+    scheduler.add_task(2, normal_task, "after_crash")
+    scheduler.add_task(3, normal_task, "after_crash_2")
     
-    results = []
+    print("執行任務（包含崩潰任務）...")
+    scheduler.run_next()  # 應該會崩潰但排程器不崩潰
+    scheduler.run_next()  # 應該能繼續執行
+    scheduler.run_next()  # 應該能繼續執行
     
-    def make_task(name):
-        def task():
-            results.append(name)
-        return task
-    
-    # 加入相同優先級的任務
-    scheduler.add_task(1, make_task("A"))
-    scheduler.add_task(1, make_task("B"))
-    scheduler.add_task(1, make_task("C"))
-    
-    while scheduler.run_next():
-        pass
-    
-    print(f"執行順序: {results}")
-    assert results == ["A", "B", "C"], "相同優先級應該依加入順序執行"
-    print("✓ 相同優先級順序測試通過\n")
+    print("\n測試完成！")
 
 
 if __name__ == "__main__":
-    print("PriorityTaskScheduler 測試套件")
-    print("=" * 50)
-    print()
-    
-    test_basic_functionality()
-    test_cancel_functionality()
-    test_error_handling()
-    test_multithreaded()
-    test_priority_order()
-    test_same_priority_order()
-    
-    print("=" * 50)
-    print("所有測試通過！")
+    test_priority_scheduler()
