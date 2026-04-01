@@ -623,12 +623,13 @@ def run_agent(task, endpoint, model, token, max_steps=30, mode="general",
         messages.append(msg)
 
         content = msg.get("content") or ""
-        if content and not silent:
+        if content:
             if "DONE" in content:
-                print(f"\n\033[36m✅ 完成\033[0m")
-                _print_session_log()
+                if not silent:
+                    print(f"\n\033[36m✅ 完成\033[0m")
+                    _print_session_log()
                 save_session(session_id, messages, cwd, task)
-                return last_result_text or True
+                return last_result_text or content
 
         tool_calls = msg.get("tool_calls", [])
 
