@@ -1,0 +1,8 @@
+usage: claw-agent-v6.py [-h] [--endpoint ENDPOINT] [--model MODEL]
+                        [--token TOKEN] [--steps STEPS] [--retries RETRIES]
+                        [--cwd CWD] [--session-id SESSION_ID] [--no-ws]
+                        [--write REQ] [--out FILE] [--fix ERROR] [--file FILE]
+                        [--test CMD] [--parallel TASK [TASK ...]]
+                        [--resume SESSION_ID] [--sessions]
+                        [task]
+claw-agent-v6.py: error: unrecognized arguments: find_symbol or grep to find 'def add' in claw-agent-v6.py

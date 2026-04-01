@@ -1,0 +1,1 @@
+{"object":"list","data":[{"id":"qwen3.5-9b","object":"model","owned_by":"ceclaw/ollama-fast","type":"model"},{"id":"minimax","object":"model","owned_by":"ceclaw/gb10-llama","type":"model"}]}

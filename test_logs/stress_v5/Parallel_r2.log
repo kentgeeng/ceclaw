@@ -1,0 +1,18 @@
+
+[36m🤖 Multi-agent：2 個子任務並行[0m
+  [35m[agent-1] 開始：任務A: Say Hello[0m
+  [35m[agent-2] 開始：任務B: Calculate 13 * 37[0m
+  [32m[agent-2] 完成[0m
+  [32m[agent-1] 完成[0m
+
+[36m── 並行結果 ──[0m
+
+[1] 任務A: Say Hello
+  你好！我是 CeLaw，由 ColdElectric 開發的程式碼助手。我準備好協助你進行程式開發、除錯、重構和專案管理工作。
+
+有什麼我可以幫你的嗎？
+
+[2] 任務B: Calculate 13 * 37
+  13 * 37 = 481
+
+DONE

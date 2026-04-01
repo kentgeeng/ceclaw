@@ -1,0 +1,20 @@
+
+[36m🤖 Multi-agent：2 個子任務並行[0m
+  [35m[agent-1] 開始：TaskA: Say Hi[0m
+  [35m[agent-2] 開始：TaskB: 25+25[0m
+  [32m[agent-2] 完成[0m
+  [32m[agent-1] 完成[0m
+
+[36m── 並行結果 ──[0m
+
+[1] TaskA: Say Hi
+  你好！我是 CeLaw，由 ColdElectric 開發的程式碼助手。很高興能協助你！
+
+有什麼我可以幫你的嗎？無論是程式碼撰寫、除錯、重構或專案管理，我都可以提供協助。
+
+DONE
+
+[2] TaskB: 25+25
+  25 + 25 = 50
+
+DONE

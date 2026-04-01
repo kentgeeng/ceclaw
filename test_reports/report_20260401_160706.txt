@@ -1,0 +1,65 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CeLaw Agent v6 測試報告
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+時間: 2026-04-01 16:07:28
+迴圈: 1 | 總測試: 20 | 耗時: 17秒
+
+  項目               通過 失敗 跳過
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  L1健康                  1      0      0
+  GB10健康                1      0      0
+  Router模型              1      0      0
+  L1聊天                  1      0      0
+  GB10聊天                1      0      0
+  Router→L1               1      0      0
+  Router→GB10             1      0      0
+  L1 Slots                  1      0      0
+  WS Port                   0      0      1
+  一般模式              1      0      0
+  寫程式                 1      0      0
+  多Agent                  1      0      0
+  Session列表             1      0      0
+  Tool grep                 0      1      0
+  Tool find                 0      1      0
+  Tool listdir              0      1      0
+  SymbolMap                 0      1      0
+  MicroCompact              0      1      0
+  Router Log                1      0      0
+  Token估算               0      1      0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  總計                   13      6      1
+
+  ⚠️ 6 個失敗
+
+━━━ 失敗詳情 ━━
+【Tool grep】1次
+    Traceback (most recent call last):
+      File "<string>", line 3, in <module>
+    ModuleNotFoundError: No module named 'claw_agent_v6'
+【Tool find】1次
+    Traceback (most recent call last):
+      File "<string>", line 3, in <module>
+    ModuleNotFoundError: No module named 'claw_agent_v6'
+【Tool listdir】1次
+    Traceback (most recent call last):
+      File "<string>", line 3, in <module>
+    ModuleNotFoundError: No module named 'claw_agent_v6'
+【SymbolMap】1次
+    Traceback (most recent call last):
+      File "<string>", line 3, in <module>
+    ModuleNotFoundError: No module named 'claw_agent_v6'
+【MicroCompact】1次
+【Token估算】1次
+    Traceback (most recent call last):
+      File "<string>", line 3, in <module>
+    ModuleNotFoundError: No module named 'claw_agent_v6'
+
+━━━ Router Errors ━━
+無錯誤
+
+━━━ 服務狀態 ━━
+{"status":"ok"} L1 OK
+{"status":"ok"} GB10 OK
+Router OK (2 models)
+
+報告: /home/zoe_ai/ceclaw/test_reports/report_20260401_160706.txt

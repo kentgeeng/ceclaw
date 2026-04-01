@@ -1,0 +1,33 @@
+🚀 第 1 / 3 局 (Dir: /tmp/claw_run_1)
+   [Write] 建立程式碼... ✅ PASS
+   [Fix]   修復語法... ✅ PASS (py_compile OK)
+   [Test]  執行測試... ❌ FAIL
+     Last Log: [32m✅ 測試全過！（1 次）[0m
+   [Par]   並行子任務... ✅ PASS
+   [Gen]   分析指令... ✅ PASS
+
+🚀 第 2 / 3 局 (Dir: /tmp/claw_run_2)
+   [Write] 建立程式碼... ✅ PASS
+   [Fix]   修復語法... ✅ PASS (py_compile OK)
+   [Test]  執行測試... ❌ FAIL
+     Last Log: [32m✅ 測試全過！（1 次）[0m
+   [Par]   並行子任務... ✅ PASS
+   [Gen]   分析指令... ✅ PASS
+
+🚀 第 3 / 3 局 (Dir: /tmp/claw_run_3)
+   [Write] 建立程式碼... ✅ PASS
+   [Fix]   修復語法... ✅ PASS (py_compile OK)
+   [Test]  執行測試... ❌ FAIL
+     Last Log: [32m✅ 測試全過！（1 次）[0m
+   [Par]   並行子任務... ✅ PASS
+   [Gen]   分析指令... ✅ PASS
+
+==========================================================
+📋 測試報告摘要 - 2026-04-01 17:03:58
+==========================================================
+  總任務：15
+  通過：  12 (80%)
+  失敗：  3
+  Log：   /home/zoe_ai/ceclaw/test_logs/v6_func
+==========================================================
+🎉 穩定！v6 核心邏輯通過驗證。

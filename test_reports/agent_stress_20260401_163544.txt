@@ -1,0 +1,15 @@
+========================================
+  Agent 壓力測試報告
+========================================
+輪數: 3 | 並行度: 3 | 總任務: 9
+
+  通過: 9 (成功率 100.0%)
+  失敗: 0
+
+-- 錯誤日誌摘要 --
+/home/zoe_ai/ceclaw/test_logs/agent_stress/stress_2_0.log:  [90m→ 請輸入您的名稱：Traceback (most recent call last):
+/home/zoe_ai/ceclaw/test_logs/agent_stress/stress_2_0.log:EOFError: EOF when ...[0m
+/home/zoe_ai/ceclaw/test_logs/agent_stress/stress_3_2.log:  [32m程式碼已成功建立並測試通過。BrokenPipeError 是正常現象（因為使用 head 截斷輸出），不影響程式功能。
+========================================
+報告: /home/zoe_ai/ceclaw/test_reports/agent_stress_20260401_163544.txt
+========================================

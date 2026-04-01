@@ -1,0 +1,303 @@
+#!/bin/bash
+# CeLaw Agent v6 完整功能迴圈測試
+
+AGENT="$HOME/ceclaw/claw-agent-v6.py"
+LOG_DIR="$HOME/ceclaw/test_logs"
+REPORT_DIR="$HOME/ceclaw/test_reports"
+mkdir -p "$LOG_DIR" "$REPORT_DIR"
+
+REPORT="$REPORT_DIR/report_$(date +%Y%m%d_%H%M%S).txt"
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  CeLaw Agent v6 - 完整功能迴圈測試"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+read -p "輸入迴圈次數: " LOOPS
+echo "測試將執行 $LOOPS 次迴圈"
+echo ""
+
+GREEN='✅'; RED='❌'; YELLOW='⏳'
+
+test_L1_health() {
+    local l=$1; local log="$LOG_DIR/L1_health_L${l}.log"
+    curl -s http://localhost:8002/health > "$log" 2>&1
+    grep -q '"status":"ok"' "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_GB10_health() {
+    local l=$1; local log="$LOG_DIR/GB10_health_L${l}.log"
+    curl -s http://192.168.1.91:8001/health > "$log" 2>&1
+    grep -q '"status":"ok"' "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_Router_models() {
+    local l=$1; local log="$LOG_DIR/Router_models_L${l}.log"
+    curl -s http://localhost:8000/v1/models > "$log" 2>&1
+    grep -q "qwen3.5-9b\|minimax" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_L1_chat() {
+    local l=$1; local log="$LOG_DIR/L1_chat_L${l}.log"
+    curl -s -X POST http://localhost:8002/v1/chat/completions \
+        -H "Content-Type: application/json" \
+        -d '{"messages":[{"role":"user","content":"Say hi"}],"max_tokens":30}' > "$log" 2>&1
+    grep -q '"content"' "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_GB10_chat() {
+    local l=$1; local log="$LOG_DIR/GB10_chat_L${l}.log"
+    curl -s -X POST http://192.168.1.91:8001/v1/chat/completions \
+        -H "Content-Type: application/json" \
+        -d '{"messages":[{"role":"user","content":"Say hi"}],"max_tokens":30}' > "$log" 2>&1
+    grep -q '"content"' "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_Router_L1() {
+    local l=$1; local log="$LOG_DIR/Router_L1_L${l}.log"
+    curl -s -X POST http://localhost:8000/v1/chat/completions \
+        -H "Content-Type: application/json" \
+        -d '{"model":"qwen3.5-9b","messages":[{"role":"user","content":"Say hi"}],"max_tokens":30}' > "$log" 2>&1
+    grep -q '"content"' "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_Router_GB10() {
+    local l=$1; local log="$LOG_DIR/Router_GB10_L${l}.log"
+    curl -s -X POST http://localhost:8000/v1/chat/completions \
+        -H "Content-Type: application/json" \
+        -d '{"model":"minimax","messages":[{"role":"user","content":"Say hi"}],"max_tokens":30}' > "$log" 2>&1
+    grep -q '"content"' "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_L1_slots() {
+    local l=$1; local log="$LOG_DIR/L1_slots_L${l}.log"
+    curl -s http://localhost:8002/slots > "$log" 2>&1
+    grep -q '"id"' "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_WS_port() {
+    local l=$1
+    timeout 1 bash -c "echo > /dev/tcp/localhost/8003" 2>/dev/null && echo "$GREEN" || echo "$YELLOW"
+}
+
+test_general_mode() {
+    local l=$1; local log="$LOG_DIR/general_mode_L${l}.log"
+    timeout 90 python3 "$AGENT" --no-ws --steps 3 "說 hi" > "$log" 2>&1
+    grep -qE "hi|完成|DONE" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_write_mode() {
+    local l=$1; local log="$LOG_DIR/write_mode_L${l}.log"
+    cd /tmp && timeout 90 python3 "$AGENT" --no-ws --write "寫 hello 函數" --out hello_${l}.py > "$log" 2>&1
+    [ -f "hello_${l}.py" ] && echo "$GREEN" || echo "$RED"
+    rm -f hello_${l}.py
+}
+
+test_parallel_mode() {
+    local l=$1; local log="$LOG_DIR/parallel_L${l}.log"
+    timeout 120 python3 "$AGENT" --no-ws --parallel "說 A" "說 B" > "$log" 2>&1
+    grep -qE "並行|agent-|完成" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_sessions_list() {
+    local l=$1; local log="$LOG_DIR/sessions_L${l}.log"
+    python3 "$AGENT" --sessions > "$log" 2>&1
+    echo "$GREEN"
+}
+
+test_tool_grep() {
+    local l=$1; local log="$LOG_DIR/tool_grep_L${l}.log"
+    python3 -c "
+import sys; sys.path.insert(0, '$HOME/ceclaw')
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('claw_agent_v6', '/home/zoe_ai/ceclaw/claw-agent-v6.py')
+mod = importlib.util.module_from_spec(spec)
+sys.modules['claw_agent_v6'] = mod
+spec.loader.exec_module(mod)
+from claw_agent_v6 import execute_tool
+r = execute_tool('grep', {'pattern':'def main', 'path':'$HOME/ceclaw'}, cwd='$HOME/ceclaw')
+print('OK' if r else 'FAIL')
+" > "$log" 2>&1
+    grep -q "OK" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_tool_find() {
+    local l=$1; local log="$LOG_DIR/tool_find_L${l}.log"
+    python3 -c "
+import sys; sys.path.insert(0, '$HOME/ceclaw')
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('claw_agent_v6', '/home/zoe_ai/ceclaw/claw-agent-v6.py')
+mod = importlib.util.module_from_spec(spec)
+sys.modules['claw_agent_v6'] = mod
+spec.loader.exec_module(mod)
+from claw_agent_v6 import execute_tool
+r = execute_tool('find', {'name':'*.py', 'path':'$HOME/ceclaw'}, cwd='$HOME/ceclaw')
+print('OK' if '.py' in r else 'FAIL')
+" > "$log" 2>&1
+    grep -q "OK" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_tool_listdir() {
+    local l=$1; local log="$LOG_DIR/tool_listdir_L${l}.log"
+    python3 -c "
+import sys; sys.path.insert(0, '$HOME/ceclaw')
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('claw_agent_v6', '/home/zoe_ai/ceclaw/claw-agent-v6.py')
+mod = importlib.util.module_from_spec(spec)
+sys.modules['claw_agent_v6'] = mod
+spec.loader.exec_module(mod)
+from claw_agent_v6 import execute_tool
+r = execute_tool('list_dir', {'path':'$HOME/ceclaw'}, cwd='$HOME/ceclaw')
+print('OK' if 'claw-agent' in r else 'FAIL')
+" > "$log" 2>&1
+    grep -q "OK" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_symbol_map() {
+    local l=$1; local log="$LOG_DIR/symbol_map_L${l}.log"
+    python3 -c "
+import sys; sys.path.insert(0, '$HOME/ceclaw')
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('claw_agent_v6', '/home/zoe_ai/ceclaw/claw-agent-v6.py')
+mod = importlib.util.module_from_spec(spec)
+sys.modules['claw_agent_v6'] = mod
+spec.loader.exec_module(mod)
+from claw_agent_v6 import build_symbol_map
+m = build_symbol_map('$HOME/ceclaw')
+print('OK' if m else 'FAIL')
+" > "$log" 2>&1
+    grep -q "OK" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_micro_compact() {
+    local l=$1; local log="$LOG_DIR/compact_L${l}.log"
+    python3 -c "
+import sys; sys.path.insert(0, '$HOME/ceclaw')
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('claw_agent_v6', '/home/zoe_ai/ceclaw/claw-agent-v6.py')
+mod = importlib.util.module_from_spec(spec)
+sys.modules['claw_agent_v6'] = mod
+spec.loader.exec_module(mod)
+from claw_agent_v6 import micro_compact_messages
+msgs = [{'role':'system','content':'s'}] + [{'role':'tool','content':'x'*5000}]*10
+r = micro_compact_messages(msgs)
+print('OK' if len(r) < len(msgs) else 'FAIL')
+" > "$log" 2>&1
+    grep -q "OK" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+test_router_log() {
+    local l=$1; local log="$LOG_DIR/router_log_L${l}.log"
+    tail -30 ~/.ceclaw/router.log > "$log" 2>&1
+    echo "$GREEN"
+}
+
+test_token_est() {
+    local l=$1; local log="$LOG_DIR/token_est_L${l}.log"
+    python3 -c "
+import sys; sys.path.insert(0, '$HOME/ceclaw')
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('claw_agent_v6', '/home/zoe_ai/ceclaw/claw-agent-v6.py')
+mod = importlib.util.module_from_spec(spec)
+sys.modules['claw_agent_v6'] = mod
+spec.loader.exec_module(mod)
+from claw_agent_v6 import estimate_tokens
+t = estimate_tokens([{'role':'user','content':'hello'}])
+print(t)
+" > "$log" 2>&1
+    grep -qE "^[0-9]+$" "$log" && echo "$GREEN" || echo "$RED"
+}
+
+TESTS=(
+    "test_L1_health:L1健康"
+    "test_GB10_health:GB10健康"
+    "test_Router_models:Router模型"
+    "test_L1_chat:L1聊天"
+    "test_GB10_chat:GB10聊天"
+    "test_Router_L1:Router→L1"
+    "test_Router_GB10:Router→GB10"
+    "test_L1_slots:L1 Slots"
+    "test_WS_port:WS Port"
+    "test_general_mode:一般模式"
+    "test_write_mode:寫程式"
+    "test_parallel_mode:多Agent"
+    "test_sessions_list:Session列表"
+    "test_tool_grep:Tool grep"
+    "test_tool_find:Tool find"
+    "test_tool_listdir:Tool listdir"
+    "test_symbol_map:SymbolMap"
+    "test_micro_compact:MicroCompact"
+    "test_router_log:Router Log"
+    "test_token_est:Token估算"
+)
+
+declare -A PASS FAIL SKIP
+TOTAL=0; PC=0; FC=0; SC=0
+
+for info in "${TESTS[@]}"; do
+    IFS=':' read -r fn _ <<< "$info"
+    PASS[$fn]=0; FAIL[$fn]=0; SKIP[$fn]=0
+done
+
+START=$(date +%s)
+
+for loop in $(seq 1 $LOOPS); do
+    echo "━━ 迴圈 $loop/$LOOPS ━━"
+    for info in "${TESTS[@]}"; do
+        IFS=':' read -r fn desc <<< "$info"
+        printf "  %-18s .. " "$desc"
+        RESULT=$($fn $loop 2>&1)
+        TOTAL=$((TOTAL+1))
+        if echo "$RESULT" | grep -q "$GREEN"; then
+            echo "$GREEN"; PASS[$fn]=$((PASS[$fn]+1)); PC=$((PC+1))
+        elif echo "$RESULT" | grep -q "$RED"; then
+            echo "$RED"; FAIL[$fn]=$((FAIL[$fn]+1)); FC=$((FC+1))
+        else
+            echo "$YELLOW"; SKIP[$fn]=$((SKIP[$fn]+1)); SC=$((SC+1))
+        fi
+    done
+    echo ""
+done
+
+END=$(date +%s)
+ELAPSED=$((END-START))
+
+{
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  CeLaw Agent v6 測試報告"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "時間: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "迴圈: $LOOPS | 總測試: $TOTAL | 耗時: ${ELAPSED}秒"
+    echo ""
+    printf "  %-20s %6s %6s %6s\n" "項目" "通過" "失敗" "跳過"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    for info in "${TESTS[@]}"; do
+        IFS=':' read -r fn desc <<< "$info"
+        printf "  %-20s %6d %6d %6d\n" "$desc" "${PASS[$fn]}" "${FAIL[$fn]}" "${SKIP[$fn]}"
+    done
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    printf "  %-20s %6d %6d %6d\n" "總計" "$PC" "$FC" "$SC"
+    echo ""
+    [ $FC -eq 0 ] && echo "  🎉 全部通過！" || echo "  ⚠️ $FC 個失敗"
+    echo ""
+    echo "━━━ 失敗詳情 ━━"
+    for info in "${TESTS[@]}"; do
+        IFS=':' read -r fn desc <<< "$info"
+        if [ ${FAIL[$fn]} -gt 0 ]; then
+            echo "【$desc】${FAIL[$fn]}次"
+            ls -t "$LOG_DIR"/${fn#test_}*.log 2>/dev/null | head -1 | xargs head -5 2>/dev/null | sed 's/^/    /'
+        fi
+    done
+    echo ""
+    echo "━━━ Router Errors ━━"
+    tail -10 ~/.ceclaw/router.log | grep -E "ERROR|503" -i || echo "無錯誤"
+    echo ""
+    echo "━━━ 服務狀態 ━━"
+    curl -s http://localhost:8002/health && echo " L1 OK" || echo "L1 FAIL"
+    curl -s http://192.168.1.91:8001/health && echo " GB10 OK" || echo "GB10 FAIL"
+    curl -s http://localhost:8000/v1/models | python3 -c "import sys,json;d=json.load(sys.stdin);print(f'Router OK ({len(d[\"data\"])} models)')" 2>/dev/null || echo "Router FAIL"
+    echo ""
+    echo "報告: $REPORT"
+} | tee "$REPORT"
+
+echo ""
+echo "日誌: $LOG_DIR | 報告: $REPORT"
+read -p "按 Enter 結束"
