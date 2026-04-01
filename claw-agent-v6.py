@@ -37,7 +37,10 @@ except ImportError:
     except ImportError:
         try:
             subprocess.run([sys.executable, "-m", "pip", "install", "websockets", "-q"])
-            from websockets.asyncio.server import serve as ws_serve
+            try:
+                from websockets.asyncio.server import serve as ws_serve
+            except ImportError:
+                from websockets.server import serve as ws_serve
         except ImportError:
             ws_serve = None
             print("⚠️ websockets 未安裝，WebSocket 功能將停用")
