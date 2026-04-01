@@ -1,4 +1,4 @@
-import requests, time, threading, logging
+import requests, time, threading, logging, random
 logging.basicConfig(level=logging.INFO)
 
 class APIClient:
@@ -8,13 +8,19 @@ class APIClient:
         self.session = requests.Session()
         self._lock = threading.Lock()
         self.stats = {"success": 0, "fail": 0, "retries": 0}
+        self._closed = False
 
     def fetch(self, endpoint, params=None):
+        if self._closed:
+            logging.error("Client is closed, cannot make requests")
+            return None
+        
         url = f"{self.base_url}/{endpoint}"
         attempts = 0
         while attempts < self.max_retries:
             try:
-                resp = self.session.get(url, params=params, timeout=5)  # 設定 5 秒 timeout
+                # 使用更合理的 timeout：connect=3, read=10 秒
+                resp = self.session.get(url, params=params, timeout=(3, 10))
                 if resp.status_code == 200:
                     with self._lock:
                         self.stats["success"] += 1
@@ -28,13 +34,22 @@ class APIClient:
                         self.stats["fail"] += 1
                         logging.error(f"Failed after {attempts} retries: {e}")
                         return None
-                # 指數退避：0.1 * 2^(attempts-1)
-                backoff = 0.1 * (2 ** (attempts - 1))
+                # 指數退避 + jitter：0.1 * 2^(attempts-1) + random(0, 0.1)
+                backoff = 0.1 * (2 ** (attempts - 1)) + random.uniform(0, 0.1)
                 time.sleep(backoff)
 
     def get_stats(self):
         return self.stats.copy()
 
     def close(self):
-        logging.info("Closing client...")
-        self.session.close()  # 關閉 session 避免 CLOSE_WAIT
+        if not self._closed:
+            logging.info("Closing client...")
+            self.session.close()
+            self._closed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
