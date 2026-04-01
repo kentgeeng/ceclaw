@@ -520,7 +520,10 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             else:
                 cmd = f"grep -rn {'--ignore-case ' if ci else ''}{f'--include={repr(glob)} ' if glob else ''}{repr(pattern)} {repr(str(path))} | head -50"
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-            return (r.stdout or "(無匹配)")[:3000]
+            result = (r.stdout or "(無匹配)")[:3000]
+            if r.returncode != 0 and r.stderr:
+                result += f"\n[Stderr: {r.stderr.strip()[:300]}]"
+            return result
 
         elif name == "find":
             fname = args["name"]
@@ -528,7 +531,10 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             ftype = args.get("type", "")
             cmd   = f"find {repr(fpath)} {f'-type {ftype}' if ftype else ''} -name {repr(fname)} 2>/dev/null | head -50"
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-            return r.stdout or "(無匹配)"
+            result = r.stdout.strip() or "(無匹配)"
+            if r.returncode != 0 and r.stderr:
+                result = f"錯誤：{r.stderr.strip()[:300]}"
+            return result
 
         elif name == "find_symbol":
             return find_symbol(args["name"], cwd)
