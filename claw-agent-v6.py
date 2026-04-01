@@ -529,7 +529,7 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             fname = args["name"]
             fpath = str(Path(args.get("path", cwd)).expanduser())
             ftype = args.get("type", "")
-            cmd   = f"find {repr(fpath)} {f'-type {ftype}' if ftype else ''} -name {repr(fname)} 2>/dev/null | head -50"
+            cmd   = f"find {repr(fpath)} {f'-type {ftype}' if ftype else ''} -name {repr(fname)} | head -50"
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
             result = r.stdout.strip() or "(無匹配)"
             if r.returncode != 0 and r.stderr:
