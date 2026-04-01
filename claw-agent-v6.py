@@ -697,12 +697,14 @@ class CeLawCoderAgent(OpenClawAgent):
                 self.emit("error", {"error": f"無法連線到 {self.endpoint}"})
                 if not silent:
                     print(f"\033[31m❌ 無法連線到 {self.endpoint}\033[0m")
-                return False
+                save_session(self.session_id, messages, cwd, task)
+                return last_content or last_result_text or False
             except Exception as e:
                 self.emit("error", {"error": str(e)})
                 if not silent:
                     print(f"\033[31m❌ API 錯誤：{e}\033[0m")
-                return False
+                save_session(self.session_id, messages, cwd, task)
+                return last_content or last_result_text or False
 
             choice = resp["choices"][0]
             msg    = choice["message"]
@@ -803,7 +805,7 @@ def run_parallel_agents(tasks, endpoint, model, token, cwd=None):
     parallel_model    = os.environ.get("CECLAW_PARALLEL_MODEL", "ceclaw")
 
     def run_one(i, task):
-        sid = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_parallel-{i+1}"
+        sid = datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_parallel-{i+1}"
         print(f"  \033[35m[agent-{i+1}] 開始：{task[:50]}\033[0m")
         agent = CeLawCoderAgent(session_id=sid, endpoint=parallel_endpoint, model=parallel_model, token=token)
         r = agent.run(task, cwd=cwd, max_steps=20, mode=f"parallel-{i+1}", silent=True)
