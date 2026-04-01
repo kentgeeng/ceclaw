@@ -462,12 +462,16 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             cmd = args["command"]
             if is_dangerous(cmd) and not confirm_dangerous(cmd):
                 return "使用者取消"
+            timeout = args.get("timeout", 60)
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True,
-                               timeout=args.get("timeout", 60), cwd=cwd)
+                               timeout=timeout, cwd=cwd)
             out = r.stdout + r.stderr
             if len(out) > MAX_TOOL_RESULT_LEN:
                 out = out[:MAX_TOOL_RESULT_LEN] + f"\n{COMPACT_CLEARED}"
-            return out or "(無輸出)"
+            result = out or "(無輸出)"
+            if r.returncode != 0:
+                result += f"\n[Exit Code: {r.returncode}]"
+            return result
 
         elif name == "read_file":
             p = Path(args["path"]).expanduser()
@@ -572,8 +576,8 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             return "子 agent 未設定 endpoint"
 
         return f"未知工具：{name}"
-    except subprocess.TimeoutExpired:
-        return "逾時"
+    except subprocess.TimeoutExpired as te:
+        return f"指令逾時（{te.timeout:.0f} 秒）"
     except Exception as e:
         return f"錯誤：{e}"
 
