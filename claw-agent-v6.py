@@ -357,12 +357,13 @@ def find_references(name, cwd):
 # ══════════════════════════════════════════════════════════════════════════════
 # 8. CLAW.md + 專案掃描
 # ══════════════════════════════════════════════════════════════════════════════
-def load_claw_md(cwd=None):
+def load_claw_md(cwd=None, silent=False):
     cwd = Path(cwd or os.getcwd())
     for path in [cwd / "CLAW.md", cwd.parent / "CLAW.md", Path.home() / "CLAW.md"]:
         if path.exists():
             content = path.read_text(errors="replace")
-            print(f"  \033[36m📋 CLAW.md 載入：{path}\033[0m")
+            if not silent:
+                print(f"  \033[36m📋 CLAW.md 載入：{path}\033[0m")
             return f"\n\n## 專案背景（來自 CLAW.md）\n{content}"
     return ""
 
@@ -577,7 +578,7 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
 # ══════════════════════════════════════════════════════════════════════════════
 # 12. Streaming API 呼叫
 # ══════════════════════════════════════════════════════════════════════════════
-def call_ceclaw_stream(messages, endpoint, model, token):
+def call_ceclaw_stream(messages, endpoint, model, token, silent=False):
     resp = requests.post(
         f"{endpoint.rstrip('/')}/v1/chat/completions",
         json={"model": model, "messages": messages, "tools": TOOLS,
@@ -592,7 +593,8 @@ def call_ceclaw_stream(messages, endpoint, model, token):
     tool_calls_raw = {}
     finish_reason  = None
 
-    print("  \033[32m", end="", flush=True)
+    if not silent:
+        print("  \033[32m", end="", flush=True)
     for line in resp.iter_lines():
         if not line: continue
         if line.startswith(b"data: "):
@@ -604,7 +606,8 @@ def call_ceclaw_stream(messages, endpoint, model, token):
                 finish_reason = chunk["choices"][0].get("finish_reason") or finish_reason
                 if delta.get("content"):
                     content_parts.append(delta["content"])
-                    print(delta["content"], end="", flush=True)
+                    if not silent:
+                        print(delta["content"], end="", flush=True)
                 for tc in delta.get("tool_calls", []):
                     idx = tc.get("index", 0)
                     if idx not in tool_calls_raw:
@@ -618,7 +621,8 @@ def call_ceclaw_stream(messages, endpoint, model, token):
                         tool_calls_raw[idx]["function"]["arguments"] += tc["function"]["arguments"]
             except Exception:
                 pass
-    print("\033[0m", flush=True)
+    if not silent:
+        print("\033[0m", flush=True)
 
     msg = {"role": "assistant", "content": "".join(content_parts) or None}
     if tool_calls_raw:
@@ -655,7 +659,7 @@ class CeLawCoderAgent(OpenClawAgent):
         # symbol map 背景建立
         threading.Thread(target=build_symbol_map, args=(cwd,), daemon=True).start()
 
-        project_ctx = load_claw_md(cwd) + scan_project(cwd)
+        project_ctx = load_claw_md(cwd, silent=silent) + scan_project(cwd)
         system      = BASE_SYSTEM_PROMPT + project_ctx
         messages    = [
             {"role": "system", "content": system},
@@ -664,6 +668,7 @@ class CeLawCoderAgent(OpenClawAgent):
 
         recent_fps      = deque(maxlen=3)
         last_result_text = ""
+        last_content = ""
 
         self.emit("task_start", {"task": task, "cwd": cwd})
 
@@ -687,7 +692,7 @@ class CeLawCoderAgent(OpenClawAgent):
                     messages = full_compact(messages, self.endpoint, self.model, self.token)
 
             try:
-                resp = call_ceclaw_stream(messages, self.endpoint, self.model, self.token)
+                resp = call_ceclaw_stream(messages, self.endpoint, self.model, self.token, silent=silent)
             except requests.exceptions.ConnectionError:
                 self.emit("error", {"error": f"無法連線到 {self.endpoint}"})
                 if not silent:
@@ -705,6 +710,7 @@ class CeLawCoderAgent(OpenClawAgent):
             content = msg.get("content") or ""
 
             if content:
+                last_content = content
                 if "DONE" in content:
                     if not silent:
                         print(f"\n\033[36m✅ 完成\033[0m")
@@ -734,7 +740,7 @@ class CeLawCoderAgent(OpenClawAgent):
                     print(f"\n\033[33m⚠️  偵測到重複 tool call，跳出迴圈\033[0m")
                 self.emit("error", {"error": "卡死偵測，跳出迴圈"})
                 save_session(self.session_id, messages, cwd, task)
-                return False
+                return last_content or last_result_text or False
             if fp:
                 recent_fps.append(fp)
 
@@ -776,7 +782,7 @@ class CeLawCoderAgent(OpenClawAgent):
 
         self.emit("error", {"error": f"達到最大步數 {max_steps}"})
         save_session(self.session_id, messages, cwd, task)
-        return False
+        return last_content or last_result_text or False
 
 def _print_session_log():
     if not SESSION_LOG: return
@@ -792,11 +798,15 @@ def run_parallel_agents(tasks, endpoint, model, token, cwd=None):
     print(f"\n\033[36m🤖 Multi-agent：{len(tasks)} 個子任務並行\033[0m")
     results = [None] * len(tasks)
 
+    # parallel 任務送 GB10（多 slot），不搶 L1
+    parallel_endpoint = os.environ.get("CECLAW_PARALLEL_ENDPOINT", "http://192.168.1.91:8001")
+    parallel_model    = os.environ.get("CECLAW_PARALLEL_MODEL", "ceclaw")
+
     def run_one(i, task):
         sid = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_parallel-{i+1}"
         print(f"  \033[35m[agent-{i+1}] 開始：{task[:50]}\033[0m")
-        agent = CeLawCoderAgent(session_id=sid, endpoint=endpoint, model=model, token=token)
-        r = agent.run(task, cwd=cwd, max_steps=10, mode=f"parallel-{i+1}", silent=True)
+        agent = CeLawCoderAgent(session_id=sid, endpoint=parallel_endpoint, model=parallel_model, token=token)
+        r = agent.run(task, cwd=cwd, max_steps=20, mode=f"parallel-{i+1}", silent=True)
         results[i] = r
         print(f"  \033[32m[agent-{i+1}] 完成\033[0m")
 
