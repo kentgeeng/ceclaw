@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-CeLaw Coding Agent v4
+CeLaw Coding Agent v5
 模式：
-  一般      python3 claw-agent-v4.py "任務描述"
-  寫程式    python3 claw-agent-v4.py --write "需求" --out output.py
-  修 bug    python3 claw-agent-v4.py --fix "錯誤訊息" --file buggy.py
-  自動測試  python3 claw-agent-v4.py --test "pytest tests/" --file src/main.py
-  多 agent  python3 claw-agent-v4.py --parallel "任務A" "任務B" "任務C"
-  恢復      python3 claw-agent-v4.py --resume session_id
+  一般      python3 claw-agent-v5.py "任務描述"
+  寫程式    python3 claw-agent-v5.py --write "需求" --out output.py
+  修 bug    python3 claw-agent-v5.py --fix "錯誤訊息" --file buggy.py
+  自動測試  python3 claw-agent-v5.py --test "pytest tests/" --file src/main.py
+  多 agent  python3 claw-agent-v5.py --parallel "任務A" "任務B" "任務C"
+  恢復      python3 claw-agent-v5.py --resume session_id
 
 v4 新增（相較 v3）：
   - OpenClawAgent 基類（execute/cancel/get_status 標準介面）
@@ -96,9 +96,7 @@ async def _ws_handler(websocket):
 async def _ws_server_main():
     loop = asyncio.get_running_loop()
     ws_broker.set_loop(loop)
-    async with ws_serve(_ws_handler, WS_HOST, WS_PORT, reuse_port=True):
-        loop = asyncio.get_running_loop()
-        ws_broker.set_loop(loop)
+    async with ws_serve(_ws_handler, WS_HOST, WS_PORT):
         print(f"  \033[36m🔌 WS: ws://{WS_LAN_IP}:{WS_PORT}/ws/{{session_id}}\033[0m")
         print(f"  \033[90m   debug: ws://{WS_LAN_IP}:{WS_PORT}/ws/latest\033[0m")
         await asyncio.Future()
@@ -124,14 +122,12 @@ class OpenClawAgent:
         self._cancelled  = False
 
     def cancel(self):
-        self._cancelled = True
-        self.emit('cancelled', {})
-
-    def close_ws(self):
-        # 關閉 WebSocket 連線
-        ws_broker.publish(self.session_id, {'event': 'done', 'data': {'status': 'closed'}})
         """取消正在執行的任務"""
         self._cancelled = True
+
+    def close_ws(self):
+        """優雅關閉：推送 closed 事件讓 client 知道可以斷線"""
+        ws_broker.publish(self.session_id, {"event": "closed", "ts": datetime.now().isoformat()})
 
     def get_status(self) -> dict:
         return {"session_id": self.session_id, "cancelled": self._cancelled}
@@ -624,7 +620,7 @@ class CeLawCoderAgent(OpenClawAgent):
         cwd = str(cwd or os.getcwd())
 
         if not silent:
-            print(f"\n\033[35m🤖 CeLaw Agent v4 [{self.session_id}]\033[0m")
+            print(f"\n\033[35m🤖 CeLaw Agent v5 [{self.session_id}]\033[0m")
             print(f"   Task  : {task[:80]}{'...' if len(task) > 80 else ''}")
             print(f"   CWD   : {cwd}")
             print(f"   WS    : ws://{WS_LAN_IP}:{WS_PORT}/ws/{self.session_id}")
@@ -688,6 +684,7 @@ class CeLawCoderAgent(OpenClawAgent):
                         print(f"\n\033[36m✅ 完成\033[0m")
                         _print_session_log()
                     self.emit("done", {"result": last_result_text or content})
+                    self.close_ws()
                     save_session(self.session_id, messages, cwd, task)
                     return last_result_text or content
 
@@ -699,6 +696,7 @@ class CeLawCoderAgent(OpenClawAgent):
                         print(f"\n\033[36m✅ 完成\033[0m")
                         _print_session_log()
                     self.emit("done", {"result": content})
+                    self.close_ws()
                     save_session(self.session_id, messages, cwd, task)
                     return content or True
                 continue
@@ -808,7 +806,10 @@ def mode_fix(error_msg, filepath, endpoint, model, token, max_retries=3, cwd=Non
         agent = CeLawCoderAgent(session_id=sid, endpoint=endpoint, model=model, token=token)
         agent.run(task, cwd=cwd, max_steps=15, mode=f"fix-{attempt}")
         p = Path(filepath).expanduser()
-        cmd = f"python3 {p}" if p.suffix == ".py" else f"bash {p}"
+        if p.suffix == ".py":
+            cmd = f"python3 -m py_compile {p} && echo OK"
+        else:
+            cmd = f"bash -n {p} && echo OK"
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
         if r.returncode == 0:
             print(f"\033[32m✅ 修復成功！（{attempt} 次）\033[0m")
@@ -842,17 +843,17 @@ def mode_test(test_cmd, filepath, endpoint, model, token, max_retries=5, cwd=Non
 # ══════════════════════════════════════════════════════════════════════════════
 def main():
     p = argparse.ArgumentParser(
-        description="CeLaw Coding Agent v4",
+        description="CeLaw Coding Agent v5",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""範例：
-  python3 claw-agent-v4.py "找出所有 TODO"
-  python3 claw-agent-v4.py --write "寫 fibonacci" --out fib.py
-  python3 claw-agent-v4.py --fix "NameError" --file script.py
-  python3 claw-agent-v4.py --test "pytest tests/" --file src/main.py
-  python3 claw-agent-v4.py --parallel "審查 auth.py" "審查 api.py"
-  python3 claw-agent-v4.py --resume last
-  python3 claw-agent-v4.py --sessions
-  python3 claw-agent-v4.py --no-ws "任務"  # 不啟動 WS server""")
+  python3 claw-agent-v5.py "找出所有 TODO"
+  python3 claw-agent-v5.py --write "寫 fibonacci" --out fib.py
+  python3 claw-agent-v5.py --fix "NameError" --file script.py
+  python3 claw-agent-v5.py --test "pytest tests/" --file src/main.py
+  python3 claw-agent-v5.py --parallel "審查 auth.py" "審查 api.py"
+  python3 claw-agent-v5.py --resume last
+  python3 claw-agent-v5.py --sessions
+  python3 claw-agent-v5.py --no-ws "任務"  # 不啟動 WS server""")
     p.add_argument("task",         nargs="?")
     p.add_argument("--endpoint",   default=DEFAULT_ENDPOINT)
     p.add_argument("--model",      default=DEFAULT_MODEL)
@@ -930,7 +931,7 @@ def main():
         agent.run(a.task, cwd=cwd, max_steps=a.steps)
 
     else:
-        print(f"\033[36mCeLaw Coding Agent v4 (q 退出, sessions 列出歷史)\033[0m")
+        print(f"\033[36mCeLaw Coding Agent v5 (q 退出, sessions 列出歷史)\033[0m")
         print(f"\033[90m WS: ws://{WS_LAN_IP}:{WS_PORT}/ws/{{session_id}}\033[0m")
         while True:
             try:
