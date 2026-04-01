@@ -31,15 +31,30 @@ except ImportError:
 try:
     from websockets.asyncio.server import serve as ws_serve
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "websockets", "-q"])
-    from websockets.asyncio.server import serve as ws_serve
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "install", "websockets", "-q"])
+        from websockets.asyncio.server import serve as ws_serve
+    except ImportError:
+        ws_serve = None
+
+import socket
+
+def get_lan_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 DEFAULT_ENDPOINT = os.environ.get("CECLAW_ENDPOINT", "http://localhost:8000")
 DEFAULT_MODEL    = os.environ.get("CECLAW_MODEL",    "ceclaw")
 DEFAULT_TOKEN    = os.environ.get("CECLAW_TOKEN",    "97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759")
 WS_HOST          = "0.0.0.0"
 WS_PORT          = 8003
-WS_LAN_IP        = "172.25.0.12"
+WS_LAN_IP        = os.environ.get("CECLAW_WS_IP", get_lan_ip())
 
 SESSION_DIR      = Path.home() / ".ceclaw" / "sessions"
 SESSION_DIR.mkdir(parents=True, exist_ok=True)
