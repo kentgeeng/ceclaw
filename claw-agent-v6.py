@@ -518,11 +518,14 @@ def execute_tool(name, args, cwd=None, endpoint=None, model=None, token=None):
             if shutil.which("rg"):
                 cmd = f"rg {'--ignore-case ' if ci else ''}{f'--glob {repr(glob)} ' if glob else ''}-n --max-count=50 {repr(pattern)} {repr(str(path))}"
             else:
-                cmd = f"grep -rn {'--ignore-case ' if ci else ''}{f'--include={repr(glob)} ' if glob else ''}{repr(pattern)} {repr(str(path))} | head -50"
+                cmd = f"grep -rn {'--ignore-case ' if ci else ''}{f'--include={repr(glob)} ' if glob else ''}{repr(pattern)} {repr(str(path))}"
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-            result = (r.stdout or "(無匹配)")[:3000]
+            lines = r.stdout.strip().splitlines()
+            result = "\n".join(lines[:50]) or "(無匹配)"
+            if len(lines) > 50:
+                result += f"\n...(結果過多，僅顯示前 50 筆)"
             if r.returncode != 0 and r.stderr:
-                result += f"\n[Stderr: {r.stderr.strip()[:300]}]"
+                result = f"錯誤：{r.stderr.strip()[:300]}"
             return result
 
         elif name == "find":
