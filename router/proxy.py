@@ -10,7 +10,7 @@ import httpx
 from fastapi import Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from .config import CECLAWConfig, LocalBackend, CloudProvider
-from .backends import get_healthy_backend, select_backend, check_all, _healthy
+from .backends import get_healthy_backend, select_backend, check_all, _healthy, _error_count
 from . import audit
 
 logger = logging.getLogger("ceclaw.proxy")
@@ -225,6 +225,7 @@ async def _try_local(
             resp._ceclaw_backend = backend.name
             if resp.status_code in (200, 201):
                 logger.info(f"[local] {backend.name} → {resp.status_code}")
+                _error_count[backend.name] = 0  # 成功，歸零
                 return resp
             if backend.name == "gb10-llama" and resp.status_code in (400, 500, 503):
                 logger.warning(f"[local] gb10-llama → {resp.status_code}, retry in 3s")
@@ -242,7 +243,11 @@ async def _try_local(
                 logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback | resp={resp.text[:200]} | model={_dbg.get('model')} stream={_dbg.get('stream')} tools={bool(_dbg.get('tools'))}")
             except Exception:
                 logger.warning(f"[local] {backend.name} → {resp.status_code}, will fallback | resp={resp.text[:200]}")
-            _healthy[backend.name] = False
+            # 連續 3 次 5xx 才標記 unhealthy，單次不標記
+            _error_count[backend.name] = _error_count.get(backend.name, 0) + 1
+            if _error_count[backend.name] >= 3:
+                _healthy[backend.name] = False
+                logger.warning(f"[local] {backend.name} 連續 {_error_count[backend.name]} 次錯誤，標記 unhealthy")
         except httpx.TimeoutException:
             logger.warning(f"[local] {backend.name} timeout after {timeout}s, falling back")
             _healthy[backend.name] = False
