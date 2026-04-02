@@ -80,6 +80,10 @@ def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Op
         main = backends_by_name.get("gb10-llama")
         if main and _healthy.get("gb10-llama", False):
             return main
+        # gb10 失敗 → fallback 到 L1
+        fast = backends_by_name.get("ollama-fast")
+        if fast and _healthy.get("ollama-fast", False):
+            return fast
     else:
         fast = backends_by_name.get("ollama-fast")
         if fast and _healthy.get("ollama-fast", False):
@@ -88,6 +92,7 @@ def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Op
         if main and _healthy.get("gb10-llama", False):
             return main
 
+    # 最後才走 ollama-backup
     backup = backends_by_name.get("ollama-backup")
     if backup and _healthy.get("ollama-backup", False):
         return backup

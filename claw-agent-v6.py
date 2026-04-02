@@ -372,14 +372,16 @@ def load_claw_md(cwd=None, silent=False):
 def scan_project(cwd=None):
     cwd   = Path(cwd or os.getcwd())
     lines = [f"\n## 當前工作目錄：{cwd}"]
-    r = subprocess.run("git status --short 2>/dev/null", shell=True,
-                       capture_output=True, text=True, cwd=cwd)
-    if r.returncode == 0 and r.stdout.strip():
-        lines.append(f"\n## Git Status\n```\n{r.stdout.strip()}\n```")
-        r2 = subprocess.run("git log --oneline -5 2>/dev/null", shell=True,
-                            capture_output=True, text=True, cwd=cwd)
-        if r2.stdout.strip():
-            lines.append(f"\n## 最近 Commits\n```\n{r2.stdout.strip()}\n```")
+    # 只有 cwd 本身是 git root 才顯示 git info，避免子目錄掃到整個 repo
+    if (cwd / ".git").exists():
+        r = subprocess.run("git status --short 2>/dev/null", shell=True,
+                           capture_output=True, text=True, cwd=cwd)
+        if r.returncode == 0 and r.stdout.strip():
+            lines.append(f"\n## Git Status\n```\n{r.stdout.strip()}\n```")
+            r2 = subprocess.run("git log --oneline -5 2>/dev/null", shell=True,
+                                capture_output=True, text=True, cwd=cwd)
+            if r2.stdout.strip():
+                lines.append(f"\n## 最近 Commits\n```\n{r2.stdout.strip()}\n```")
     for readme in ["README.md", "README.txt"]:
         p = cwd / readme
         if p.exists():
