@@ -12,7 +12,7 @@ DEFAULT_CONFIG_PATH = Path.home() / ".ceclaw" / "ceclaw.yaml"
 DEFAULT_LISTEN_HOST = "0.0.0.0"
 DEFAULT_LISTEN_PORT = 8000
 DEFAULT_STRATEGY = "local-first"
-DEFAULT_TIMEOUT_LOCAL_MS = 30000
+DEFAULT_TIMEOUT_LOCAL_MS = 180000
 
 CLOUD_BASE_URLS = {
     "groq":      "https://api.groq.com/openai/v1",

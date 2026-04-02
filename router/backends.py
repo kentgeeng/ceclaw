@@ -26,9 +26,9 @@ REASONING_KEYWORDS = {
     "市場", "競爭", "風險", "合約", "法律", "規範", "流程",
     "會議", "簡報", "摘要", "結論", "決策", "規劃", "目標",
     # 中文 — 程式/技術
-    "演算法", "複雜度", "架構", "優化", "重構",
-    "除錯", "效能", "安全", "資料庫", "API", "部署", "測試",
-    "程式", "程式碼", "函數", "類別", "繼承", "多型",
+    "架構", "優化",
+
+
     # English — reasoning/analysis
     "prove", "derive", "optimal", "why", "analyze", "compare",
     "strategy", "reasoning", "explain", "how to", "solve",
@@ -36,17 +36,17 @@ REASONING_KEYWORDS = {
     "tradeoff", "trade-off", "pros and cons", "difference between",
     "system design", "calculate", "difference", "summarize",
     # English — math/science
-    "algorithm", "complexity", "equation", "formula", "theorem",
+    "equation", "formula", "theorem",
     "calculus", "statistics", "probability", "matrix", "proof",
     # English — office/business
     "report", "proposal", "budget", "forecast", "revenue",
     "contract", "compliance", "risk", "stakeholder", "roadmap",
     "summary", "conclusion", "decision", "planning", "objective",
     # English — coding/tech
-    "architecture", "refactor", "optimize", "debug", "performance",
-    "security", "database", "deploy", "testing", "implement",
+    "architecture", "optimize",
+
     "best practice", "design pattern", "scalability", "bottleneck",
-    "concurrency", "async", "memory leak", "race condition",
+
     # 日文
     "証明", "導出", "最適", "なぜ", "分析", "比較", "戦略",
     "アルゴリズム", "システム設計", "最適化",
@@ -80,6 +80,10 @@ def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Op
         main = backends_by_name.get("gb10-llama")
         if main and _healthy.get("gb10-llama", False):
             return main
+        # gb10 失敗 → fallback 到 L1
+        fast = backends_by_name.get("ollama-fast")
+        if fast and _healthy.get("ollama-fast", False):
+            return fast
     else:
         fast = backends_by_name.get("ollama-fast")
         if fast and _healthy.get("ollama-fast", False):
@@ -88,6 +92,7 @@ def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Op
         if main and _healthy.get("gb10-llama", False):
             return main
 
+    # 最後才走 ollama-backup
     backup = backends_by_name.get("ollama-backup")
     if backup and _healthy.get("ollama-backup", False):
         return backup
