@@ -227,6 +227,18 @@ async def _try_local(
                 logger.info(f"[local] {backend.name} → {resp.status_code}")
                 _error_count[backend.name] = 0  # 成功，歸零
                 return resp
+            if resp.status_code == 400:
+                try:
+                    err = json.loads(resp.text)
+                    if err.get("error", {}).get("type") == "exceed_context_size_error":
+                        logger.warning(f"[local] {backend.name} → context exceeded, returning friendly message")
+                        friendly = json.dumps({"choices":[{"message":{"role":"assistant","content":"⚠️ 對話內容太長已超出模型上限，請開新對話繼續。"},"finish_reason":"stop","index":0}],"model":"ceclaw","object":"chat.completion"})
+                        import httpx as _httpx
+                        r = _httpx.Response(200, content=friendly.encode(), headers={"content-type":"application/json"})
+                        r._ceclaw_backend = backend.name
+                        return r
+                except Exception:
+                    pass
             if backend.name == "gb10-llama" and resp.status_code in (400, 500, 503):
                 logger.warning(f"[local] gb10-llama → {resp.status_code}, retry in 3s")
                 await asyncio.sleep(3)
