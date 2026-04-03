@@ -9,34 +9,14 @@ inference:
   timeout_local_ms: 180000
   local:
     backends:
-      - name: ollama-fast
-        type: llama.cpp
-        base_url: http://127.0.0.1:8002/v1
-        priority: 1
-        models:
-          - id: qwen2.5-14b
-            alias: default
-            context_window: 16384
-        use_for: [simple_query]
-
       - name: gb10-llama
         type: llama.cpp
         base_url: http://192.168.1.91:8001/v1
-        priority: 2
+        priority: 1
         models:
-          - id: minimax
+          - id: gemma4-moe
             alias: default
             context_window: 65536
-
-      - name: ollama-backup
-        type: ollama
-        base_url: http://127.0.0.1:11434/v1
-        priority: 3
-        model: minimax-m2.7:cloud
-        options:
-          think: false
-        use_for: [fallback]
-
   cloud_fallback:
     enabled: true
     priority:

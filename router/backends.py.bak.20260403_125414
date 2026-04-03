@@ -68,13 +68,36 @@ def needs_reasoning(query: str) -> bool:
 
 def select_backend(config: CECLAWConfig, query: str = "", tokens: int = 0) -> Optional[LocalBackend]:
     """
-    單一 backend：所有請求走 gb10-llama（Gemma 4 26B MoE）
-    gb10 掛 → None（走雲端 fallback）
+    Smart routing：
+    - 空字串（解析失敗）→ gb10-llama（保守）
+    - 有推理關鍵字 → gb10-llama
+    - 否則 → ollama-fast
+    - gb10-llama 掛 → ollama-backup
+    - 全掛 → None（走雲端）
     """
     backends_by_name = {b.name: b for b in config.inference.local.backends}
-    main = backends_by_name.get("gb10-llama")
-    if main and _healthy.get("gb10-llama", False):
-        return main
+
+    if query and needs_reasoning(query):
+        main = backends_by_name.get("gb10-llama")
+        if main and _healthy.get("gb10-llama", False):
+            return main
+        # gb10 失敗 → fallback 到 L1
+        fast = backends_by_name.get("ollama-fast")
+        if fast and _healthy.get("ollama-fast", False):
+            return fast
+    else:
+        fast = backends_by_name.get("ollama-fast")
+        if fast and _healthy.get("ollama-fast", False):
+            return fast
+        main = backends_by_name.get("gb10-llama")
+        if main and _healthy.get("gb10-llama", False):
+            return main
+
+    # 最後才走 ollama-backup
+    backup = backends_by_name.get("ollama-backup")
+    if backup and _healthy.get("ollama-backup", False):
+        return backup
+
     return None
 
 async def check_backend(backend: LocalBackend) -> bool:
