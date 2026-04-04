@@ -17,9 +17,6 @@ inference:
           - id: gemma4-moe
             alias: default
             context_window: 65536
-          - id: ceclaw-l1
-            alias: ceclaw
-            context_window: 65536
   cloud_fallback:
     enabled: true
     priority:
