@@ -10,3 +10,4 @@ script.py
 tests/
 test_logs/
 test_reports/
+openclaw-config/openclaw.json
