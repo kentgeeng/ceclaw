@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.24",
+    "lastTouchedAt": "2026-04-03T21:36:59.307Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-03-29T13:42:49.724Z",
+    "lastRunVersion": "2026.3.24",
+    "lastRunCommand": "onboard",
+    "lastRunMode": "local"
+  },
+  "models": {
+    "providers": {
+      "local": {
+        "baseUrl": "http://localhost:8000/v1",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "ceclaw-l1",
+            "name": "CECLAW Local",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 32768,
+            "maxTokens": 8192
+          }
+        ],
+        "apiKey": "97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "local/ceclaw-l1"
+      },
+      "workspace": "/home/zoe_ai/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "timeoutSeconds": 360000
+    },
+    "list": [
+      {
+        "id": "main",
+        "name": "CECLAW",
+        "workspace": "/home/zoe_ai/.openclaw/workspace"
+      },
+      {
+        "id": "inbox",
+        "name": "郵件小幫手",
+        "workspace": "/home/zoe_ai/awesome-openclaw-agents/agents/productivity/inbox-zero",
+        "agentDir": "/home/zoe_ai/.openclaw/agents/inbox/agent"
+      },
+      {
+        "id": "engineering",
+        "name": "研發小幫手",
+        "workspace": "/home/zoe_ai/.openclaw/workspace/skills/ceclaw-engineering",
+        "agentDir": "/home/zoe_ai/.openclaw/agents/engineering/agent"
+      },
+      {
+        "id": "customer-support",
+        "name": "客服小幫手",
+        "workspace": "/home/zoe_ai/.openclaw/workspace/skills/ceclaw-customer-support",
+        "agentDir": "/home/zoe_ai/.openclaw/agents/customer-support/agent"
+      },
+      {
+        "id": "worker",
+        "name": "Worker",
+        "workspace": "/home/zoe_ai/.openclaw/workspace",
+        "agentDir": "/home/zoe_ai/.openclaw/agents/worker/agent"
+      }
+    ]
+  },
+  "tools": {
+    "profile": "coding",
+    "web": {
+      "fetch": {
+        "enabled": false
+      }
+    },
+    "agentToAgent": {
+      "enabled": true,
+      "allow": [
+        "worker"
+      ]
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "allowedOrigins": [
+        "*"
+      ],
+      "allowInsecureAuth": true,
+      "dangerouslyDisableDeviceAuth": true
+    },
+    "auth": {
+      "mode": "token",
+      "token": "97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    }
+  },
+  "skills": {
+    "install": {
+      "nodeManager": "npm"
+    }
+  },
+  "plugins": {
+    "allow": [
+      "searxng-search",
+      "lossless-claw"
+    ],
+    "entries": {
+      "searxng-search": {
+        "enabled": true,
+        "config": {
+          "baseUrl": "http://localhost:8888"
+        }
+      },
+      "lossless-claw": {
+        "enabled": true,
+        "config": {
+          "freshTailCount": 32,
+          "contextThreshold": 0.75,
+          "incrementalMaxDepth": -1,
+          "summaryModel": "ceclaw"
+        }
+      }
+    },
+    "installs": {
+      "lossless-claw": {
+        "source": "npm",
+        "spec": "@martian-engineering/lossless-claw",
+        "installPath": "/home/zoe_ai/.openclaw/extensions/lossless-claw",
+        "version": "0.5.3",
+        "resolvedName": "@martian-engineering/lossless-claw",
+        "resolvedVersion": "0.5.3",
+        "resolvedSpec": "@martian-engineering/lossless-claw@0.5.3",
+        "integrity": "sha512-9mDRVt9N8t2LWPapIGlWMHl0c0gYw3gLJ7n+rR8eLC4IZav482OHy054J8GNB0LS8ztqkidf8z4PN6Yi6PwExw==",
+        "shasum": "bc7b4065a2ba2a7b143347dae7e09051519ea08c",
+        "resolvedAt": "2026-04-03T21:36:27.169Z",
+        "installedAt": "2026-04-03T21:36:58.503Z"
+      }
+    }
+  }
+}
