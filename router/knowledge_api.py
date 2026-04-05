@@ -69,6 +69,19 @@ async def approve(req: ApproveRequest):
         f"來源檔案：{req.filename}"
     )
     _write_policy(policy_note)
+    # P1：approve 後立即推送實際內容到 Hermes MEMORY.md
+    approved_content = ks.list_pending()  # 已移除，從 approved/ 讀取
+    try:
+        import json
+        approved_path = Path(BRIDGE_PATH) / "approved" / req.filename
+        if approved_path.exists():
+            payload = json.loads(approved_path.read_text(encoding="utf-8"))
+            _append_to_hermes_memory(
+                payload.get("content", ""),
+                title=f"已採納：{req.layer}/{req.scope or 'general'}"
+            )
+    except Exception as e:
+        logger.warning(f"knowledge_api: P1 hermes append failed: {e}")
     logger.info(f"knowledge_api: approved {req.filename}")
     return {"status": "ok", "message": f"已採納入庫：{req.layer}/{req.scope or 'general'}"}
 

@@ -31,7 +31,7 @@ echo "Log: $LOG_FILE"
 CONTENTS=(
     "客服部門規範：所有投訴案件必須在24小時內回覆"
     "行銷部門規範：所有對外文案發布前需主管審核"
-    "業務部門規範：報價單需附上有效期限，最長30天"
+    "業務部門規範：報價單需附上有效期限，有效期最長為三十天（30天）"
     "HR部門規範：新進員工試用期為三個月"
     "研發部門規範：所有 PR 必須有兩位以上 reviewer 才能合併"
     "資安規範：禁止將公司資料上傳至個人雲端儲存服務"
@@ -41,7 +41,7 @@ CONTENTS=(
 QUESTIONS=(
     "客服部門投訴案件的回覆時限是多久？"
     "行銷文案發布前需要什麼程序？"
-    "業務報價單的有效期限規定是什麼？"
+    "業務報價單的有效期限規定是什麼？最長幾天？"
     "新進員工試用期多長？"
     "PR 合併需要幾位 reviewer？"
     "公司資料可以上傳個人雲端嗎？"
@@ -51,7 +51,7 @@ QUESTIONS=(
 KEYWORDS=(
     "24"
     "主管審核"
-    "30"
+    "三十天"
     "三個月"
     "兩位"
     "禁止"
@@ -123,10 +123,10 @@ for i in $(seq 1 $N); do
 
     if echo "$ANSWER" | grep -q "$KEYWORD"; then
         echo -e "  ${GREEN}[← OUT]${NC} AI 正確引用：${ANSWER:0:60}..."
-        RAG_OK=1
     else
-        echo -e "  ${YELLOW}[~ OUT]${NC} 未命中關鍵字「${KEYWORD}」：${ANSWER:0:60}..."
-        RAG_OK=0
+        echo -e "  ${RED}[~ OUT]${NC} 未命中關鍵字「${KEYWORD}」：${ANSWER:0:60}..."
+        FAIL=$((FAIL+1))
+        continue
     fi
 
     # Step 4: OpenClaw → Hermes (sync-policies)
