@@ -115,6 +115,7 @@ def _append_to_hermes_memory(content: str, title: str = ""):
         return
     existing = HERMES_MEMORY.read_text(encoding="utf-8")
     label = f"[企業規則] {title}" if title else "[企業規則]"
-    entry = f"\n§\n{label}\n{content}"
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    entry = f"\n§\n[{ts}] {label}\n{content}"
     HERMES_MEMORY.write_text(existing + entry, encoding="utf-8")
     logger.info(f"knowledge_api: appended to hermes MEMORY.md")
