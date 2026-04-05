@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from . import knowledge_service as ks
+from . import shared_bridge as sb
 
 logger = logging.getLogger("ceclaw.knowledge_api")
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
@@ -69,6 +70,23 @@ async def approve(req: ApproveRequest):
         f"來源檔案：{req.filename}"
     )
     _write_policy(policy_note)
+    # shared_bridge：approve 後寫入共同區（o2h）
+    try:
+        approved_path = Path(BRIDGE_PATH) / "approved" / req.filename
+        if approved_path.exists():
+            import json as _json
+            payload = _json.loads(approved_path.read_text(encoding="utf-8"))
+            sb.write(
+                content=payload.get("content", ""),
+                source="openclaw",
+                direction="o2h",
+                user_id=payload.get("user_id", ""),
+                dept=payload.get("dept", "") or req.scope,
+                priority="normal",
+                metadata={"layer": req.layer, "scope": req.scope, "filename": req.filename}
+            )
+    except Exception as e:
+        logger.warning(f"knowledge_api: shared_bridge write failed: {e}")
     # P1：approve 後立即推送實際內容到 Hermes MEMORY.md
     approved_content = ks.list_pending()  # 已移除，從 approved/ 讀取
     try:
@@ -123,9 +141,19 @@ def _write_policy(content: str):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     (policy_dir / f"{ts}.txt").write_text(content, encoding="utf-8")
 
+def _trim_hermes_memory_if_needed(max_lines: int = 500):
+    if not HERMES_MEMORY.exists():
+        return
+    lines = HERMES_MEMORY.read_text(encoding="utf-8").splitlines()
+    if len(lines) > max_lines:
+        trimmed = "\n".join(lines[-max_lines:])
+        HERMES_MEMORY.write_text(trimmed, encoding="utf-8")
+        logger.info(f"knowledge_api: MEMORY.md trimmed to {max_lines} lines")
+
 def _append_to_hermes_memory(content: str, title: str = ""):
     if not HERMES_MEMORY.exists():
         return
+    _trim_hermes_memory_if_needed(max_lines=500)
     existing = HERMES_MEMORY.read_text(encoding="utf-8")
     label = f"[企業規則] {title}" if title else "[企業規則]"
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
