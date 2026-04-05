@@ -86,6 +86,13 @@ def query_all_layers(text: str, user_id: str = "",
         results += query(text, "personal", user_id)
     if dept:
         results += query(text, "dept", dept)
+    else:
+        # 無指定 dept 時掃所有 dept collections
+        client, _ = _get_client()
+        for col in client.list_collections():
+            if col.name.startswith("dept_"):
+                scope = col.name[5:]
+                results += query(text, "dept", scope)
     results += query(text, "company")
     seen = set()
     unique = []

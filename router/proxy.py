@@ -336,7 +336,8 @@ async def handle_inference(
     if _KS_AVAILABLE:
         try:
             _query_text, _ = _extract_query_info(body)
-            _rag_hits = _ks.query_all_layers(_query_text)
+            _dept = _model_str.split("/")[1] if "/" in _model_str else ""
+            _rag_hits = _ks.query_all_layers(_query_text, dept=_dept)
             if _rag_hits:
                 _rag_context = "\n---\n".join(
                     f"[相似度 {r['similarity']}] {r['content']}" for r in _rag_hits
