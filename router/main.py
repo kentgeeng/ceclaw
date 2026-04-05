@@ -70,6 +70,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CECLAW Inference Router", lifespan=lifespan)
 
+from .knowledge_api import router as knowledge_router
+app.include_router(knowledge_router)
+
 
 # ── OpenAI-compatible endpoints ───────────────────────────
 
