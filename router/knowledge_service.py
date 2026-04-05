@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 CHROMA_PATH = os.path.expanduser("~/.ceclaw/knowledge/chroma_db")
 BRIDGE_PATH = os.path.expanduser("~/.ceclaw/knowledge/bridge")
-SIMILARITY_THRESHOLD = 0.7
+SIMILARITY_THRESHOLD = 0.25  # 英文 embedding model 對中文語意分數偏低，正式版換中文 embedding 後再調回 0.7
 
 _client = None
 _ef = None
@@ -41,7 +41,7 @@ def _collection_name(layer: str, scope: str = "") -> str:
 def _get_or_create_collection(layer: str, scope: str = ""):
     client, ef = _get_client()
     name = _collection_name(layer, scope)
-    return client.get_or_create_collection(name=name, embedding_function=ef)
+    return client.get_or_create_collection(name=name, embedding_function=ef, metadata={"hnsw:space": "cosine"})
 
 def add_document(content: str, layer: str, scope: str = "",
                  metadata: dict = None) -> str:

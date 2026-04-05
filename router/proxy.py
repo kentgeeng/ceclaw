@@ -12,6 +12,11 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from .config import CECLAWConfig, LocalBackend, CloudProvider
 from .backends import get_healthy_backend, select_backend, check_all, _healthy, _error_count
 from . import audit
+try:
+    from . import knowledge_service as _ks
+    _KS_AVAILABLE = True
+except Exception:
+    _KS_AVAILABLE = False
 
 logger = logging.getLogger("ceclaw.proxy")
 
@@ -81,7 +86,7 @@ CECLAW_SYSTEM_PROMPT_WITH_SOUL = (
 )
 
 
-def inject_system_prompt(body: bytes, soul_md: str = "") -> bytes:
+def inject_system_prompt(body: bytes, soul_md: str = "", rag_context: str = "") -> bytes:
     """inject CECLAW identity as system prompt"""
     try:
         data = json.loads(body)
@@ -91,6 +96,8 @@ def inject_system_prompt(body: bytes, soul_md: str = "") -> bytes:
         full_prompt = CECLAW_SYSTEM_PROMPT
         if soul_md:
             full_prompt = soul_md + "\n\n" + CECLAW_SYSTEM_PROMPT_WITH_SOUL
+        if rag_context:
+            full_prompt = full_prompt + "\n\n## 企業知識庫參考資料\n" + rag_context
         if messages[0].get("role") == "system":
             messages[0]["content"] = messages[0]["content"] + "\n\n" + full_prompt
         else:
@@ -325,7 +332,19 @@ async def handle_inference(
     except Exception:
         _model_str = ""
     _soul_md = load_soul_md(_model_str)
-    body = inject_system_prompt(body, soul_md=_soul_md)
+    _rag_context = ""
+    if _KS_AVAILABLE:
+        try:
+            _query_text, _ = _extract_query_info(body)
+            _rag_hits = _ks.query_all_layers(_query_text)
+            if _rag_hits:
+                _rag_context = "\n---\n".join(
+                    f"[相似度 {r['similarity']}] {r['content']}" for r in _rag_hits
+                )
+                logger.info(f"RAG: injected {len(_rag_hits)} chunks")
+        except Exception as _e:
+            logger.warning(f"RAG query failed: {_e}")
+    body = inject_system_prompt(body, soul_md=_soul_md, rag_context=_rag_context)
     headers = {
         "Content-Type": request.headers.get("Content-Type", "application/json"),
         "Accept": request.headers.get("Accept", "*/*"),
