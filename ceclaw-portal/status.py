@@ -119,6 +119,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 data = json.loads(body)
                 message = data.get('message', '')
                 session_id = _get_or_create_session()
+                # 若 session 失效則重建
+                try:
+                    chk = urllib.request.Request(
+                        f'http://localhost:8642/api/sessions/{session_id}',
+                        headers={'Content-Type': 'application/json'}
+                    )
+                    urllib.request.urlopen(chk, timeout=3)
+                except:
+                    import builtins
+                    globals()['_HERMES_SESSION_ID'] = None
+                    session_id = _get_or_create_session()
                 req2 = urllib.request.Request(
                     f'http://localhost:8642/api/sessions/{session_id}/chat/stream',
                     data=json.dumps({'message': message, 'model': 'ceclaw'}).encode(),
