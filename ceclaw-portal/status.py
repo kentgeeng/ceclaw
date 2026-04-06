@@ -7,7 +7,22 @@ CHECKS = [
     ("searxng", "http://localhost:8888/healthz"),
 ]
 
-TCPServer.allow_reuse_address = True
+socketserver.TCPServer.allow_reuse_address = True
+_HERMES_SESSION_ID = None
+
+def _get_or_create_session():
+    global _HERMES_SESSION_ID
+    if _HERMES_SESSION_ID:
+        return _HERMES_SESSION_ID
+    req = urllib.request.Request(
+        'http://localhost:8642/api/sessions',
+        data=b'{}',
+        headers={'Content-Type': 'application/json'},
+        method='POST'
+    )
+    r = urllib.request.urlopen(req, timeout=5)
+    _HERMES_SESSION_ID = json.loads(r.read())['session']['id']
+    return _HERMES_SESSION_ID
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/api/status':
@@ -66,10 +81,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 req = urllib.request.Request(
                     "http://localhost:8000/api/knowledge/submit",
                     data=body,
-                    headers={
-                        "Authorization": "Bearer 97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759",
-                        "Content-Type": "application/json"
-                    },
+                    headers={"Authorization": "Bearer 97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759", "Content-Type": "application/json"},
                     method="POST"
                 )
                 r = urllib.request.urlopen(req, timeout=10)
@@ -88,16 +100,48 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 req = urllib.request.Request(
                     "http://localhost:8000/api/knowledge/approve",
                     data=body,
-                    headers={
-                        "Authorization": "Bearer 97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759",
-                        "Content-Type": "application/json"
-                    },
+                    headers={"Authorization": "Bearer 97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759", "Content-Type": "application/json"},
                     method="POST"
                 )
                 r = urllib.request.urlopen(req, timeout=10)
                 result = json.loads(r.read())
             except Exception as e:
                 result = {"error": str(e)}
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(result).encode())
+        elif self.path == '/api/hermes-exec':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                body = self.rfile.read(length)
+                data = json.loads(body)
+                message = data.get('message', '')
+                session_id = _get_or_create_session()
+                req2 = urllib.request.Request(
+                    f'http://localhost:8642/api/sessions/{session_id}/chat/stream',
+                    data=json.dumps({'message': message, 'model': 'ceclaw'}).encode(),
+                    headers={'Content-Type': 'application/json'},
+                    method='POST'
+                )
+                r2 = urllib.request.urlopen(req2, timeout=60)
+                text = ''
+                tool_calls = []
+                for line in r2:
+                    line = line.decode('utf-8').strip()
+                    if line.startswith('data:'):
+                        try:
+                            d = json.loads(line[5:])
+                            if 'delta' in d:
+                                text += d['delta']
+                            if d.get('tool_name') and d.get('args'):
+                                tool_calls.append(d['tool_name'] + ': ' + str(d.get('args', {})))
+                        except:
+                            pass
+                result = {'text': text, 'tool_calls': tool_calls, 'session_id': session_id}
+            except Exception as e:
+                result = {'text': '', 'tool_calls': [], 'error': str(e)}
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
