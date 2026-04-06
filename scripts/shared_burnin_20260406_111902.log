@@ -1,0 +1,277 @@
+Log: /home/zoe_ai/ceclaw/scripts/shared_burnin_20260406_111902.log
+=========================================
+ CECLAW 雙向溝通燒機 x 1000 輪
+=========================================
+使用 session: sess_126cf6db3f8247ff8f6ea5612e2ffd58
+
+-----------------------------------------
+[1;33m第 1/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 date && hostnam...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:19:49 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:19:49 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：47117ms
+
+-----------------------------------------
+[1;33m第 2/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 uptime，告訴我系統運行時...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:20:32 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:20:32 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：42760ms
+
+-----------------------------------------
+[1;33m第 3/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 df -h / | tail ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:21:15 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:21:15 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：43337ms
+
+-----------------------------------------
+[1;33m第 4/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 free -h | grep ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:21:59 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:21:59 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：43824ms
+
+-----------------------------------------
+[1;33m第 5/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 whoami && pwd，告...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:22:41 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:22:42 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：42601ms
+
+-----------------------------------------
+[1;33m第 6/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 date && hostnam...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:23:24 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:23:24 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：42534ms
+
+-----------------------------------------
+[1;33m第 7/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 uptime，告訴我系統運行時...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:24:06 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:24:06 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：41737ms
+
+-----------------------------------------
+[1;33m第 8/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 df -h / | tail ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:24:51 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:24:51 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：45391ms
+
+-----------------------------------------
+[1;33m第 9/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 free -h | grep ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:25:36 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:25:36 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：44593ms
+
+-----------------------------------------
+[1;33m第 10/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 whoami && pwd，告...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:26:23 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:26:23 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：47541ms
+
+-----------------------------------------
+[1;33m第 11/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 date && hostnam...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:27:07 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:27:07 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：43929ms
+
+-----------------------------------------
+[1;33m第 12/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 uptime，告訴我系統運行時...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:27:51 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:27:51 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：43636ms
+
+-----------------------------------------
+[1;33m第 13/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 df -h / | tail ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:28:36 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:28:36 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：44903ms
+
+-----------------------------------------
+[1;33m第 14/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 free -h | grep ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:29:20 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:29:21 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：44757ms
+
+-----------------------------------------
+[1;33m第 15/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 whoami && pwd，告...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;31m[FAIL][0m shared/ h2o 未寫入（等待10秒後仍無）
+
+-----------------------------------------
+[1;33m第 16/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 date && hostnam...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:30:55 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:30:56 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：44169ms
+
+-----------------------------------------
+[1;33m第 17/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 uptime，告訴我系統運行時...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:31:39 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:31:40 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：44147ms
+
+-----------------------------------------
+[1;33m第 18/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 df -h / | tail ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:32:25 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:32:26 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：45838ms
+
+-----------------------------------------
+[1;33m第 19/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 free -h | grep ...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:33:11 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:33:11 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：45738ms
+
+-----------------------------------------
+[1;33m第 20/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 whoami && pwd，告...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:33:57 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:33:57 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：45692ms
+
+-----------------------------------------
+[1;33m第 21/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 date && hostnam...
+  [0;32m[✓][0m Hermes 完成（api_calls=2）
+  [0;32m[← H→O][0m shared/ h2o: 1 筆待處理
+2026-04-06 11:34:42 scan_h2o: processed 1 items
+  [0;32m[✓][0m OpenClaw 入庫完成
+  [0;32m[O→H ][0m OpenClaw approve → shared/ o2h
+2026-04-06 11:34:42 scan_o2h: processed 0 items
+  [0;32m[← O ][0m Hermes MEMORY.md 已更新
+  ⏱  本輪耗時：45191ms
+
+-----------------------------------------
+[1;33m第 22/1000 輪[0m
+-----------------------------------------
+  [0;34m[→ H ][0m Hermes 執行：請用 terminal 執行 uptime，告訴我系統運行時...
