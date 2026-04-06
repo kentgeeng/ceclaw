@@ -19,13 +19,7 @@ echo "========================================="
 
 PASS=0; FAIL=0; TOTAL_TIME=0
 
-# 取得 session
-SESSION=$(curl -s http://localhost:8642/api/sessions | python3 -c "import json,sys; print(json.load(sys.stdin)['items'][0]['id'])" 2>/dev/null)
-if [ -z "$SESSION" ]; then
-    echo "❌ 無法取得 Hermes session，請確認 Hermes 已啟動"
-    exit 1
-fi
-echo "使用 session: $SESSION"
+# Session 將於每輪建立
 
 TASKS=(
     "請用 terminal 執行 date && hostname，告訴我結果"
@@ -45,6 +39,14 @@ for i in $(seq 1 $N); do
     echo "-----------------------------------------"
     echo -e "${YELLOW}第 ${i}/${N} 輪${NC}"
     echo "-----------------------------------------"
+
+    # 每輪建新 session（避免 context 累積導致 Hermes 跳過工具）
+    SESSION=$(curl -s -X POST http://localhost:8642/api/sessions         -H "Content-Type: application/json"         -d '{}' | python3 -c "import json,sys; print(json.load(sys.stdin)['session']['id'])" 2>/dev/null)
+    if [ -z "$SESSION" ]; then
+        echo "  ❌ 無法建立 session，跳過本輪"
+        FAIL=$((FAIL+1))
+        continue
+    fi
 
     # Step 1: Hermes 執行工具任務
     echo -e "  ${BLUE}[→ H ]${NC} Hermes 執行：${TASK:0:30}..."
