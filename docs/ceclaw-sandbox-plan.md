@@ -46,3 +46,21 @@ Phase 5 壓力
 
 openshell sandbox create --help | grep -E "policy|network|fs"
 確認 flag 名稱後調整 unit。
+
+## 架構決策記錄（2026-04-06）
+
+**決策：OpenShell 直接用，bypass NemoClaw**
+
+| 選項 | 決策 | 理由 |
+|------|------|------|
+| OpenShell 直接用 | ✅ 採用 | out-of-process，三元件齊全，bypass NemoClaw #910 |
+| MS AGT | ❌ 不用 | application-level，非真正 out-of-process |
+| gVisor + 自建 | ❌ 不用 | 缺 inference routing，重造輪子，3-6個月 |
+
+**根本原因：** NemoClaw #910 是 NemoClaw CLI 的 bug，不是 OpenShell 本身問題。
+直接 `openshell sandbox create` 自管生命週期即可。
+
+**CECLAW 已有的元件對應：**
+- Privacy Router = proxy.py + ceclaw-policy.yaml（已完成）
+- Sandbox = OpenShell（量產時加）
+- Policy Engine = OpenShell out-of-process（量產時加）
