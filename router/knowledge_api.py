@@ -141,7 +141,7 @@ def _write_policy(content: str):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     (policy_dir / f"{ts}.txt").write_text(content, encoding="utf-8")
 
-def _trim_hermes_memory_if_needed(max_lines: int = 500):
+def _trim_hermes_memory_if_needed(max_lines: int = 2000):
     if not HERMES_MEMORY.exists():
         return
     lines = HERMES_MEMORY.read_text(encoding="utf-8").splitlines()
@@ -153,7 +153,7 @@ def _trim_hermes_memory_if_needed(max_lines: int = 500):
 def _append_to_hermes_memory(content: str, title: str = ""):
     if not HERMES_MEMORY.exists():
         return
-    _trim_hermes_memory_if_needed(max_lines=500)
+    _trim_hermes_memory_if_needed(max_lines=2000)
     existing = HERMES_MEMORY.read_text(encoding="utf-8")
     label = f"[企業規則] {title}" if title else "[企業規則]"
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

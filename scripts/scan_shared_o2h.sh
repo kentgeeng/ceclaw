@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 MEMORY_FILE = Path.home() / ".hermes" / "memories" / "MEMORY.md"
-items = sb.scan(direction="o2h", status="pending")
+items = [i for i in sb.scan(direction="o2h", status="pending") if "burnin" not in i.get("user_id","") and "工具任務成果已採納" not in i.get("content","")]
 count = 0
 for item in items:
     try:
