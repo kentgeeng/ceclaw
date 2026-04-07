@@ -20,6 +20,52 @@ except Exception:
 
 logger = logging.getLogger("ceclaw.proxy")
 
+# ── 法律小顧問 RAG ─────────────────────────────────────
+_LAW_ADVISOR_URL = os.getenv("LAW_ADVISOR_URL", "http://192.168.1.91:8010/search")
+_LAW_KEYWORDS = [
+    "法條", "法規", "條文", "規定", "依法",
+    "罰則", "罰款", "罰鍰", "刑責", "處罰",
+    "權利", "義務", "責任", "賠償",
+    "勞基法", "勞動基準法", "個資法", "個人資料",
+    "公司法", "民法", "刑法", "著作權", "商標",
+    "健保", "勞保", "退休金", "資遣",
+    "試用期", "懷孕", "產假", "育嬰", "加班費",
+    "解雇", "開除", "資遣費", "離職",
+]
+
+async def _get_law_rag(messages: list) -> str:
+    try:
+        last = next(
+            (m.get("content", "") for m in reversed(messages)
+             if m.get("role") == "user"), ""
+        )
+        if not any(kw in last for kw in _LAW_KEYWORDS):
+            return ""
+        # 智能 advisor 路由
+        _advisor = "all"
+        if any(kw in last for kw in ["勞基法","勞動","薪資","加班","資遣","試用","產假","育嬰","職安","退休"]):
+            _advisor = "hr"
+        elif any(kw in last for kw in ["著作","商標","專利","智財"]):
+            _advisor = "ip"
+        elif any(kw in last for kw in ["個資","資安","個人資料"]):
+            _advisor = "digital"
+        elif any(kw in last for kw in ["民法","刑法","訴訟","告訴"]):
+            _advisor = "legal"
+        elif any(kw in last for kw in ["稅","會計","審計"]):
+            _advisor = "account"
+        elif any(kw in last for kw in ["醫療","健保","藥事"]):
+            _advisor = "medical"
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.post(
+                _LAW_ADVISOR_URL,
+                json={"query": last, "advisor": _advisor},
+            )
+            return r.json().get("context", "")
+    except Exception as _e:
+        logger.warning(f"law_rag 失敗：{_e}")
+        return ""
+
+
 
 async def _stream_response(response: httpx.Response) -> AsyncIterator[bytes]:
     async for chunk in response.aiter_bytes():
@@ -345,6 +391,12 @@ async def handle_inference(
                 logger.info(f"RAG: injected {len(_rag_hits)} chunks")
         except Exception as _e:
             logger.warning(f"RAG query failed: {_e}")
+    # 法律小顧問 RAG
+    _law_context = await _get_law_rag(json.loads(body).get("messages", []))
+    if _law_context:
+        logger.info("law_rag: injected law context")
+        _rag_context = (_rag_context + "\n\n" + _law_context).strip()
+
     body = inject_system_prompt(body, soul_md=_soul_md, rag_context=_rag_context)
     headers = {
         "Content-Type": request.headers.get("Content-Type", "application/json"),
