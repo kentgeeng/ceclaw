@@ -21,7 +21,7 @@ declare -a QUESTIONS=(
   "銀行存款保險上限是多少？"
   "電信業者申請頻率執照要什麼程序？"
   "私立學校設立需要哪些條件？"
-  "計程車道路運輸規定有哪些？"
+  "計程車司機職業執照如何申請？"
   "食品添加物使用有哪些限制？"
   "太陽能電廠設置需要申請什麼？"
 )
@@ -43,7 +43,7 @@ try:
     d = json.load(sys.stdin)
     c = d['choices'][0]['message']['content']
     hit = '✅ RAG' if re.search(r'第\s*\d+\s*條|【.+法', c) else '⚠️  NO-RAG'
-    simp_chars = re.findall(r'[码据处获编运则]', c)
+    simp_chars = re.findall(r'[代码数据编程运行框架依据规定条款处理获取]', c)
     lang = '⚠️ 簡體:' + ','.join(set(simp_chars)) if simp_chars else '✅ 繁體'
     print(hit + ' | ' + lang + ' | ' + c[:60].replace('\n', ' '))
 except Exception as e:
