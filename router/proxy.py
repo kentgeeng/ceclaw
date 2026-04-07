@@ -55,6 +55,22 @@ async def _get_law_rag(messages: list) -> str:
             _advisor = "account"
         elif any(kw in last for kw in ["醫療","健保","藥事"]):
             _advisor = "medical"
+        elif any(kw in last for kw in ["土地","地政","建築","都更","房屋","地價","不動產"]):
+            _advisor = "land"
+        elif any(kw in last for kw in ["環境","污染","廢棄物","環評","排放","毒性"]):
+            _advisor = "env"
+        elif any(kw in last for kw in ["銀行","保險","證券","期貨","金融","股票","基金"]):
+            _advisor = "finance"
+        elif any(kw in last for kw in ["電信","郵政","廣播","電視","頻率","通訊"]):
+            _advisor = "telecom"
+        elif any(kw in last for kw in ["教育","學校","大學","師資","課程","學生"]):
+            _advisor = "edu"
+        elif any(kw in last for kw in ["交通","道路","公路","航空","船舶","駕照","鐵路"]):
+            _advisor = "transport"
+        elif any(kw in last for kw in ["食品","農業","農藥","漁業","畜牧","食安"]):
+            _advisor = "food"
+        elif any(kw in last for kw in ["電力","能源","石油","天然氣","核能","電業"]):
+            _advisor = "energy"
         async with httpx.AsyncClient(timeout=3) as client:
             r = await client.post(
                 _LAW_ADVISOR_URL,
