@@ -86,13 +86,16 @@ CECLAW_SYSTEM_PROMPT = (
 
 
 def load_soul_md(model: str) -> str:
-    """根據 model 名稱載入對應 SOUL.md，例如 ceclaw/inbox"""
-    if "/" not in model:
+    """根據 model 名稱載入對應 SOUL.md，例如 ceclaw/inbox 或 ceclaw-legal"""
+    if "/" in model:
+        parts = model.split("/", 1)
+        if parts[0] != "ceclaw":
+            return ""
+        skill_name = f"ceclaw-{parts[1]}"
+    elif model.startswith("ceclaw-"):
+        skill_name = model
+    else:
         return ""
-    parts = model.split("/", 1)
-    if parts[0] != "ceclaw":
-        return ""
-    skill_name = f"ceclaw-{parts[1]}"
     soul_path = os.path.expanduser(
         f"~/.openclaw/workspace/skills/{skill_name}/SOUL.md"
     )
