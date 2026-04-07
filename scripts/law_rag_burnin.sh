@@ -7,7 +7,7 @@ TOKEN="97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759"
 URL="http://localhost:8000/v1/chat/completions"
 LOG="$HOME/.ceclaw/law_rag_burnin_$(date +%Y%m%d_%H%M%S).log"
 
-PASS=0; FAIL=0; RAG_HIT=0; RAG_MISS=0
+PASS=0; FAIL=0; RAG_HIT=0; RAG_MISS=0; SIMP=0
 
 declare -a QUESTIONS=(
   "懷孕員工可以解雇嗎？"
@@ -33,7 +33,9 @@ try:
     d = json.load(sys.stdin)
     c = d['choices'][0]['message']['content']
     hit = '✅ RAG' if re.search(r'第\s*\d+\s*條|【.+法', c) else '⚠️  NO-RAG'
-    print(hit + ' | ' + c[:60].replace('\n', ' '))
+    simp_chars = re.findall(r'[代码数据编程运行框架依据规定条款处理获取]', c)
+    lang = '⚠️ 簡體:' + ','.join(set(simp_chars)) if simp_chars else '✅ 繁體'
+    print(hit + ' | ' + lang + ' | ' + c[:60].replace('\n', ' '))
 except Exception as e:
     print('❌ ERROR | ' + str(e))
 " 2>&1)
@@ -46,6 +48,7 @@ except Exception as e:
     else
       ((PASS++))
       echo "$RESULT" | grep -q "✅ RAG" && ((RAG_HIT++)) || ((RAG_MISS++))
+      echo "$RESULT" | grep -q "⚠️ 簡體" && ((SIMP++))
     fi
     sleep 1
   done
@@ -56,7 +59,8 @@ TOTAL=$((PASS + FAIL))
 echo "==============================" | tee -a "$LOG"
 echo "完成時間：$(date)" | tee -a "$LOG"
 echo "總請求：$TOTAL | 成功：$PASS | 失敗：$FAIL" | tee -a "$LOG"
-echo "RAG觸發：$RAG_HIT | 未觸發：$RAG_MISS" | tee -a "$LOG"
+echo "RAG觸發：$RAG_HIT | 未觸發：$RAG_MISS"
+echo "簡體污染：$SIMP | 污染率：$(python3 -c "print(f'{$SIMP/$PASS*100:.1f}%')" 2>/dev/null || echo 'N/A')" | tee -a "$LOG"
 echo "成功率：$(python3 -c "print(f'{$PASS/$TOTAL*100:.1f}%')")" | tee -a "$LOG"
 echo "RAG觸發率：$(python3 -c "print(f'{$RAG_HIT/$PASS*100:.1f}%')" 2>/dev/null || echo 'N/A')" | tee -a "$LOG"
 echo "Log：$LOG" | tee -a "$LOG"
