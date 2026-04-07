@@ -30,7 +30,7 @@ _LAW_KEYWORDS = [
     "公司法", "民法", "刑法", "著作權", "商標",
     "健保", "勞保", "退休金", "資遣",
     "試用期", "懷孕", "產假", "育嬰", "加班費",
-    "解雇", "開除", "資遣費", "離職",
+    "解雇", "開除", "資遣費", "離職", "機密",
 ]
 
 async def _get_law_rag(messages: list) -> str:
@@ -55,7 +55,7 @@ async def _get_law_rag(messages: list) -> str:
             _advisor = "account"
         elif any(kw in last for kw in ["醫療","健保","藥事"]):
             _advisor = "medical"
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=3) as client:
             r = await client.post(
                 _LAW_ADVISOR_URL,
                 json={"query": last, "advisor": _advisor},
