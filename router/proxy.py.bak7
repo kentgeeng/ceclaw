@@ -427,26 +427,6 @@ async def handle_inference(
     if _law_context:
         logger.info("law_rag: injected law context")
         _rag_context = (_rag_context + "\n\n" + _law_context).strip()
-    # 台灣知識庫 RAG
-    try:
-        _messages = json.loads(body).get("messages", [])
-        _last_msg = next((m.get("content","") for m in reversed(_messages) if m.get("role")=="user"), "")
-        if _last_msg:
-            import httpx as _httpx
-            _tw_emb = (await _httpx.AsyncClient(timeout=10).post(
-                "http://192.168.1.91:11434/api/embeddings",
-                json={"model":"bge-m3","prompt":_last_msg[:500]}
-            )).json()["embedding"]
-            _tw_hits = (await _httpx.AsyncClient(timeout=5).post(
-                "http://192.168.1.91:6333/collections/tw_knowledge/points/search",
-                json={"vector":_tw_emb,"limit":3,"score_threshold":0.5,"with_payload":True}
-            )).json().get("result",[])
-            if _tw_hits:
-                _tw_context = "\n---\n".join(r["payload"].get("content","")[:500] for r in _tw_hits)
-                _rag_context = (_rag_context + "\n\n【台灣知識庫】\n" + _tw_context).strip()
-                logger.info(f"tw_knowledge: injected {len(_tw_hits)} chunks")
-    except Exception as _tw_e:
-        logger.warning(f"tw_knowledge RAG 失敗：{_tw_e}")
 
     body = inject_system_prompt(body, soul_md=_soul_md, rag_context=_rag_context)
     headers = {
