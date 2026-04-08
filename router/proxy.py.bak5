@@ -137,7 +137,7 @@ def load_soul_md(model: str) -> str:
         "compass": "business/customer-support",
         "ledger": "business/invoice-tracker",
     }
-    if "/" in model and parts[1] in alt_map:
+    if parts[1] in alt_map:
         alt_path = os.path.expanduser(
             f"~/awesome-openclaw-agents/agents/{alt_map[parts[1]]}/SOUL.md"
         )
