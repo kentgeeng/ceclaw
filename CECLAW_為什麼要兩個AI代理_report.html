@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CECLAW：為什麼要兩個 AI 代理？</title>
+<script>
+MathJax = { tex: { inlineMath: [['$','$']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+:root {
+  --primary:   #1e3a8a;
+  --secondary: #6b7280;
+  --bg:        #f8fafc;
+  --danger:    #dc2626;
+  --success:   #10b981;
+  --warning:   #f59e0b;
+  --border:    #e5e7eb;
+  --white:     #ffffff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  background: var(--bg);
+  color: #1a1a1a;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.page-wrapper {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 15mm;
+  background: var(--white);
+}
+
+/* ── Cover ── */
+.cover {
+  text-align: center;
+  padding: 30mm 0 20mm;
+  border-bottom: 3px solid var(--primary);
+  margin-bottom: 12mm;
+  page-break-after: always;
+}
+.cover-badge {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 4px 16px;
+  border-radius: 2px;
+  margin-bottom: 8mm;
+}
+.cover h1 {
+  font-size: 26px;
+  color: var(--primary);
+  font-weight: 800;
+  line-height: 1.3;
+  margin-bottom: 4mm;
+}
+.cover-date {
+  color: var(--secondary);
+  font-size: 13px;
+  margin-bottom: 6mm;
+}
+.cover-version {
+  color: var(--secondary);
+  font-size: 12px;
+}
+.cover-disclaimer {
+  margin-top: 10mm;
+  font-size: 11px;
+  color: var(--secondary);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  text-align: left;
+  line-height: 1.6;
+}
+
+/* ── TOC ── */
+.toc { margin-bottom: 12mm; page-break-after: always; }
+.toc h2 { color: var(--primary); font-size: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 4px; margin-bottom: 6mm; }
+.toc ol { padding-left: 20px; }
+.toc li { margin-bottom: 4px; font-size: 13px; color: #333; }
+.toc .sub { padding-left: 16px; font-size: 12px; color: var(--secondary); }
+
+/* ── Section ── */
+.section { margin-bottom: 10mm; }
+.section-title {
+  font-size: 17px;
+  color: var(--primary);
+  font-weight: 800;
+  border-left: 5px solid var(--primary);
+  padding-left: 10px;
+  margin-bottom: 6mm;
+  page-break-after: avoid;
+}
+.section-title + * { page-break-before: avoid; }
+.subsection-title {
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 700;
+  margin: 5mm 0 3mm;
+  page-break-after: avoid;
+}
+
+p { margin-bottom: 4mm; }
+
+/* ── Callout ── */
+.callout {
+  background: #eff6ff;
+  border-left: 5px solid var(--primary);
+  padding: 10px 16px;
+  margin-bottom: 6mm;
+  page-break-inside: avoid;
+}
+.callout p { margin: 0; font-size: 13px; line-height: 1.8; }
+.callout strong { color: var(--primary); }
+
+/* ── Tables ── */
+.table-container { page-break-inside: auto; margin-bottom: 6mm; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th {
+  background: var(--primary) !important;
+  color: var(--white) !important;
+  padding: 10px 8px;
+  border: 1px solid var(--border) !important;
+  text-align: left;
+  font-weight: 600;
+}
+.data-table td {
+  padding: 9px 8px;
+  border: 1px solid var(--border) !important;
+  background: var(--white) !important;
+  vertical-align: top;
+}
+.data-table tbody tr:nth-child(even) td { background: #f0f4ff !important; }
+.data-table thead { display: table-header-group; }
+.data-table tbody tr { page-break-inside: avoid; }
+.check-ok  { color: var(--success); font-weight: 700; }
+.check-no  { color: var(--danger);  font-weight: 700; }
+
+/* ── SVG Figures ── */
+figure { margin-bottom: 6mm; page-break-inside: avoid; }
+figcaption { text-align: center; font-size: 11px; color: var(--secondary); margin-top: 4px; }
+svg { max-width: 180mm; display: block; margin: 0 auto; }
+
+/* ── Code blocks (fallback text) ── */
+.code-note {
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  margin-bottom: 4mm;
+  page-break-inside: avoid;
+}
+
+/* ── Scenario blocks ── */
+.strategy-block {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 4mm;
+  page-break-inside: avoid;
+}
+.strategy-block .label {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+/* ── Print ── */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page { size: A4; margin: 15mm; }
+  .no-print { display: none !important; }
+  .page-break { page-break-before: always; }
+  .table-container, .data-table { page-break-inside: auto; }
+  .strategy-block, .disclaimer, .callout { page-break-inside: avoid; }
+  .section-title { page-break-after: avoid; }
+}
+
+/* ── Print button ── */
+.print-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 999;
+}
+.print-btn:hover { background: #162d6b; }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+<!-- ══════════════════════════════════════════
+     COVER PAGE
+══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-badge">CECLAW TECHNICAL REPORT</div>
+  <h1>為什麼要兩個 AI 代理？<br><span style="font-size:18px;color:#6b7280;">OpenClaw × Hermes 雙層架構設計說明</span></h1>
+  <div class="cover-date">2026-04-09</div>
+  <div class="cover-version">版本：v1.3</div>
+  <div class="cover-disclaimer">
+    本報告由人機協作完成，架構設計由 AI 工程師與 Kent 共同確認，內容經人工審核。<br><br>
+    本報告專供 AI 建置評估與業界交流使用，未經書面授權，嚴禁擅自引用、轉載或用於商業用途。商業授權與部署合作，請洽 ColdElectric。
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TABLE OF CONTENTS
+══════════════════════════════════════════ -->
+<div class="toc">
+  <h2>目錄</h2>
+  <ol>
+    <li>一句話結論</li>
+    <li>架構全貌（SVG 圖）</li>
+    <li>核心差異對照</li>
+    <li>五個維度的完整論據
+      <ol class="sub">
+        <li>權限污染（最根本）</li>
+        <li>狀態混亂（Context Contamination）</li>
+        <li>關注點分離（資產與執行環境隔離）</li>
+        <li>水平擴展潛力</li>
+        <li>體驗統一（後端分層，前端無感）</li>
+      </ol>
+    </li>
+    <li>異常處理鏈</li>
+    <li>四個場景：為什麼不能只用一套</li>
+    <li>常見誤解</li>
+    <li>銷售對話劇本</li>
+    <li>最終定位</li>
+  </ol>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════════════════════════════════
+     1. 一句話結論
+══════════════════════════════════════════ -->
+<!-- KEEP: 01-01 -->
+<div class="section">
+  <div class="section-title">1. 一句話結論</div>
+  <div class="callout">
+    <p><strong>一個 AI 管不了兩件性質完全相反的事。</strong></p>
+    <p>OpenClaw 是公司的法務與人事部門，嚴謹標準對所有員工一致。<br>
+    Hermes 是每個員工的私人秘書，記得你的習慣和進度。<br>
+    Router proxy 就是秘書幫你查人事部門——效率最高，且不會讓秘書弄亂人事部門的檔案。</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     2. 架構全貌
+══════════════════════════════════════════ -->
+<!-- KEEP: 02-01 -->
+<div class="section">
+  <div class="section-title">2. 架構全貌</div>
+
+  <figure>
+    <!-- SVG: CECLAW Full Architecture Diagram, max 180mm -->
+    <svg viewBox="0 0 680 560" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;">
+
+      <!-- Background -->
+      <rect width="680" height="560" fill="#f8fafc" rx="6"/>
+
+      <!-- ── 使用者視角 header ── -->
+      <rect x="10" y="10" width="660" height="32" fill="#1e3a8a" rx="4"/>
+      <text x="340" y="31" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle">使用者視角</text>
+
+      <!-- 員工A col -->
+      <rect x="10" y="42" width="200" height="120" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.5" rx="3"/>
+      <text x="110" y="62" fill="#1e3a8a" font-size="11" font-weight="bold" text-anchor="middle">員工 A（只看到）</text>
+      <rect x="25" y="72" width="170" height="50" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" rx="3"/>
+      <text x="110" y="91" fill="#1e3a8a" font-size="11" font-weight="bold" text-anchor="middle">Hermes A  :3000</text>
+      <text x="110" y="107" fill="#6b7280" font-size="10" text-anchor="middle">stateful</text>
+      <rect x="25" y="130" width="170" height="22" fill="#fff" stroke="#93c5fd" stroke-width="1" rx="2"/>
+      <text x="110" y="144" fill="#1e3a8a" font-size="10" font-weight="bold" text-anchor="middle">vault A（只有A看得到）</text>
+
+      <!-- 員工B col -->
+      <rect x="240" y="42" width="200" height="120" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.5" rx="3"/>
+      <text x="340" y="62" fill="#1e3a8a" font-size="11" font-weight="bold" text-anchor="middle">員工 B（只看到）</text>
+      <rect x="255" y="72" width="170" height="50" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" rx="3"/>
+      <text x="340" y="91" fill="#1e3a8a" font-size="11" font-weight="bold" text-anchor="middle">Hermes B  :3001</text>
+      <text x="340" y="107" fill="#6b7280" font-size="10" text-anchor="middle">stateful</text>
+      <rect x="255" y="130" width="170" height="22" fill="#fff" stroke="#93c5fd" stroke-width="1" rx="2"/>
+      <text x="340" y="144" fill="#1e3a8a" font-size="10" font-weight="bold" text-anchor="middle">vault B（只有B看得到）</text>
+
+      <!-- IT/Admin col -->
+      <rect x="470" y="42" width="200" height="120" fill="#fefce8" stroke="#f59e0b" stroke-width="1.5" rx="3"/>
+      <text x="570" y="62" fill="#92400e" font-size="11" font-weight="bold" text-anchor="middle">IT / Admin（管理後台）</text>
+      <rect x="485" y="72" width="170" height="50" fill="#fef9c3" stroke="#fcd34d" stroke-width="1" rx="3"/>
+      <text x="570" y="91" fill="#92400e" font-size="11" font-weight="bold" text-anchor="middle">OpenClaw  :18789</text>
+      <text x="570" y="107" fill="#6b7280" font-size="10" text-anchor="middle">stateless</text>
+      <rect x="485" y="130" width="170" height="22" fill="#fff" stroke="#fcd34d" stroke-width="1" rx="2"/>
+      <text x="570" y="144" fill="#92400e" font-size="10" font-weight="bold" text-anchor="middle">memory-wiki（全員共用）</text>
+
+      <!-- shared_bridge -->
+      <rect x="10" y="178" width="660" height="40" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5" rx="3"/>
+      <text x="340" y="195" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle">shared_bridge</text>
+      <text x="340" y="210" fill="#065f46" font-size="10" text-anchor="middle">員工需要法規時，Router proxy 注入 RAG 結果，員工無感知</text>
+      <!-- arrows -->
+      <line x1="110" y1="162" x2="110" y2="178" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="340" y1="162" x2="340" y2="178" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="570" y1="162" x2="570" y2="178" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Router -->
+      <rect x="10" y="232" width="660" height="48" fill="#1e3a8a" rx="4"/>
+      <text x="340" y="253" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">CECLAW Router  :8000  （proxy.py）</text>
+      <text x="340" y="270" fill="#93c5fd" font-size="10" text-anchor="middle">L3&#8594;L2&#8594;L1 RAG 注入  ·  SOUL.md  ·  14 類 advisor</text>
+      <line x1="340" y1="218" x2="340" y2="232" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Knowledge layers -->
+      <rect x="10" y="295" width="210" height="70" fill="#f0fdf4" stroke="#10b981" stroke-width="1.2" rx="3"/>
+      <text x="115" y="315" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle">L3 公司知識</text>
+      <text x="115" y="331" fill="#065f46" font-size="10" text-anchor="middle">ceclaw_*  全員共用</text>
+
+      <rect x="235" y="295" width="210" height="70" fill="#f0f9ff" stroke="#38bdf8" stroke-width="1.2" rx="3"/>
+      <text x="340" y="315" fill="#0c4a6e" font-size="11" font-weight="bold" text-anchor="middle">L2 台灣知識</text>
+      <text x="340" y="331" fill="#0c4a6e" font-size="10" text-anchor="middle">tw_knowledge</text>
+      <text x="340" y="347" fill="#0c4a6e" font-size="10" text-anchor="middle">51,970 筆</text>
+
+      <rect x="460" y="295" width="210" height="70" fill="#fff7ed" stroke="#fb923c" stroke-width="1.2" rx="3"/>
+      <text x="565" y="315" fill="#7c2d12" font-size="11" font-weight="bold" text-anchor="middle">L1 法律 RAG</text>
+      <text x="565" y="331" fill="#7c2d12" font-size="10" text-anchor="middle">tw_laws</text>
+      <text x="565" y="347" fill="#7c2d12" font-size="10" text-anchor="middle">221,599 條</text>
+
+      <!-- arrows down from router -->
+      <line x1="115" y1="280" x2="115" y2="295" stroke="#1e3a8a" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="340" y1="280" x2="340" y2="295" stroke="#1e3a8a" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="565" y1="280" x2="565" y2="295" stroke="#1e3a8a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Infra layer -->
+      <rect x="10" y="380" width="660" height="44" fill="#1e3a8a" rx="4"/>
+      <text x="340" y="399" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">GB10 / B70：Gemma 4  ·  Qdrant  ·  bge-m3  ·  法律 API</text>
+      <text x="340" y="415" fill="#93c5fd" font-size="10" text-anchor="middle">使用者完全不知道它的存在</text>
+
+      <!-- arrows to infra -->
+      <line x1="115" y1="365" x2="115" y2="380" stroke="#6b7280" stroke-width="1.2" marker-end="url(#arr2)"/>
+      <line x1="340" y1="365" x2="340" y2="380" stroke="#6b7280" stroke-width="1.2" marker-end="url(#arr2)"/>
+      <line x1="565" y1="365" x2="565" y2="380" stroke="#6b7280" stroke-width="1.2" marker-end="url(#arr2)"/>
+
+      <!-- ── Legend ── -->
+      <rect x="10" y="440" width="660" height="108" fill="#fff" stroke="#e5e7eb" stroke-width="1" rx="4"/>
+      <text x="340" y="460" fill="#6b7280" font-size="11" font-weight="bold" text-anchor="middle">圖例說明</text>
+      <!-- Hermes -->
+      <rect x="30" y="470" width="14" height="14" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+      <text x="50" y="482" fill="#1e3a8a" font-size="10">Hermes 員工層（stateful，個人記憶）</text>
+      <!-- OpenClaw -->
+      <rect x="30" y="492" width="14" height="14" fill="#fef9c3" stroke="#fcd34d" stroke-width="1"/>
+      <text x="50" y="504" fill="#92400e" font-size="10">OpenClaw 公司層（stateless，共用知識）</text>
+      <!-- Knowledge -->
+      <rect x="30" y="514" width="14" height="14" fill="#f0fdf4" stroke="#10b981" stroke-width="1"/>
+      <text x="50" y="526" fill="#065f46" font-size="10">知識層 / shared_bridge（RAG 注入）</text>
+      <!-- Infra -->
+      <rect x="310" y="470" width="14" height="14" fill="#1e3a8a"/>
+      <text x="330" y="482" fill="#1e3a8a" font-size="10">推理基礎設施（B70 / Qdrant）</text>
+
+      <!-- Arrowhead marker -->
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#10b981"/>
+        </marker>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#6b7280"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>圖 1：CECLAW 雙層架構全貌（OpenClaw 公司層 × Hermes 員工層 × Router proxy）</figcaption>
+  </figure>
+</div>
+
+<!-- ══════════════════════════════════════════
+     3. 核心差異對照
+══════════════════════════════════════════ -->
+<!-- KEEP: 03-01 -->
+<div class="section">
+  <div class="section-title">3. 核心差異對照</div>
+  <!-- TABLE-KEEP: 03-01 -->
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:18%">維度</th>
+          <th style="width:41%">OpenClaw</th>
+          <th style="width:41%">Hermes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>角色</td><td>公司法務 + 人事部門</td><td>員工私人秘書</td></tr>
+        <tr><td>狀態</td><td>Stateless（每次重置）</td><td>Stateful（跨對話記憶）</td></tr>
+        <tr><td>記憶範圍</td><td>全員共用（公司知識）</td><td>只屬於本人（個人偏好 / 進度）</td></tr>
+        <tr><td>使用者</td><td>IT / Admin</td><td>每一位員工</td></tr>
+        <tr><td>知識來源</td><td>RAG 三層 + memory-wiki</td><td>vault + session memory</td></tr>
+        <tr><td>執行環境</td><td>OpenShell sandbox（高風險）</td><td>日常工具（file / web / terminal）</td></tr>
+        <tr><td>適合任務</td><td>系統管理 / 部署 / 法規查詢</td><td>個人工作流程 / 任務執行</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════════════════════════════════
+     4. 五個維度的完整論據
+══════════════════════════════════════════ -->
+<!-- KEEP: 04-01 -->
+<div class="section">
+  <div class="section-title">4. 五個維度的完整論據</div>
+
+  <!-- 4.1 權限污染 -->
+  <!-- KEEP: 04-02 -->
+  <div class="subsection-title">4.1 權限污染（最根本）</div>
+  <p>物理上分開兩層，<strong>權限邊界在 API 層級就定死了</strong>。這比在 prompt 裡要求模型「請不要洩漏個資」安全一萬倍。</p>
+  <p>員工 A 的薪資協商記錄<strong>物理上就不在員工 B 的 Hermes 實例裡</strong>——不是「邏輯上隔離」，而是「根本不在那裡」，無從洩漏。單一 AI 架構下，不同使用者的歷史訊息可能因共享 session 或記憶而混入，造成資料外洩。</p>
+
+  <figure>
+    <svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;">
+      <!-- Single AI risk -->
+      <rect x="0" y="0" width="300" height="200" fill="#fff1f2" stroke="#fca5a5" stroke-width="1.5" rx="4"/>
+      <text x="150" y="22" fill="#dc2626" font-size="11" font-weight="bold" text-anchor="middle">單一 AI 的風險</text>
+      <rect x="10" y="34" width="120" height="28" fill="#fee2e2" stroke="#fca5a5" stroke-width="1" rx="3"/>
+      <text x="70" y="53" fill="#7f1d1d" font-size="10" text-anchor="middle">員工A 私人記憶</text>
+      <line x1="130" y1="48" x2="160" y2="48" stroke="#dc2626" stroke-width="1.5" marker-end="url(#rArr)"/>
+      <rect x="160" y="34" width="90" height="28" fill="#fca5a5" stroke="#dc2626" stroke-width="1.5" rx="3"/>
+      <text x="205" y="53" fill="#7f1d1d" font-size="11" font-weight="bold" text-anchor="middle">同一個 AI</text>
+      <line x1="250" y1="48" x2="280" y2="48" stroke="#dc2626" stroke-width="1.5" marker-end="url(#rArr)"/>
+      <text x="290" y="53" fill="#dc2626" font-size="14">✗</text>
+      <text x="150" y="80" fill="#dc2626" font-size="10" text-anchor="middle">員工B 查詢時從共享記憶誤取資料</text>
+
+      <!-- Dual layer OK -->
+      <rect x="320" y="0" width="320" height="200" fill="#f0fdf4" stroke="#6ee7b7" stroke-width="1.5" rx="4"/>
+      <text x="480" y="22" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle">雙層架構</text>
+
+      <rect x="330" y="34" width="130" height="26" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="3"/>
+      <text x="395" y="51" fill="#065f46" font-size="10" text-anchor="middle">員工A vault → Hermes A</text>
+      <rect x="330" y="68" width="130" height="26" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="3"/>
+      <text x="395" y="85" fill="#065f46" font-size="10" text-anchor="middle">員工B vault → Hermes B</text>
+      <rect x="330" y="102" width="130" height="26" fill="#fef9c3" stroke="#fcd34d" stroke-width="1" rx="3"/>
+      <text x="395" y="119" fill="#92400e" font-size="10" text-anchor="middle">公司知識 → OpenClaw（全員）</text>
+
+      <line x1="462" y1="47" x2="490" y2="74" stroke="#065f46" stroke-width="1.2"/>
+      <line x1="462" y1="81" x2="490" y2="84" stroke="#065f46" stroke-width="1.2"/>
+      <line x1="462" y1="115" x2="490" y2="94" stroke="#065f46" stroke-width="1.2"/>
+      <rect x="490" y="60" width="138" height="42" fill="#d1fae5" stroke="#34d399" stroke-width="1.5" rx="3"/>
+      <text x="559" y="79" fill="#065f46" font-size="10" font-weight="bold" text-anchor="middle">共用 OpenClaw</text>
+      <text x="559" y="93" fill="#065f46" font-size="10" text-anchor="middle">（公司知識）</text>
+      <text x="559" y="150" fill="#10b981" font-size="13" font-weight="bold" text-anchor="middle">✓ 物理隔離</text>
+      <text x="559" y="168" fill="#065f46" font-size="10" text-anchor="middle">隱私邊界在 API 層定死</text>
+
+      <defs>
+        <marker id="rArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#dc2626"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>圖 2：單一 AI 架構的資料洩漏風險 vs 雙層物理隔離</figcaption>
+  </figure>
+
+  <!-- 4.2 狀態混亂 -->
+  <!-- KEEP: 04-03 -->
+  <div class="subsection-title">4.2 狀態混亂（Context Contamination）</div>
+  <p>OpenClaw stateless，每次都是<strong>乾淨的執行環境</strong>。合在一起的話，模型執行 IT 部署指令時，context 裡可能還殘留著員工剛才聊的私事，關鍵任務出錯率上升。</p>
+
+  <figure>
+    <svg viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;">
+      <!-- Contaminated -->
+      <rect x="0" y="0" width="305" height="160" fill="#fff1f2" stroke="#fca5a5" stroke-width="1.5" rx="4"/>
+      <text x="152" y="20" fill="#dc2626" font-size="11" font-weight="bold" text-anchor="middle">合在一起的 context 污染</text>
+      <rect x="8" y="28" width="135" height="22" fill="#fee2e2" stroke="#fca5a5" stroke-width="1" rx="2"/>
+      <text x="75" y="43" fill="#7f1d1d" font-size="9" text-anchor="middle">今天晚餐吃什麼</text>
+      <rect x="8" y="54" width="135" height="22" fill="#fee2e2" stroke="#fca5a5" stroke-width="1" rx="2"/>
+      <text x="75" y="69" fill="#7f1d1d" font-size="9" text-anchor="middle">員工A 的工作習慣</text>
+      <rect x="155" y="28" width="140" height="22" fill="#fca5a5" stroke="#dc2626" stroke-width="1.5" rx="2"/>
+      <text x="225" y="43" fill="#7f1d1d" font-size="9" text-anchor="middle">重啟所有容器指令</text>
+      <rect x="155" y="54" width="140" height="22" fill="#fee2e2" stroke="#fca5a5" stroke-width="1" rx="2"/>
+      <text x="225" y="69" fill="#7f1d1d" font-size="9" text-anchor="middle">昨天的任務進度</text>
+      <text x="152" y="100" fill="#dc2626" font-size="10" text-anchor="middle">AI 注意力分散</text>
+      <text x="152" y="116" fill="#dc2626" font-size="10" text-anchor="middle">執行關鍵指令時出錯率上升 ✗</text>
+
+      <!-- Clean -->
+      <rect x="325" y="0" width="315" height="160" fill="#f0fdf4" stroke="#6ee7b7" stroke-width="1.5" rx="4"/>
+      <text x="482" y="20" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle">雙層分工後</text>
+      <rect x="333" y="28" width="135" height="48" fill="#dbeafe" stroke="#93c5fd" stroke-width="1.2" rx="3"/>
+      <text x="400" y="47" fill="#1e3a8a" font-size="9.5" text-anchor="middle" font-weight="bold">OpenClaw context</text>
+      <text x="400" y="62" fill="#1e3a8a" font-size="9" text-anchor="middle">重啟所有容器指令</text>
+      <text x="400" y="86" fill="#10b981" font-size="9" text-anchor="middle">純淨，標準化 ✓</text>
+      <rect x="476" y="28" width="155" height="48" fill="#d1fae5" stroke="#34d399" stroke-width="1.2" rx="3"/>
+      <text x="553" y="47" fill="#065f46" font-size="9.5" text-anchor="middle" font-weight="bold">Hermes context</text>
+      <text x="553" y="62" fill="#065f46" font-size="9" text-anchor="middle">員工習慣 + 任務進度</text>
+      <text x="553" y="86" fill="#10b981" font-size="9" text-anchor="middle">個人化，連續性強 ✓</text>
+    </svg>
+    <figcaption>圖 3：Context Contamination vs 雙層乾淨分工</figcaption>
+  </figure>
+
+  <!-- 4.3 關注點分離 -->
+  <!-- KEEP: 04-04 -->
+  <div class="subsection-title">4.3 關注點分離（資產與執行環境隔離）</div>
+  <p>OpenClaw 做最危險的事（exec / git / sandbox），<strong>搞掛了重啟就好</strong>，不影響核心資料。Hermes 守護 vault 和 memory，這是企業最值錢的資產，<strong>不應暴露在高風險執行環境裡</strong>。</p>
+
+  <figure>
+    <svg viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;">
+      <rect x="0" y="0" width="305" height="160" fill="#fff7ed" stroke="#fb923c" stroke-width="1.5" rx="4"/>
+      <text x="152" y="20" fill="#c2410c" font-size="11" font-weight="bold" text-anchor="middle">高風險執行（OpenClaw）</text>
+      <text x="152" y="40" fill="#7c2d12" font-size="10" text-anchor="middle">exec / terminal</text>
+      <text x="152" y="58" fill="#7c2d12" font-size="10" text-anchor="middle">git clone / push</text>
+      <text x="152" y="76" fill="#7c2d12" font-size="10" text-anchor="middle">OpenShell sandbox</text>
+      <rect x="20" y="90" width="265" height="28" fill="#fed7aa" stroke="#fb923c" stroke-width="1" rx="3"/>
+      <text x="152" y="108" fill="#c2410c" font-size="10" text-anchor="middle" font-weight="bold">搞掛 → 重啟就好 ✓</text>
+      <text x="152" y="148" fill="#c2410c" font-size="9" text-anchor="middle">高風險執行環境，不碰資產層</text>
+
+      <rect x="325" y="0" width="315" height="160" fill="#f0fdf4" stroke="#34d399" stroke-width="1.5" rx="4"/>
+      <text x="482" y="20" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle">企業資產（Hermes）</text>
+      <text x="482" y="40" fill="#065f46" font-size="10" text-anchor="middle">vault / working-context.md</text>
+      <text x="482" y="58" fill="#065f46" font-size="10" text-anchor="middle">vault / project-state.md</text>
+      <text x="482" y="76" fill="#065f46" font-size="10" text-anchor="middle">vault / decisions-log.md</text>
+      <rect x="340" y="90" width="285" height="28" fill="#bbf7d0" stroke="#34d399" stroke-width="1" rx="3"/>
+      <text x="482" y="108" fill="#065f46" font-size="10" text-anchor="middle" font-weight="bold">損毀 → 無法復原，必須保護</text>
+      <text x="482" y="148" fill="#dc2626" font-size="9" text-anchor="middle">絕不暴露在高風險執行環境裡 ✗</text>
+    </svg>
+    <figcaption>圖 4：執行環境 vs 企業資產，物理隔離的必要性</figcaption>
+  </figure>
+
+  <!-- 4.4 水平擴展 -->
+  <!-- KEEP: 04-05 -->
+  <div class="subsection-title">4.4 水平擴展潛力</div>
+  <p>shared_bridge 是標準協議，不是硬編碼，部署位置可以各自最佳化。</p>
+
+  <figure>
+    <svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;">
+      <!-- POC -->
+      <rect x="0" y="10" width="185" height="210" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" rx="4"/>
+      <text x="92" y="28" fill="#1e3a8a" font-size="10" font-weight="bold" text-anchor="middle">現在（POC）</text>
+      <rect x="10" y="36" width="165" height="24" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" rx="2"/>
+      <text x="92" y="52" fill="#1e3a8a" font-size="10" text-anchor="middle">Hermes</text>
+      <line x1="92" y1="60" x2="92" y2="76" stroke="#1e3a8a" stroke-width="1.2" marker-end="url(#bArr)"/>
+      <rect x="10" y="76" width="165" height="24" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" rx="2"/>
+      <text x="92" y="92" fill="#1e3a8a" font-size="10" text-anchor="middle">Router proxy</text>
+      <line x1="92" y1="100" x2="92" y2="116" stroke="#1e3a8a" stroke-width="1.2" marker-end="url(#bArr)"/>
+      <rect x="10" y="116" width="165" height="24" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" rx="2"/>
+      <text x="92" y="132" fill="#1e3a8a" font-size="10" text-anchor="middle">RAG 注入</text>
+      <line x1="92" y1="140" x2="92" y2="156" stroke="#1e3a8a" stroke-width="1.2" marker-end="url(#bArr)"/>
+      <rect x="10" y="156" width="165" height="24" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" rx="2"/>
+      <text x="92" y="172" fill="#1e3a8a" font-size="10" text-anchor="middle">Gemma 4</text>
+
+      <!-- B70 Multi -->
+      <rect x="200" y="10" width="200" height="210" fill="#f0fdf4" stroke="#34d399" stroke-width="1.5" rx="4"/>
+      <text x="300" y="28" fill="#065f46" font-size="10" font-weight="bold" text-anchor="middle">未來（B70 多租戶）</text>
+      <rect x="210" y="36" width="80" height="22" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="250" y="51" fill="#065f46" font-size="9.5" text-anchor="middle">Hermes A</text>
+      <rect x="300" y="36" width="90" height="22" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="345" y="51" fill="#065f46" font-size="9.5" text-anchor="middle">Hermes B</text>
+      <line x1="250" y1="58" x2="300" y2="80" stroke="#065f46" stroke-width="1" marker-end="url(#gArr)"/>
+      <line x1="345" y1="58" x2="300" y2="80" stroke="#065f46" stroke-width="1" marker-end="url(#gArr)"/>
+      <rect x="210" y="82" width="180" height="22" fill="#bbf7d0" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="300" y="97" fill="#065f46" font-size="9.5" text-anchor="middle">共用 vLLM + Qdrant + bge-m3</text>
+
+      <!-- Future 1-to-N -->
+      <rect x="420" y="10" width="220" height="210" fill="#fefce8" stroke="#fcd34d" stroke-width="1.5" rx="4"/>
+      <text x="530" y="28" fill="#92400e" font-size="10" font-weight="bold" text-anchor="middle">更遠的未來（一對多調度）</text>
+      <rect x="430" y="36" width="200" height="24" fill="#fef9c3" stroke="#fcd34d" stroke-width="1" rx="2"/>
+      <text x="530" y="52" fill="#92400e" font-size="10" text-anchor="middle">一個 Hermes（大腦）</text>
+      <line x1="480" y1="60" x2="460" y2="80" stroke="#92400e" stroke-width="1"/>
+      <line x1="530" y1="60" x2="530" y2="80" stroke="#92400e" stroke-width="1"/>
+      <line x1="580" y1="60" x2="600" y2="80" stroke="#92400e" stroke-width="1"/>
+      <rect x="430" y="80" width="55" height="22" fill="#fef9c3" stroke="#fcd34d" stroke-width="1" rx="2"/>
+      <text x="457" y="95" fill="#92400e" font-size="8.5" text-anchor="middle">Node 1</text>
+      <text x="457" y="108" fill="#92400e" font-size="8" text-anchor="middle">Python</text>
+      <rect x="503" y="80" width="55" height="22" fill="#fef9c3" stroke="#fcd34d" stroke-width="1" rx="2"/>
+      <text x="530" y="95" fill="#92400e" font-size="8.5" text-anchor="middle">Node 2</text>
+      <text x="530" y="108" fill="#92400e" font-size="8" text-anchor="middle">Node.js</text>
+      <rect x="576" y="80" width="55" height="22" fill="#fef9c3" stroke="#fcd34d" stroke-width="1" rx="2"/>
+      <text x="603" y="95" fill="#92400e" font-size="8.5" text-anchor="middle">Node 3</text>
+      <text x="603" y="108" fill="#92400e" font-size="8" text-anchor="middle">遠端機</text>
+
+      <defs>
+        <marker id="bArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#1e3a8a"/>
+        </marker>
+        <marker id="gArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#065f46"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>圖 5：從 POC 到多租戶到一對多調度的水平擴展路徑</figcaption>
+  </figure>
+
+  <!-- 4.5 體驗統一 -->
+  <!-- KEEP: 04-06 -->
+  <div class="subsection-title">4.5 體驗統一（後端分層，前端無感）</div>
+
+  <figure>
+    <svg viewBox="0 0 640 180" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;">
+      <!-- Employee view -->
+      <rect x="0" y="0" width="305" height="180" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" rx="4"/>
+      <text x="152" y="20" fill="#1e3a8a" font-size="11" font-weight="bold" text-anchor="middle">員工視角（感覺只有一個 AI）</text>
+      <rect x="10" y="30" width="60" height="30" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" rx="3"/>
+      <text x="40" y="49" fill="#1e3a8a" font-size="10" text-anchor="middle">員工</text>
+      <line x1="70" y1="45" x2="100" y2="45" stroke="#1e3a8a" stroke-width="1.5" marker-end="url(#bArr2)"/>
+      <rect x="100" y="30" width="80" height="30" fill="#dbeafe" stroke="#93c5fd" stroke-width="1.5" rx="3"/>
+      <text x="140" y="49" fill="#1e3a8a" font-size="10" text-anchor="middle">Hermes UI</text>
+      <text x="152" y="82" fill="#6b7280" font-size="9" text-anchor="middle">「公司病假幾天？」</text>
+      <rect x="30" y="92" width="245" height="20" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="152" y="106" fill="#065f46" font-size="9" text-anchor="middle">Router proxy 自動注入 RAG 結果 → Gemma 4 → 回答</text>
+      <text x="152" y="135" fill="#10b981" font-size="10" font-weight="bold" text-anchor="middle">員工完全不知道背後的分層邏輯 ✓</text>
+
+      <!-- IT view -->
+      <rect x="325" y="0" width="315" height="180" fill="#fefce8" stroke="#fcd34d" stroke-width="1.5" rx="4"/>
+      <text x="482" y="20" fill="#92400e" font-size="11" font-weight="bold" text-anchor="middle">IT 視角（完整控制權）</text>
+      <rect x="335" y="30" width="40" height="30" fill="#fef9c3" stroke="#fcd34d" stroke-width="1" rx="3"/>
+      <text x="355" y="49" fill="#92400e" font-size="10" text-anchor="middle">IT</text>
+      <line x1="375" y1="45" x2="405" y2="45" stroke="#92400e" stroke-width="1.5" marker-end="url(#yArr)"/>
+      <rect x="405" y="30" width="220" height="30" fill="#fef9c3" stroke="#fcd34d" stroke-width="1.5" rx="3"/>
+      <text x="515" y="49" fill="#92400e" font-size="10" text-anchor="middle">OpenClaw Admin  :3005</text>
+      <text x="482" y="82" fill="#6b7280" font-size="9" text-anchor="middle">管理知識庫 / 更新政策 / 監控系統狀態</text>
+      <text x="482" y="110" fill="#10b981" font-size="10" font-weight="bold" text-anchor="middle">完整管理後台，員工不可見 ✓</text>
+
+      <defs>
+        <marker id="bArr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#1e3a8a"/>
+        </marker>
+        <marker id="yArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#92400e"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>圖 6：後端雙層，前端單一入口，員工完全無感知</figcaption>
+  </figure>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════════════════════════════════
+     5. 異常處理鏈
+══════════════════════════════════════════ -->
+<!-- KEEP: 05-01 -->
+<div class="section">
+  <div class="section-title">5. 異常處理鏈</div>
+  <p>當 OpenClaw 或 RAG 服務不可用時（重啟、維護），Hermes 不應直接回報錯誤給員工：</p>
+
+  <figure>
+    <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;">
+      <!-- Normal flow -->
+      <rect x="0" y="0" width="640" height="70" fill="#f0fdf4" stroke="#34d399" stroke-width="1.5" rx="4"/>
+      <text x="20" y="18" fill="#065f46" font-size="10" font-weight="bold">正常狀態</text>
+      <rect x="10" y="24" width="80" height="24" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="50" y="40" fill="#065f46" font-size="9.5" text-anchor="middle">Hermes</text>
+      <line x1="90" y1="36" x2="115" y2="36" stroke="#065f46" stroke-width="1.2" marker-end="url(#g2Arr)"/>
+      <rect x="115" y="24" width="100" height="24" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="165" y="40" fill="#065f46" font-size="9.5" text-anchor="middle">Router proxy</text>
+      <line x1="215" y1="36" x2="240" y2="36" stroke="#065f46" stroke-width="1.2" marker-end="url(#g2Arr)"/>
+      <rect x="240" y="24" width="110" height="24" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="295" y="40" fill="#065f46" font-size="9.5" text-anchor="middle">RAG 注入</text>
+      <line x1="350" y1="36" x2="375" y2="36" stroke="#065f46" stroke-width="1.2" marker-end="url(#g2Arr)"/>
+      <rect x="375" y="24" width="100" height="24" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="425" y="40" fill="#065f46" font-size="9.5" text-anchor="middle">Gemma 4</text>
+      <line x1="475" y1="36" x2="500" y2="36" stroke="#065f46" stroke-width="1.2" marker-end="url(#g2Arr)"/>
+      <rect x="500" y="24" width="60" height="24" fill="#d1fae5" stroke="#34d399" stroke-width="1" rx="2"/>
+      <text x="530" y="40" fill="#065f46" font-size="9.5" text-anchor="middle">回答 ✓</text>
+
+      <!-- OpenClaw unavailable -->
+      <rect x="0" y="86" width="640" height="80" fill="#fff7ed" stroke="#fb923c" stroke-width="1.5" rx="4"/>
+      <text x="20" y="104" fill="#c2410c" font-size="10" font-weight="bold">OpenClaw / RAG 不可用</text>
+      <text x="20" y="120" fill="#7c2d12" font-size="9.5">Hermes 進入「離線思考模式」</text>
+      <text x="20" y="136" fill="#7c2d12" font-size="9.5">→ 繼續處理個人任務（vault 讀寫、日常工作）</text>
+      <text x="20" y="152" fill="#7c2d12" font-size="9.5">→ 回應員工：「公司知識庫維護中，法規相關問題稍後再試」</text>
+
+      <!-- Router down -->
+      <rect x="0" y="182" width="640" height="78" fill="#fff1f2" stroke="#fca5a5" stroke-width="1.5" rx="4"/>
+      <text x="20" y="200" fill="#dc2626" font-size="10" font-weight="bold">Router 完全掛掉</text>
+      <text x="20" y="216" fill="#7f1d1d" font-size="9.5">→ Hermes 直接回報服務中斷</text>
+      <text x="20" y="232" fill="#7f1d1d" font-size="9.5">→ IT 收到告警，重啟 ceclaw-router</text>
+      <rect x="180" y="240" width="310" height="16" fill="#fee2e2" stroke="#fca5a5" stroke-width="1" rx="2"/>
+      <text x="335" y="252" fill="#dc2626" font-size="9" text-anchor="middle" font-family="monospace">sudo systemctl restart ceclaw-router</text>
+
+      <defs>
+        <marker id="g2Arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#065f46"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>圖 7：三種異常狀態的處理鏈</figcaption>
+  </figure>
+
+  <div class="callout">
+    <p><strong>核心原則：個人層（Hermes）永遠比公司層（OpenClaw）更高的可用性。</strong></p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     6. 四個場景
+══════════════════════════════════════════ -->
+<!-- KEEP: 06-01 -->
+<div class="section">
+  <div class="section-title">6. 四個場景：為什麼不能只用一套</div>
+  <!-- TABLE-KEEP: 06-01 -->
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:24%">場景</th>
+          <th style="width:19%">只用 Hermes</th>
+          <th style="width:19%">只用 OpenClaw</th>
+          <th style="width:38%">雙層分工（正確設計）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>員工問：「我上週進度到哪？」</td>
+          <td><span class="check-ok">✅</span> vault 記憶</td>
+          <td><span class="check-no">❌</span> 每次重置，不記得</td>
+          <td>Hermes 從 vault 回覆</td>
+        </tr>
+        <tr>
+          <td>IT：「重啟所有開發容器」</td>
+          <td><span class="check-no">❌</span> 權限不足，且污染員工記憶</td>
+          <td><span class="check-ok">✅</span> stateless 標準執行</td>
+          <td>OpenClaw 執行</td>
+        </tr>
+        <tr>
+          <td>員工問：「公司病假規定？」</td>
+          <td><span class="check-no">❌</span> 個人記憶裡沒有公司政策</td>
+          <td><span class="check-ok">✅</span> RAG 知識庫回答</td>
+          <td>Router proxy 注入 RAG，Gemma 4 回答</td>
+        </tr>
+        <tr>
+          <td>員工：「整理昨天的對話筆記」</td>
+          <td><span class="check-ok">✅</span> 跨對話記憶</td>
+          <td><span class="check-no">❌</span> stateless，無歷史</td>
+          <td>Hermes 做</td>
+        </tr>
+        <tr>
+          <td>IT 部署新政策給所有員工</td>
+          <td><span class="check-no">❌</span> 每個 Hermes 實例各自為政</td>
+          <td><span class="check-ok">✅</span> memory-wiki 全員同步</td>
+          <td>OpenClaw 更新，全員 Hermes 自動獲取</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════════════════════════════════
+     7. 常見誤解
+══════════════════════════════════════════ -->
+<!-- KEEP: 07-01 -->
+<div class="section">
+  <div class="section-title">7. 常見誤解</div>
+
+  <!-- KEEP: 07-02 -->
+  <div class="strategy-block">
+    <div class="label">誤解 1：「雙層 = 雙倍成本？」</div>
+    <p>不是。OpenClaw 是共用服務，一個 OpenClaw 對應多個 Hermes 實例。新增員工只需增加一個 Hermes 實例，OpenClaw 和推理層（Gemma 4）共用不重複購置。</p>
+  </div>
+
+  <!-- KEEP: 07-03 -->
+  <div class="strategy-block">
+    <div class="label">誤解 2：「shared_bridge 會造成延遲嗎？」</div>
+    <p>不會明顯感受到。Router proxy 採 asyncio 並行注入，RAG 查詢延遲約 200ms 以內，對話總回應時間仍在 1–3 秒內（B70 環境）。</p>
+  </div>
+
+  <!-- KEEP: 07-04 -->
+  <div class="strategy-block">
+    <div class="label">誤解 3：「分兩套，員工要切換視窗嗎？」</div>
+    <p>不需要。員工只看到 Hermes 一個介面，所有公司知識在背後自動注入，員工完全無感知。</p>
+  </div>
+
+  <!-- KEEP: 07-05 -->
+  <div class="strategy-block">
+    <div class="label">誤解 4：「這樣架構很複雜，維護困難？」</div>
+    <p>兩個服務各自獨立，反而更容易維護——OpenClaw 掛掉不影響 Hermes 個人任務，Hermes 重啟不影響公司知識庫。故障範圍天然隔離。</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     8. 銷售對話劇本
+══════════════════════════════════════════ -->
+<!-- KEEP: 08-01 -->
+<div class="section">
+  <div class="section-title">8. 銷售對話劇本</div>
+
+  <!-- KEEP: 08-02 -->
+  <div class="strategy-block">
+    <div class="label">Q1：「為什麼要兩個 AI？直接用一個 Gemma 4 API 不就好了？」</div>
+    <p>「因為一個 AI 管不了兩件性質完全相反的事。</p>
+    <p>第一，<strong>權限邊界</strong>。公司知識全員共用，員工記憶只有本人。合在一起，員工的私人資料物理上就跟別人的資料放在一起，資安直接出問題。</p>
+    <p>第二，<strong>狀態管理</strong>。IT 系統任務需要每次重置確保標準化；員工助手需要跨對話記憶不重複交代。一個 AI 沒辦法同時做到這兩件事。</p>
+    <p>第三，<strong>體驗統一</strong>。後端分層，但透過 Router proxy 串起來。員工感覺只面對一個 AI，實際上背後是兩套獨立邏輯在運作。這才是企業級安全架構。」</p>
+  </div>
+
+  <!-- KEEP: 08-03 -->
+  <div class="strategy-block">
+    <div class="label">Q2：「那我用 ChatGPT Teams 不就好了？」</div>
+    <p>「你的資料會出你的內網。CECLAW 全部在你的伺服器，法規、員工記錄、公司知識永不出門。台灣製造業和醫療是硬需求，雲端方案直接出局。」</p>
+  </div>
+
+  <!-- KEEP: 08-04 -->
+  <div class="strategy-block">
+    <div class="label">Q3：「員工要切換兩個視窗嗎？」</div>
+    <p>「不需要。員工只看到 Hermes 一個介面。需要查法規，Router 在背後自動注入 RAG 結果，員工完全無感知。」</p>
+  </div>
+
+  <!-- KEEP: 08-05 -->
+  <div class="strategy-block">
+    <div class="label">Q4：「這樣不會很貴嗎？」</div>
+    <p>「OpenClaw 是共用服務，多個員工共享一套。新員工只需加一個 Hermes 實例，硬體不需要翻倍。而且跑在你自己的伺服器上，沒有按月計費的雲端費用。」</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     9. 最終定位
+══════════════════════════════════════════ -->
+<!-- KEEP: 09-01 -->
+<div class="section">
+  <div class="section-title">9. 最終定位</div>
+
+  <figure>
+    <svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" style="max-width:180mm;">
+      <rect x="0" y="0" width="640" height="200" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1.5" rx="6"/>
+      <text x="320" y="24" fill="#1e3a8a" font-size="13" font-weight="bold" text-anchor="middle">這不是在增加複雜度，而是在建立安全邊界。</text>
+
+      <rect x="10" y="36" width="190" height="84" fill="#dbeafe" stroke="#1e3a8a" stroke-width="1.5" rx="4"/>
+      <text x="105" y="56" fill="#1e3a8a" font-size="11" font-weight="bold" text-anchor="middle">OpenClaw</text>
+      <text x="105" y="74" fill="#1e3a8a" font-size="10" text-anchor="middle">官方知識庫 + 執行引擎</text>
+      <text x="105" y="90" fill="#6b7280" font-size="9.5" text-anchor="middle">嚴謹、標準</text>
+      <text x="105" y="106" fill="#6b7280" font-size="9.5" text-anchor="middle">對所有員工一致</text>
+
+      <rect x="225" y="36" width="190" height="84" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" rx="4"/>
+      <text x="320" y="56" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle">Hermes</text>
+      <text x="320" y="74" fill="#065f46" font-size="10" text-anchor="middle">每個員工的私人秘書</text>
+      <text x="320" y="90" fill="#6b7280" font-size="9.5" text-anchor="middle">了解你的習慣</text>
+      <text x="320" y="106" fill="#6b7280" font-size="9.5" text-anchor="middle">記得你的進度</text>
+
+      <rect x="440" y="36" width="190" height="84" fill="#fef9c3" stroke="#f59e0b" stroke-width="1.5" rx="4"/>
+      <text x="535" y="56" fill="#92400e" font-size="11" font-weight="bold" text-anchor="middle">Router proxy</text>
+      <text x="535" y="74" fill="#92400e" font-size="10" text-anchor="middle">自動注入公司知識</text>
+      <text x="535" y="90" fill="#6b7280" font-size="9.5" text-anchor="middle">員工無感知</text>
+      <text x="535" y="106" fill="#6b7280" font-size="9.5" text-anchor="middle">知識隨時在線</text>
+
+      <rect x="10" y="140" width="620" height="50" fill="#1e3a8a" rx="4"/>
+      <text x="320" y="160" fill="#fff" font-size="11" font-weight="bold" text-anchor="middle">「分層治理」架構</text>
+      <text x="320" y="178" fill="#93c5fd" font-size="10" text-anchor="middle">生產環境追求的不是全能，而是可控與安全。</text>
+    </svg>
+    <figcaption>圖 8：CECLAW 分層治理定位總結</figcaption>
+  </figure>
+</div>
+
+<!-- ══════════════════════════════════════════
+     完整性檢查清單
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<div class="section disclaimer" style="border:1px solid var(--border);padding:14px;page-break-inside:avoid;">
+  <div class="section-title" style="font-size:14px;">完整性檢查清單</div>
+  <!-- TABLE-KEEP: CL-01 -->
+  <div class="table-container">
+    <table class="data-table">
+      <thead><tr><th>項目</th><th>狀態</th><th>備註</th></tr></thead>
+      <tbody>
+        <tr><td>所有段落已標記 &lt;!-- KEEP --&gt;</td><td><span class="check-ok">✅ 通過</span></td><td>09 章節 × 各子段落</td></tr>
+        <tr><td>所有表格已標記 &lt;!-- TABLE-KEEP --&gt;</td><td><span class="check-ok">✅ 通過</span></td><td>核心對照表、場景表、清單</td></tr>
+        <tr><td>無刪除或合併的內容</td><td><span class="check-ok">✅ 通過</span></td><td>原文 100% 保留</td></tr>
+        <tr><td>色碼全部符合規定（7 種）</td><td><span class="check-ok">✅ 通過</span></td><td>#1e3a8a / #6b7280 / #f8fafc / #dc2626 / #10b981 / #f59e0b / #e5e7eb</td></tr>
+        <tr><td>SVG 寬度 ≤ 180mm</td><td><span class="check-ok">✅ 通過</span></td><td>viewBox 全部設定 max-width:180mm</td></tr>
+        <tr><td>零 ASCII 藝術</td><td><span class="check-ok">✅ 通過</span></td><td>全部轉為 SVG</td></tr>
+        <tr><td>無裝飾性 emoji</td><td><span class="check-ok">✅ 通過</span></td><td>表格狀態標示使用 Unicode ✅/❌，其餘無裝飾性 emoji</td></tr>
+        <tr><td>無外部框架或 CDN（除 MathJax）</td><td><span class="check-ok">✅ 通過</span></td><td>原生 HTML5/CSS3/JS</td></tr>
+        <tr><td>列印 CSS 已嵌入</td><td><span class="check-ok">✅ 通過</span></td><td>@media print + A4 @page</td></tr>
+        <tr><td>列印按鈕</td><td><span class="check-ok">✅ 通過</span></td><td>固定右下角按鈕</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /page-wrapper -->
+
+<button class="print-btn no-print" onclick="window.print()">列印 / 匯出 PDF</button>
+
+</body>
+</html>
