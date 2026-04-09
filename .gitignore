@@ -11,3 +11,7 @@ tests/
 test_logs/
 test_reports/
 openclaw-config/openclaw.json
+PATH_FROM_ABOVE/
+__pycache__/
+*.pyc
+router/proxy.py.bak*
