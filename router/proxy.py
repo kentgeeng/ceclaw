@@ -438,14 +438,17 @@ async def handle_inference(
         _last_msg = next((m.get("content","") for m in reversed(_messages) if m.get("role")=="user"), "")
         if _last_msg:
             import httpx as _httpx
-            _tw_emb = (await _httpx.AsyncClient(timeout=10).post(
-                "http://192.168.1.91:11434/api/embeddings",
-                json={"model":"bge-m3","prompt":_last_msg[:500]}
-            )).json()["embedding"]
-            _tw_hits = (await _httpx.AsyncClient(timeout=5).post(
-                "http://192.168.1.91:6333/collections/tw_knowledge/points/search",
-                json={"vector":_tw_emb,"limit":3,"score_threshold":0.7,"with_payload":True}
-            )).json().get("result",[])
+            async with _httpx.AsyncClient() as _tw_client:
+                _tw_emb = (await _tw_client.post(
+                    "http://192.168.1.91:11434/api/embeddings",
+                    json={"model":"bge-m3","prompt":_last_msg[:500]},
+                    timeout=10,
+                )).json()["embedding"]
+                _tw_hits = (await _tw_client.post(
+                    "http://192.168.1.91:6333/collections/tw_knowledge/points/search",
+                    json={"vector":_tw_emb,"limit":3,"score_threshold":0.7,"with_payload":True},
+                    timeout=5,
+                )).json().get("result",[])
             if _tw_hits:
                 _tw_context = "\n---\n".join(r["payload"].get("content","")[:500] for r in _tw_hits)
                 _rag_context = (_rag_context + "\n\n【台灣知識庫】\n" + _tw_context).strip()

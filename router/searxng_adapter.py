@@ -41,15 +41,15 @@ async def search(request: Request):
     limit = body.get("limit", 5)
 
     try:
-        resp = httpx.get(
-            f"{SEARXNG_URL}/search",
-            params={"q": query, "format": "json", "language": "zh-TW"},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        results = data.get("results", [])[:limit]
-        return JSONResponse(_searxng_to_firecrawl(results))
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                f"{SEARXNG_URL}/search",
+                params={"q": query, "format": "json", "language": "zh-TW"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            results = data.get("results", [])[:limit]
+            return JSONResponse(_searxng_to_firecrawl(results))
     except Exception as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
