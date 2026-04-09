@@ -132,13 +132,13 @@ def query(text: str, layer: str, scope: str = "",
             return []
 
         vector = _embed(text)
-        hits = client.search(
+        hits = client.query_points(
             collection_name=name,
-            query_vector=vector,
+            query=vector,
             limit=n_results,
             score_threshold=SIMILARITY_THRESHOLD,
             with_payload=True,
-        )
+        ).points
         return [
             {
                 "content": h.payload.get("content", ""),
