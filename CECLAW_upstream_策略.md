@@ -21,3 +21,16 @@
 ## 關鍵待辦
 
 - [ ] Hermes v0.8.0 升級時順便重構 P3 hook（B70 搬家同批）
+
+
+## CDC 驗證 → 客戶 OTA 流程
+
+upstream 新版本 → CDC 測試環境（pop-os + GB10）72小時燒機
+驗證項目：P3 hook / RAG 三層 / shared_bridge / vault
+→ 通過 → 客戶 OTA：openshell sandbox update --name ceclaw-companyA
+
+CDC 定位：L1/L2 生產節點 + 官方驗證環境（雙重角色）
+
+## 銷售賣點
+
+我們幫你擋 upstream 風險。每個版本在我們自己的環境跑過 72 小時才推給你，你不會是第一個踩坑的人。雲端 SaaS 做不到這個。
