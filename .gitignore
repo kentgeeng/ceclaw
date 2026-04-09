@@ -15,3 +15,4 @@ PATH_FROM_ABOVE/
 __pycache__/
 *.pyc
 router/proxy.py.bak*
+router/knowledge_service_v2.py.bak*
