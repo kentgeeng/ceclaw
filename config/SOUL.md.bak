@@ -34,20 +34,3 @@ If you change this file, tell the user — it's your soul, and they should know.
 ---
 
 _This file is yours to evolve. As you learn who you are, update it._
-
-## Vault（工作記憶）
-vault 路徑：~/.ceclaw/vault/
-
-### 讀取時機
-- 每次對話開始：讀 working-context.md + project-state.md
-- 需要歷史決策：讀 decisions-log.md
-- 需要今日紀錄：讀 daily/YYYY-MM-DD.md
-
-### 寫入時機
-- 每 3–5 次 tool call：更新 working-context.md
-- 任務完成：append daily/YYYY-MM-DD.md，更新 project-state.md
-- 重要決策：append decisions-log.md
-
-### 格式
-working-context.md 保持簡短（< 200 字）
-daily log 每筆加時間戳記：`[HH:MM] 完成了什麼`
