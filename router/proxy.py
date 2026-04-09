@@ -412,11 +412,14 @@ async def handle_inference(
         _model_str = ""
     _soul_md = load_soul_md(_model_str)
     _rag_context = ""
+    logger.info(f"DEBUG: _KS_AVAILABLE={_KS_AVAILABLE}")
     if _KS_AVAILABLE:
         try:
             _query_text, _ = _extract_query_info(body)
             _dept = _model_str.split("/")[1] if "/" in _model_str else ""
-            _rag_hits = _ks.query_all_layers(_query_text, dept=_dept)
+            logger.info(f"RAG query_text: {_query_text[:80]}")
+            _rag_hits = await _ks.query_all_layers(_query_text, dept=_dept)
+            logger.info(f"RAG hits count: {len(_rag_hits)}")
             if _rag_hits:
                 _rag_context = "\n---\n".join(
                     f"[相似度 {r['similarity']}] {r['content']}" for r in _rag_hits

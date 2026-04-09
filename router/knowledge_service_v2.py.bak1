@@ -86,15 +86,15 @@ def _ensure_collection(name: str) -> None:
         logger.info(f"knowledge_service_v2: created collection {name}")
 
 
-async def _embed(text: str) -> list[float]:
-    """呼叫 bge-m3 取得 embedding（async，相容 proxy.py event loop）"""
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            f"{OLLAMA_URL}/api/embeddings",
-            json={"model": "bge-m3", "prompt": text[:500]},
-        )
-        resp.raise_for_status()
-        return resp.json()["embedding"]
+def _embed(text: str) -> list[float]:
+    """呼叫 bge-m3 取得 embedding"""
+    resp = httpx.post(
+        f"{OLLAMA_URL}/api/embeddings",
+        json={"model": "bge-m3", "prompt": text[:500]},
+        timeout=15,
+    )
+    resp.raise_for_status()
+    return resp.json()["embedding"]
 
 
 def add_document(content: str, layer: str, scope: str = "",
@@ -121,7 +121,7 @@ def add_document(content: str, layer: str, scope: str = "",
     return doc_id
 
 
-async def query(text: str, layer: str, scope: str = "",
+def query(text: str, layer: str, scope: str = "",
           n_results: int = TOP_K) -> list[dict]:
     """查詢單一 collection"""
     try:
@@ -131,7 +131,7 @@ async def query(text: str, layer: str, scope: str = "",
         if name not in existing:
             return []
 
-        vector = await _embed(text)
+        vector = _embed(text)
         hits = client.query_points(
             collection_name=name,
             query=vector,
@@ -152,7 +152,7 @@ async def query(text: str, layer: str, scope: str = "",
         return []
 
 
-async def query_all_layers(text: str, user_id: str = "",
+def query_all_layers(text: str, user_id: str = "",
                      dept: str = "", company_id: str = "poc") -> list[dict]:
     """
     查詢三層並合併去重。
@@ -162,18 +162,18 @@ async def query_all_layers(text: str, user_id: str = "",
     results = []
 
     if user_id:
-        results += await query(text, "personal", user_id)
+        results += query(text, "personal", user_id)
 
     if dept:
-        results += await query(text, "dept", dept)
+        results += query(text, "dept", dept)
     else:
         client = _get_client()
         for col in client.get_collections().collections:
             if col.name.startswith("ceclaw_dept_"):
                 scope = col.name[len("ceclaw_dept_"):]
-                results += await query(text, "dept", scope)
+                results += query(text, "dept", scope)
 
-    results += await query(text, "company", company_id)
+    results += query(text, "company", company_id)
 
     # 去重：content 為 key，取最高 score
     seen: set[str] = set()
