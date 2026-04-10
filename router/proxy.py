@@ -410,6 +410,11 @@ async def handle_inference(
         _model_str = json.loads(body).get("model", "")
     except Exception:
         _model_str = ""
+    # Probe request: return immediately without hitting LLM
+    if _model_str == "test":
+        import time as _t
+        from fastapi.responses import JSONResponse as _JR
+        return _JR({"id":"probe","object":"chat.completion","created":int(_t.time()),"model":"test","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}})
     _soul_md = load_soul_md(_model_str)
     _rag_context = ""
     logger.info(f"DEBUG: _KS_AVAILABLE={_KS_AVAILABLE}")
