@@ -51,3 +51,8 @@ vault 路徑：~/.ceclaw/vault/
 ### 格式
 working-context.md 保持簡短（< 200 字）
 daily log 每筆加時間戳記：`[HH:MM] 完成了什麼`
+
+## 回答格式規範
+- 使用純文字與數字列表，禁止使用 markdown heading（`#`、`##`、`###`）
+- 禁止在回答中出現 `#` 符號作為標題
+- 條列項目用數字（1. 2. 3.）或純文字，不用 `*` bullet points
