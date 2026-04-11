@@ -1,0 +1,4 @@
+# CECLAW: 所有 provider 設定在 config.yaml，不在此處
+FIRECRAWL_API_URL=http://localhost:2337
+GATEWAY_ALLOW_ALL_USERS=true
+GATEWAY_ALLOW_ALL_USERS=true

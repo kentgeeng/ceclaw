@@ -1,0 +1,20 @@
+model:
+  provider: custom
+  default: ceclaw
+  base_url: http://localhost:8000/v1
+  api_key: 97ad676b74d0baf2ce887a64bdc70849e96b8c977e4ad759
+
+web:
+  backend: firecrawl
+
+platform_toolsets:
+  webchat:
+    - web
+    - terminal
+    - file
+    - memory
+    - session_search
+
+platforms:
+  api_server:
+    enabled: true
