@@ -538,11 +538,12 @@ let pendingIntent = null;
 let cfg = {theme:'dark', pages:5};
 
 const INTENTS = [
-  {re:/分析|摘要|解析/i, type:'analyze'},
   {re:/ocr|掃描|辨識/i, type:'ocr'},
   {re:/pdf|印刷|列印/i, type:'pdf'},
   {re:/簡報|pptx|投影片/i, type:'pptx'},
-  {re:/報告|文件|docx|word/i, type:'docx'},
+  {re:/報告|docx|word/i, type:'docx'},
+  {re:/表格|excel|xlsx|試算表/i, type:'xlsx'},
+  {re:/分析|摘要|解析/i, type:'analyze'},
   {re:/表格|excel|xlsx|試算表/i, type:'xlsx'},
   {re:/搜尋|查詢|search/i, type:'search'},
 ];
@@ -649,7 +650,7 @@ async function send(){
       removeTyping();
       const msg=addMsg('bot',`✓ 已生成 <strong>${topic}</strong>（${pages} 頁）<div class="dl-row">${dlBtn(url,`${topic}.${ext}`,cls)}</div>`);
     } else if(intent==='docx'){
-      const topic=text.replace(/幫我|製作|做一份|關於|的|報告|文件|docx|word/gi,'').trim()||text;
+      const topic=text.replace(/幫我|製作|做一份|關於|的|報告|主題是|文件|docx|word|\d+字/gi,'').trim()||text;
       const r=await fetch(`${API}/generate/docx`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic})});
       const blob=await r.blob();const url=URL.createObjectURL(blob);
       removeTyping();
