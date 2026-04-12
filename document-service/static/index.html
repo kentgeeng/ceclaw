@@ -641,6 +641,7 @@ async function send(){
       let theme=cfg.theme;
       if(/白底|light/i.test(text))theme='light';
       else if(/科技|tech/i.test(text))theme='tech';
+      else if(/台灣|taiwan|紅色/i.test(text))theme='taiwan';
       else if(/深色|dark/i.test(text))theme='dark';
       const ep=intent==='pdf'?'generate/pdf':'generate/pptx';
       const r=await fetch(`${API}/${ep}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,pages,theme})});
