@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+python-pptx
+python-docx
+openpyxl
+pytesseract
+Pillow
+pymupdf

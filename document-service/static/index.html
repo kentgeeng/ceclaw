@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CECLAW Documents</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root[data-theme="dark"]{
+  --bg:#0a0a12;
+  --sidebar:#0e0e18;
+  --sidebar2:#12121e;
+  --surface:#141420;
+  --surface2:#1a1a28;
+  --surface3:#1f1f30;
+  --border:#22223a;
+  --border2:#2e2e48;
+  --border3:#3a3a58;
+  --accent:#e63950;
+  --accent-dim:#7a1f2a;
+  --accent2:#7c6fff;
+  --accent2-dim:#3a3480;
+  --text:#dddaf0;
+  --text2:#a8a4c8;
+  --muted:#686490;
+  --subtle:#42405e;
+  --user-bg:#161626;
+  --input-bg:#111120;
+  --tag-bg:#16162a;
+  --scrollbar:#2a2a44;
+  --hover:rgba(255,255,255,0.04);
+  --glow-accent:rgba(230,57,80,0.12);
+  --glow-accent2:rgba(124,111,255,0.12);
+}
+:root[data-theme="light"]{
+  --bg:#f5f5fc;
+  --sidebar:#ffffff;
+  --sidebar2:#f8f8ff;
+  --surface:#ffffff;
+  --surface2:#f0f0fa;
+  --surface3:#e8e8f5;
+  --border:#e0e0f0;
+  --border2:#d0d0e8;
+  --border3:#c0c0d8;
+  --accent:#d42a42;
+  --accent-dim:#fce8eb;
+  --accent2:#5a4fcc;
+  --accent2-dim:#eeeeff;
+  --text:#1a1a2e;
+  --text2:#44446a;
+  --muted:#8080a8;
+  --subtle:#b0b0cc;
+  --user-bg:#eeeeff;
+  --input-bg:#f8f8ff;
+  --tag-bg:#eeeeff;
+  --scrollbar:#d0d0e8;
+  --hover:rgba(0,0,0,0.03);
+  --glow-accent:rgba(212,42,66,0.06);
+  --glow-accent2:rgba(90,79,204,0.06);
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{display:flex;font-family:'Noto Sans TC','Inter',sans-serif;color:var(--text);font-size:14px;transition:background 0.2s,color 0.2s;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  height:100vh;
+  transition:background 0.2s,border-color 0.2s;
+}
+.sidebar-header{
+  padding:16px 14px 12px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.logo-mark{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--accent);
+  box-shadow:0 2px 8px var(--glow-accent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:500;color:#fff;
+  letter-spacing:0.06em;flex-shrink:0;
+}
+.logo-text{font-size:12px;font-weight:500;letter-spacing:0.1em;color:var(--text);}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:1px;letter-spacing:0.04em;}
+
+.sidebar-body{flex:1;overflow-y:auto;padding:8px 8px;}
+.sidebar-body::-webkit-scrollbar{width:2px;}
+.sidebar-body::-webkit-scrollbar-thumb{background:var(--scrollbar);}
+
+.sidebar-group{margin-bottom:4px;}
+.sidebar-label{
+  font-size:10px;color:var(--muted);
+  letter-spacing:0.12em;
+  padding:10px 8px 5px;
+  text-transform:uppercase;
+}
+
+.cmd-btn{
+  width:100%;display:flex;align-items:center;gap:9px;
+  padding:7px 8px;border-radius:8px;
+  border:none;background:none;color:var(--text2);
+  cursor:pointer;text-align:left;font-size:13px;
+  font-family:inherit;transition:all 0.1s;
+  position:relative;
+}
+.cmd-btn:hover{background:var(--hover);color:var(--text);}
+.cmd-btn:active{transform:scale(0.99);}
+.cmd-btn.active{background:var(--surface2);color:var(--text);}
+
+.cmd-icon{
+  width:26px;height:26px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.cmd-icon svg{width:13px;height:13px;}
+.i-pptx{background:var(--glow-accent2);color:var(--accent2);}
+.i-pdf{background:var(--glow-accent);color:var(--accent);}
+.i-docx{background:rgba(96,165,250,0.1);color:#60a5fa;}
+.i-xlsx{background:rgba(74,222,128,0.1);color:#4ade80;}
+.i-analyze{background:rgba(251,146,60,0.1);color:#fb923c;}
+.i-ocr{background:rgba(148,163,184,0.1);color:#94a3b8;}
+.i-search{background:var(--hover);color:var(--muted);}
+
+.sidebar-divider{height:1px;background:var(--border);margin:6px 8px;}
+
+.sidebar-footer{
+  padding:10px 14px 12px;
+  border-top:1px solid var(--border);
+}
+.status-row{
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;color:var(--muted);
+}
+.status-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#22c55e;
+  box-shadow:0 0 5px rgba(34,197,94,0.5);
+  flex-shrink:0;
+}
+.theme-btn{
+  margin-top:8px;
+  width:100%;display:flex;align-items:center;gap:8px;
+  padding:6px 8px;border-radius:8px;
+  border:1px solid var(--border2);
+  background:var(--surface2);
+  color:var(--text2);font-size:12px;
+  cursor:pointer;font-family:inherit;
+  transition:all 0.15s;justify-content:center;
+}
+.theme-btn:hover{border-color:var(--border3);color:var(--text);}
+.theme-btn svg{width:13px;height:13px;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;background:var(--bg);transition:background 0.2s;}
+
+.main-header{
+  padding:12px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--sidebar);
+  flex-shrink:0;
+  transition:background 0.2s,border-color 0.2s;
+}
+.header-left{}
+.main-title{font-size:14px;font-weight:500;color:var(--text);}
+.main-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.header-right{display:flex;align-items:center;gap:6px;}
+
+.icon-btn{
+  width:30px;height:30px;border-radius:7px;
+  border:1px solid var(--border2);
+  background:var(--surface2);
+  color:var(--text2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.1s;
+}
+.icon-btn:hover{background:var(--surface3);border-color:var(--border3);color:var(--text);}
+.icon-btn svg{width:14px;height:14px;}
+
+.hbtn{
+  padding:5px 12px;border-radius:7px;
+  border:1px solid var(--border2);
+  background:var(--surface2);
+  color:var(--text2);font-size:12px;
+  cursor:pointer;font-family:inherit;
+  transition:all 0.1s;
+}
+.hbtn:hover{background:var(--surface3);color:var(--text);}
+
+/* ── MESSAGES ── */
+.messages{
+  flex:1;overflow-y:auto;
+  padding:20px 0 8px;
+  display:flex;flex-direction:column;gap:2px;
+}
+.messages::-webkit-scrollbar{width:4px;}
+.messages::-webkit-scrollbar-track{background:transparent;}
+.messages::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
+
+.msg-row{
+  display:flex;gap:0;padding:3px 20px;
+  animation:fadeUp 0.18s ease;
+  border-radius:0;transition:background 0.1s;
+}
+.msg-row:hover{background:var(--hover);}
+.msg-row.user{flex-direction:row-reverse;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
+
+.avatar{
+  width:26px;height:26px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:500;flex-shrink:0;
+  margin-top:4px;
+}
+.avatar.bot{
+  background:var(--accent);
+  box-shadow:0 1px 6px var(--glow-accent);
+  color:#fff;
+}
+.avatar.user{
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  color:var(--muted);
+}
+
+.msg-content{
+  padding:5px 12px;
+  max-width:700px;
+  font-size:14px;line-height:1.75;
+  color:var(--text);
+}
+.msg-row.bot .msg-content{margin-left:10px;}
+.msg-row.user .msg-content{
+  margin-right:10px;
+  background:var(--user-bg);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  padding:8px 14px;
+  color:var(--text);
+}
+
+.dl-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.dl-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 16px;border-radius:8px;
+  font-size:13px;font-family:inherit;
+  cursor:pointer;text-decoration:none;
+  border:1px solid;transition:opacity 0.15s;
+  font-weight:500;
+}
+.dl-btn:hover{opacity:0.8;}
+.dl-pptx{background:var(--glow-accent2);color:var(--accent2);border-color:var(--accent2);}
+.dl-pdf{background:var(--glow-accent);color:var(--accent);border-color:var(--accent);}
+.dl-docx{background:rgba(96,165,250,0.1);color:#60a5fa;border-color:#60a5fa;}
+.dl-xlsx{background:rgba(74,222,128,0.1);color:#4ade80;border-color:#4ade80;}
+.dl-btn svg{width:12px;height:12px;}
+
+.suggestions{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.sug{
+  padding:5px 11px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:6px;font-size:12px;
+  color:var(--text2);cursor:pointer;
+  transition:all 0.1s;white-space:nowrap;
+  font-family:inherit;
+}
+.sug:hover{border-color:var(--border3);color:var(--text);}
+
+/* ── TYPING ── */
+.typing{display:flex;gap:4px;padding:5px 0;align-items:center;}
+.typing span{
+  width:5px;height:5px;background:var(--muted);
+  border-radius:50%;animation:bounce 1.2s infinite;
+}
+.typing span:nth-child(2){animation-delay:0.2s;}
+.typing span:nth-child(3){animation-delay:0.4s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-5px);}}
+
+/* ── FILE TAGS ── */
+.file-tags-area{
+  padding:0 20px 5px;
+  display:flex;flex-wrap:wrap;gap:5px;
+  min-height:0;
+}
+.file-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 8px 4px 10px;
+  background:var(--tag-bg);
+  border:1px solid var(--border2);
+  border-radius:6px;font-size:11px;color:var(--text2);
+}
+.file-tag svg{width:11px;height:11px;color:var(--accent);}
+.file-tag button{
+  background:none;border:none;color:var(--subtle);
+  cursor:pointer;font-size:13px;line-height:1;
+  padding:0 0 0 2px;transition:color 0.1s;
+}
+.file-tag button:hover{color:var(--accent);}
+
+/* ── INPUT ── */
+.input-area{
+  padding:10px 20px 14px;
+  border-top:1px solid var(--border);
+  background:var(--sidebar);
+  flex-shrink:0;
+  transition:background 0.2s,border-color 0.2s;
+}
+.input-box{
+  display:flex;align-items:flex-end;gap:8px;
+  background:var(--input-bg);
+  border:1px solid var(--border2);
+  border-radius:12px;padding:9px 12px;
+  transition:border-color 0.15s,box-shadow 0.15s;
+}
+.input-box:focus-within{
+  border-color:var(--border3);
+  box-shadow:0 0 0 3px var(--glow-accent);
+}
+.upload-btn{
+  background:none;border:none;cursor:pointer;
+  color:var(--subtle);padding:4px;border-radius:6px;
+  transition:color 0.1s;flex-shrink:0;
+}
+.upload-btn:hover{color:var(--accent);}
+.upload-btn svg{width:16px;height:16px;display:block;}
+#input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-size:14px;
+  font-family:inherit;resize:none;
+  max-height:120px;line-height:1.6;
+}
+#input::placeholder{color:var(--subtle);}
+.send-btn{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--accent);border:none;
+  box-shadow:0 2px 8px var(--glow-accent);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:opacity 0.15s;
+}
+.send-btn:hover{opacity:0.85;}
+.send-btn svg{width:14px;height:14px;color:#fff;}
+#file-input{display:none;}
+
+/* ── SETTINGS PANEL ── */
+.settings-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.5);
+  z-index:100;align-items:center;justify-content:center;
+}
+.settings-overlay.open{display:flex;}
+.settings-panel{
+  background:var(--sidebar);
+  border:1px solid var(--border2);
+  border-radius:14px;
+  width:420px;max-width:90vw;
+  overflow:hidden;
+}
+.settings-header{
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.settings-title{font-size:14px;font-weight:500;}
+.close-btn{
+  background:none;border:none;color:var(--muted);
+  cursor:pointer;font-size:18px;line-height:1;
+}
+.close-btn:hover{color:var(--text);}
+.settings-body{padding:20px;}
+.setting-row{margin-bottom:16px;}
+.setting-label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.setting-input{
+  width:100%;padding:7px 10px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  color:var(--text);font-size:13px;
+  font-family:inherit;outline:none;
+  transition:border-color 0.15s;
+}
+.setting-input:focus{border-color:var(--border3);}
+.setting-row select.setting-input option{background:var(--sidebar);}
+.settings-footer{
+  padding:14px 20px;border-top:1px solid var(--border);
+  display:flex;gap:8px;justify-content:flex-end;
+}
+.save-btn{
+  padding:7px 20px;border-radius:8px;
+  background:var(--accent);border:none;
+  color:#fff;font-size:13px;font-family:inherit;
+  cursor:pointer;transition:opacity 0.15s;
+}
+.save-btn:hover{opacity:0.85;}
+.cancel-btn{
+  padding:7px 16px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text2);font-size:13px;font-family:inherit;
+  cursor:pointer;transition:all 0.1s;
+}
+.cancel-btn:hover{color:var(--text);}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo-mark">DC</div>
+    <div>
+      <div class="logo-text">CECLAW DOCS</div>
+      <div class="logo-sub">文件處理助理</div>
+    </div>
+  </div>
+
+  <div class="sidebar-body">
+    <div class="sidebar-group">
+      <div class="sidebar-label">生成文件</div>
+      <button class="cmd-btn" onclick="quickCmd('幫我做一份5頁簡報，主題是')">
+        <span class="cmd-icon i-pptx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>PPTX 簡報
+      </button>
+      <button class="cmd-btn" onclick="quickCmd('幫我做一份PDF格式5頁簡報，主題是')">
+        <span class="cmd-icon i-pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>PDF 簡報
+      </button>
+      <button class="cmd-btn" onclick="quickCmd('製作分析報告，主題是')">
+        <span class="cmd-icon i-docx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>DOCX 報告
+      </button>
+      <button class="cmd-btn" onclick="quickCmd('建立試算表，主題是')">
+        <span class="cmd-icon i-xlsx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></span>XLSX 表格
+      </button>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-label">文件處理</div>
+      <button class="cmd-btn" onclick="triggerUpload('analyze')">
+        <span class="cmd-icon i-analyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>分析文件
+      </button>
+      <button class="cmd-btn" onclick="triggerUpload('ocr')">
+        <span class="cmd-icon i-ocr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7z"/><path d="M14 7h3v3h-3z"/><path d="M7 14h3v3H7z"/></svg></span>OCR 辨識
+      </button>
+      <button class="cmd-btn" onclick="quickCmd('搜尋知識庫：')">
+        <span class="cmd-icon i-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>搜尋知識庫
+      </button>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="status-row">
+      <div class="status-dot"></div>
+      <span>Document Service 已連線</span>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <span id="theme-label">切換亮色模式</span>
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="main-header">
+    <div class="header-left">
+      <div class="main-title">文件處理助理</div>
+      <div class="main-sub">AI 驅動 · 多格式 · 知識庫整合</div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" onclick="openSettings()" title="設定">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button class="hbtn" onclick="clearChat()">清除對話</button>
+    </div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+  <div class="file-tags-area" id="file-tags"></div>
+
+  <div class="input-area">
+    <div class="input-box">
+      <button class="upload-btn" onclick="document.getElementById('file-input').click()" title="上傳檔案（可多選）">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </button>
+      <textarea id="input" rows="1" placeholder="輸入指令，或從左側選擇功能..."></textarea>
+      <button class="send-btn" onclick="send()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+  <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.txt,.md" multiple onchange="onFileSelect(this)">
+</main>
+
+<!-- Settings -->
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettingsOutside(event)">
+  <div class="settings-panel">
+    <div class="settings-header">
+      <span class="settings-title">設定</span>
+      <button class="close-btn" onclick="closeSettings()">×</button>
+    </div>
+    <div class="settings-body">
+      <div class="setting-row">
+        <div class="setting-label">LLM Endpoint</div>
+        <input class="setting-input" id="cfg-llm" type="text" placeholder="http://192.168.1.91:8001/v1">
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">預設簡報主題</div>
+        <select class="setting-input" id="cfg-theme">
+          <option value="dark">深色</option>
+          <option value="light">白底</option>
+          <option value="tech">科技藍</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">預設頁數</div>
+        <input class="setting-input" id="cfg-pages" type="number" min="3" max="20" value="5">
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Document Service URL</div>
+        <input class="setting-input" id="cfg-api" type="text" placeholder="http://172.25.0.12:8010">
+      </div>
+    </div>
+    <div class="settings-footer">
+      <button class="cancel-btn" onclick="closeSettings()">取消</button>
+      <button class="save-btn" onclick="saveSettings()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let API = '';
+let pendingFiles = [];
+let pendingIntent = null;
+let cfg = {theme:'dark', pages:5};
+
+const INTENTS = [
+  {re:/分析|摘要|解析/i, type:'analyze'},
+  {re:/ocr|掃描|辨識/i, type:'ocr'},
+  {re:/pdf|印刷|列印/i, type:'pdf'},
+  {re:/簡報|pptx|投影片/i, type:'pptx'},
+  {re:/報告|文件|docx|word/i, type:'docx'},
+  {re:/表格|excel|xlsx|試算表/i, type:'xlsx'},
+  {re:/搜尋|查詢|search/i, type:'search'},
+];
+
+function detectIntent(t){for(const i of INTENTS)if(i.re.test(t))return i.type;return null;}
+function extractPages(t){const m=t.match(/(\d+)\s*頁/);return m?parseInt(m[1]):cfg.pages;}
+
+function addMsg(role,html,extra={}){
+  const msgs=document.getElementById('messages');
+  const row=document.createElement('div');
+  row.className=`msg-row ${role}`;
+  row.innerHTML=`<div class="avatar ${role}">${role==='bot'?'DC':'ME'}</div><div class="msg-content">${html}</div>`;
+  if(extra.suggestions){
+    const s=document.createElement('div');s.className='suggestions';
+    extra.suggestions.forEach(t=>{
+      const b=document.createElement('button');b.className='sug';b.textContent=t;
+      b.onclick=()=>{document.getElementById('input').value=t;send();};
+      s.appendChild(b);
+    });
+    row.querySelector('.msg-content').appendChild(s);
+  }
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;return row;
+}
+
+function addTyping(){
+  const msgs=document.getElementById('messages');
+  const row=document.createElement('div');row.className='msg-row bot';row.id='typing';
+  row.innerHTML=`<div class="avatar bot">DC</div><div class="msg-content"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTyping(){document.getElementById('typing')?.remove();}
+
+function onFileSelect(input){
+  pendingFiles=Array.from(input.files);renderFileTags();
+  if(pendingIntent){
+    document.getElementById('input').value=pendingIntent==='ocr'?'OCR 辨識這些檔案':'分析這些文件';
+  }
+}
+function renderFileTags(){
+  document.getElementById('file-tags').innerHTML=pendingFiles.map((f,i)=>`
+    <div class="file-tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+      ${f.name}<button onclick="removeFile(${i})">×</button>
+    </div>`).join('');
+}
+function removeFile(i){pendingFiles.splice(i,1);renderFileTags();}
+function triggerUpload(intent){pendingIntent=intent;document.getElementById('file-input').click();}
+
+function quickCmd(prefix){
+  const inp=document.getElementById('input');
+  inp.value=prefix;inp.focus();
+  inp.setSelectionRange(prefix.length,prefix.length);
+}
+function clearChat(){document.getElementById('messages').innerHTML='';addWelcome();}
+
+function dlBtn(url,name,cls){
+  return `<a href="${url}" download="${name}" class="dl-btn ${cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 下載 ${name.split('.').pop().toUpperCase()}</a>`;
+}
+
+async function send(){
+  const inp=document.getElementById('input');
+  const text=inp.value.trim();
+  if(!text&&!pendingFiles.length)return;
+  inp.value='';inp.style.height='auto';
+  const intent=pendingIntent||detectIntent(text);
+  pendingIntent=null;
+  let displayHtml=text||'請處理上傳的檔案';
+  if(pendingFiles.length){
+    const names=pendingFiles.map(f=>`<span style="color:var(--muted);font-size:11px">· ${f.name}</span>`).join(' ');
+    displayHtml+=`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">${names}</div>`;
+  }
+  addMsg('user',displayHtml);addTyping();
+
+  try{
+    if(pendingFiles.length&&(intent==='analyze'||intent==='ocr'||!intent)){
+      const isBatch=pendingFiles.length>1;
+      const ep=intent==='ocr'?'ocr':(isBatch?'analyze/batch':'analyze');
+      const fd=new FormData();
+      if(isBatch)pendingFiles.forEach(f=>fd.append('files',f));
+      else fd.append('file',pendingFiles[0]);
+      const r=await fetch(`${API}/${ep}`,{method:'POST',body:fd});
+      const data=await r.json();
+      removeTyping();
+      if(ep==='analyze/batch'){
+        addMsg('bot',`<strong>${data.count} 份文件</strong>分析完成，已存入知識庫。<br><small style="color:var(--muted)">${data.filenames.join('、')}</small><br><br>${data.summary}`);
+      } else if(ep==='analyze'){
+        addMsg('bot',`<strong>${data.filename}</strong> 分析完成，已存入知識庫（${data.chunks_stored} 個片段）。<br><br>${data.summary}`);
+      } else {
+        addMsg('bot',`OCR 完成，已存入知識庫。<br><pre style="white-space:pre-wrap;font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6">${data.text.slice(0,800)}${data.text.length>800?'\n...':''}</pre>`);
+      }
+      pendingFiles=[];renderFileTags();
+    } else if(intent==='pptx'||intent==='pdf'){
+      const topic=text.replace(/幫我|製作|做一份|關於|的|簡報|投影片|pptx|pdf|格式|印刷|列印|\d+頁|深色|白底|科技/gi,'').trim()||text;
+      const pages=extractPages(text);
+      let theme=cfg.theme;
+      if(/白底|light/i.test(text))theme='light';
+      else if(/科技|tech/i.test(text))theme='tech';
+      else if(/深色|dark/i.test(text))theme='dark';
+      const ep=intent==='pdf'?'generate/pdf':'generate/pptx';
+      const r=await fetch(`${API}/${ep}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,pages,theme})});
+      const blob=await r.blob();const url=URL.createObjectURL(blob);
+      const ext=intent==='pdf'?'pdf':'pptx';
+      const cls=`dl-${ext}`;
+      removeTyping();
+      const msg=addMsg('bot',`✓ 已生成 <strong>${topic}</strong>（${pages} 頁）<div class="dl-row">${dlBtn(url,`${topic}.${ext}`,cls)}</div>`);
+    } else if(intent==='docx'){
+      const topic=text.replace(/幫我|製作|做一份|關於|的|報告|文件|docx|word/gi,'').trim()||text;
+      const r=await fetch(`${API}/generate/docx`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic})});
+      const blob=await r.blob();const url=URL.createObjectURL(blob);
+      removeTyping();
+      addMsg('bot',`✓ 已生成 <strong>${topic}</strong> 報告<div class="dl-row">${dlBtn(url,`${topic}.docx`,'dl-docx')}</div>`);
+    } else if(intent==='xlsx'){
+      const topic=text.replace(/幫我|製作|做一份|關於|的|表格|excel|xlsx|試算表/gi,'').trim()||text;
+      const r=await fetch(`${API}/generate/xlsx`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic})});
+      const blob=await r.blob();const url=URL.createObjectURL(blob);
+      removeTyping();
+      addMsg('bot',`✓ 已生成 <strong>${topic}</strong> 試算表<div class="dl-row">${dlBtn(url,`${topic}.xlsx`,'dl-xlsx')}</div>`);
+    } else if(intent==='search'){
+      const q=text.replace(/搜尋|查詢|search|找/gi,'').trim()||text;
+      const r=await fetch(`${API}/search?q=${encodeURIComponent(q)}&limit=5`);
+      const data=await r.json();
+      removeTyping();
+      if(!data.results.length){addMsg('bot','知識庫中找不到相關文件。');return;}
+      const items=data.results.map(r=>`<div style="margin-bottom:7px;padding:8px 10px;background:var(--surface);border-radius:7px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--accent);margin-bottom:3px">${r.payload.filename}</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${r.payload.text.slice(0,160)}...</div></div>`).join('');
+      addMsg('bot',`找到 ${data.results.length} 筆相關內容：<br><br>${items}`);
+    } else {
+      removeTyping();
+      addMsg('bot','請問需要什麼協助？',{suggestions:['台灣AI產業5頁簡報','PDF格式CECLAW介紹','分析上傳的文件','搜尋知識庫']});
+    }
+  }catch(e){removeTyping();addMsg('bot',`錯誤：${e.message}`);}
+}
+
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('theme-label').textContent=isDark?'切換深色模式':'切換亮色模式';
+  const icon=document.getElementById('theme-icon');
+  if(isDark){
+    icon.innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  } else {
+    icon.innerHTML='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+}
+
+function openSettings(){document.getElementById('settings-overlay').classList.add('open');}
+function closeSettings(){document.getElementById('settings-overlay').classList.remove('open');}
+function closeSettingsOutside(e){if(e.target===document.getElementById('settings-overlay'))closeSettings();}
+function saveSettings(){
+  cfg.theme=document.getElementById('cfg-theme').value;
+  cfg.pages=parseInt(document.getElementById('cfg-pages').value)||5;
+  const apiVal=document.getElementById('cfg-api').value.trim();
+  if(apiVal)API=apiVal;
+  closeSettings();
+  addMsg('bot','設定已儲存。');
+}
+
+document.getElementById('input').addEventListener('input',function(){
+  this.style.height='auto';
+  this.style.height=Math.min(this.scrollHeight,120)+'px';
+});
+document.getElementById('input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
+});
+
+function addWelcome(){
+  addMsg('bot','你好！使用左側快捷鍵選擇功能，或直接輸入指令。<br><small style="color:var(--muted)">支援 PPTX · PDF · DOCX · XLSX · 多檔分析 · OCR · 知識庫搜尋</small>',{
+    suggestions:['台灣AI產業5頁簡報','PDF格式CECLAW產品介紹','分析文件']
+  });
+}
+addWelcome();
+</script>
+</body>
+</html>
