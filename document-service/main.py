@@ -3,7 +3,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import os
 import uuid
 import httpx
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -143,6 +143,88 @@ async def ocr_endpoint(file: UploadFile = File(...)):
 async def search(q: str, limit: int = 5):
     results = await search_documents(q, limit)
     return JSONResponse({"results": results})
+
+
+@app.post("/transcribe")
+async def transcribe_endpoint(file: UploadFile = File(...), mode: str = "summary"):
+    from transcribe import transcribe_async
+    content = await file.read()
+    filename = file.filename or "audio"
+    ext = filename.lower().split(".")[-1]
+    if ext not in ["mp3", "wav", "m4a", "ogg", "flac", "mp4"]:
+        raise HTTPException(status_code=400, detail=f"不支援的音訊格式: {ext}")
+
+    full_text = await transcribe_async(content, ext)
+    if not full_text.strip():
+        raise HTTPException(status_code=422, detail="轉錄結果為空，請確認音訊品質")
+
+    result = {"filename": filename, "mode": mode, "transcript": full_text}
+
+    if mode == "summary":
+        async with httpx.AsyncClient(timeout=90) as c:
+            r = await c.post(LLM_URL, json={
+                "model": LLM_MODEL,
+                "messages": [{"role": "user",
+                              "content": f"請用繁體中文條列摘要以下會議/音訊內容重點：\n\n{full_text[:4000]}"}],
+                "temperature": 0
+            })
+        result["summary"] = r.json()["choices"][0]["message"]["content"]
+
+    chunks_count = await store_document(filename, full_text, "audio", {"mode": mode})
+    result["chunks_stored"] = chunks_count
+    return JSONResponse(result)
+
+
+@app.websocket("/transcribe/live")
+async def transcribe_live(websocket: WebSocket):
+    """瀏覽器麥克風 → WebM chunks → whisper → 即時文字"""
+    from transcribe import transcribe_wav_async
+    from pydub import AudioSegment
+    import io
+    await websocket.accept()
+    buffer = b""
+    FLUSH_BYTES = 48000 * 2 * 3  # ~3秒 16kHz 16bit mono raw PCM 估算
+    try:
+        while True:
+            data = await websocket.receive_bytes()
+            if data == b"END":
+                break
+            buffer += data
+            if len(buffer) >= FLUSH_BYTES:
+                chunk = buffer
+                buffer = b""
+                try:
+                    # 瀏覽器送來 WebM，用 pydub 轉 WAV
+                    audio = AudioSegment.from_file(io.BytesIO(chunk), format="webm")
+                    audio = audio.set_frame_rate(16000).set_channels(1)
+                    import tempfile, os
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                        audio.export(f.name, format="wav")
+                        wav_path = f.name
+                    text = await transcribe_wav_async(open(wav_path, "rb").read())
+                    os.unlink(wav_path)
+                    if text.strip():
+                        await websocket.send_text(text)
+                except Exception as e:
+                    await websocket.send_text(f"[ERROR] {e}")
+        # 處理剩餘 buffer
+        if buffer:
+            try:
+                audio = AudioSegment.from_file(io.BytesIO(buffer), format="webm")
+                audio = audio.set_frame_rate(16000).set_channels(1)
+                import tempfile, os
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                    audio.export(f.name, format="wav")
+                    wav_path = f.name
+                text = await transcribe_wav_async(open(wav_path, "rb").read())
+                os.unlink(wav_path)
+                if text.strip():
+                    await websocket.send_text(text)
+            except Exception:
+                pass
+        await websocket.send_text("[DONE]")
+    except WebSocketDisconnect:
+        pass
 
 
 if __name__ == "__main__":
