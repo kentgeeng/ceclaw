@@ -53,3 +53,7 @@ def read_document(content: bytes, ext: str) -> str:
     if suffix is None:
         return content.decode("utf-8", errors="ignore")
     return _convert_bytes(content, suffix)
+
+async def read_document_async(content: bytes, ext: str) -> str:
+    import asyncio
+    return await asyncio.to_thread(read_document, content, ext)

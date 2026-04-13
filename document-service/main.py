@@ -78,29 +78,8 @@ async def analyze(file: UploadFile = File(...)):
     filename = file.filename or "unknown"
     ext = filename.lower().split(".")[-1]
 
-    if ext == "pdf":
-        from ocr import ocr_pdf
-        text = ocr_pdf(content)
-    elif ext in ["png", "jpg", "jpeg", "tiff", "bmp"]:
-        from ocr import ocr_image
-        text = ocr_image(content)
-    elif ext in ["txt", "md"]:
-        text = content.decode("utf-8", errors="ignore")
-    elif ext == "docx":
-        import io
-        from docx import Document
-        doc = Document(io.BytesIO(content))
-        text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
-    elif ext == "xlsx":
-        import io, openpyxl
-        wb = openpyxl.load_workbook(io.BytesIO(content))
-        rows = []
-        for ws in wb.worksheets:
-            for row in ws.iter_rows(values_only=True):
-                rows.append("\t".join([str(c) if c else "" for c in row]))
-        text = "\n".join(rows)
-    else:
-        text = content.decode("utf-8", errors="ignore")
+    from ocr import read_document_async
+    text = await read_document_async(content, ext)
 
     # LLM 摘要
     async with httpx.AsyncClient(timeout=60) as c:
