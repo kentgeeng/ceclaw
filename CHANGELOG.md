@@ -5,3 +5,9 @@
 - ~/.openclaw/workspace-ceclaw-legal/SOUL.md 改寫為台灣法律顧問版
 - ~/.openclaw/workspace-ceclaw-hr/SOUL.md 改寫為台灣人資顧問版
 - ~/.hermes/SOUL.md 加入 CECLAW Agent 委派規則（法律→ceclaw-legal，人資→ceclaw-hr）
+
+## ceclaw-finance 完成（2026-04-14）
+- openclaw agents add ceclaw-finance
+- ~/.openclaw/workspace/ceclaw-finance/SOUL.md 台灣財務顧問版
+- ~/.hermes/SOUL.md 加入財務委派規則
+- call_openclaw_agent description 更新
