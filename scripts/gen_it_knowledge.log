@@ -1,0 +1,124 @@
+2026-04-14 22:32:59,196 HTTP Request: GET http://192.168.1.91:6333/collections "HTTP/1.1 200 OK"
+2026-04-14 22:32:59,221 HTTP Request: GET http://192.168.1.91:6333 "HTTP/1.1 200 OK"
+2026-04-14 22:32:59,241 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge "HTTP/1.1 200 OK"
+2026-04-14 22:32:59,242 建立 collection: ceclaw_it_knowledge
+2026-04-14 22:33:14,721 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:33:15,116 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:33:15,122 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:33:15,123 [1/200] MDM行動裝置管理 - BYOD 政策制定
+2026-04-14 22:33:29,806 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:33:29,921 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:33:29,927 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:33:29,927 [2/200] MDM行動裝置管理 - MDM 廠商比較（Jamf/Intune/MobileIron）
+2026-04-14 22:33:44,349 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:33:44,472 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:33:44,478 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:33:44,478 [3/200] MDM行動裝置管理 - 遠端抹除策略
+2026-04-14 22:33:57,522 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:33:57,688 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:33:57,695 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:33:57,696 [4/200] MDM行動裝置管理 - 裝置合規性檢查
+2026-04-14 22:34:12,716 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:34:12,857 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:34:12,864 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:34:12,864 [5/200] MDM行動裝置管理 - Zero-touch 部署
+2026-04-14 22:34:27,814 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:34:27,946 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:34:27,953 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:34:27,954 [6/200] MDM行動裝置管理 - MDM 與 VPN 整合
+2026-04-14 22:34:43,621 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:34:44,089 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:34:44,095 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:34:44,096 [7/200] MDM行動裝置管理 - iOS vs Android MDM 差異
+2026-04-14 22:34:57,842 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:34:57,966 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:34:57,973 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:34:57,973 [8/200] MDM行動裝置管理 - 員工隱私與公司管控平衡
+2026-04-14 22:35:11,826 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:35:11,926 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:35:11,933 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:35:11,933 [9/200] MDM行動裝置管理 - MDM 授權成本評估
+2026-04-14 22:35:26,733 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:35:26,847 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:35:26,854 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:35:26,854 [10/200] MDM行動裝置管理 - MDM 導入失敗常見原因
+2026-04-14 22:35:41,612 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:35:41,732 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:35:41,739 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:35:41,739 [11/200] MDM行動裝置管理 - MDM 與 Zero Trust 架構
+2026-04-14 22:35:54,742 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:35:54,851 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:35:54,859 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:35:54,859 [12/200] MDM行動裝置管理 - 裝置生命週期管理
+2026-04-14 22:36:08,045 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:36:08,201 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:36:08,208 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:36:08,209 [13/200] MDM行動裝置管理 - 應用程式白名單管理
+2026-04-14 22:36:21,586 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:36:21,726 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:36:21,734 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:36:21,734 [14/200] MDM行動裝置管理 - MDM 事件告警設定
+2026-04-14 22:36:37,779 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:36:37,881 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:36:37,888 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:36:37,889 [15/200] MDM行動裝置管理 - MDM 定期稽核流程
+2026-04-14 22:36:51,798 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:36:51,917 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:36:51,923 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:36:51,924 [16/200] MDM行動裝置管理 - MDM 與 AD/LDAP 整合
+2026-04-14 22:37:07,159 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:37:07,297 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:37:07,303 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:37:07,304 [17/200] MDM行動裝置管理 - 離職員工裝置回收
+2026-04-14 22:37:23,885 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:37:24,345 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:37:24,354 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:37:24,354 [18/200] MDM行動裝置管理 - MDM 資料加密設定
+2026-04-14 22:37:38,561 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:37:38,699 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:37:38,706 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:37:38,707 [19/200] MDM行動裝置管理 - MDM KPI 指標定義
+2026-04-14 22:37:55,060 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:37:55,196 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:37:55,203 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:37:55,203 [20/200] MDM行動裝置管理 - MDM 政策範本
+2026-04-14 22:38:09,616 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:38:09,738 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:38:09,745 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:38:09,745 [21/200] ISO27001_ISMS導入 - ISO 27001:2022 新版條文重點
+2026-04-14 22:38:24,713 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:38:24,874 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:38:24,881 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:38:24,881 [22/200] ISO27001_ISMS導入 - ISMS 範疇界定
+2026-04-14 22:38:38,903 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:38:39,064 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:38:39,070 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:38:39,070 [23/200] ISO27001_ISMS導入 - 風險評鑑方法
+2026-04-14 22:38:53,206 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:38:53,354 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:38:53,362 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:38:53,362 [24/200] ISO27001_ISMS導入 - 適用性聲明書（SoA）撰寫
+2026-04-14 22:39:09,400 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:39:09,542 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:39:09,547 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:39:09,547 [25/200] ISO27001_ISMS導入 - ISO 27001 導入時程規劃
+2026-04-14 22:39:24,838 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:39:24,976 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:39:24,984 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:39:24,985 [26/200] ISO27001_ISMS導入 - 內部稽核執行流程
+2026-04-14 22:39:37,388 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:39:37,487 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:39:37,492 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:39:37,492 [27/200] ISO27001_ISMS導入 - 管理審查會議
+2026-04-14 22:39:53,085 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:39:53,214 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:39:53,222 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:39:53,222 [28/200] ISO27001_ISMS導入 - 矯正預防措施
+2026-04-14 22:40:05,950 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:40:06,084 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:40:06,091 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:40:06,091 [29/200] ISO27001_ISMS導入 - ISO 27001 中小企業導入挑戰
+2026-04-14 22:40:22,272 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:40:22,406 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:40:22,413 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:40:22,413 [30/200] ISO27001_ISMS導入 - ISO 27001 vs ISO 27002 差異
