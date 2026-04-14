@@ -11,3 +11,7 @@
 - ~/.openclaw/workspace/ceclaw-finance/SOUL.md 台灣財務顧問版
 - ~/.hermes/SOUL.md 加入財務委派規則
 - call_openclaw_agent description 更新
+
+## 委派規則修正（2026-04-14）
+- ~/.hermes/SOUL.md 財務委派規則加入課稅/扣稅/所得稅關鍵字
+- 測試確認 ceclaw-finance 正確被路由
