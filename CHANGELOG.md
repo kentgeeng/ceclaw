@@ -15,3 +15,10 @@
 ## 委派規則修正（2026-04-14）
 - ~/.hermes/SOUL.md 財務委派規則加入課稅/扣稅/所得稅關鍵字
 - 測試確認 ceclaw-finance 正確被路由
+
+## Agent 命名統一（2026-04-14）
+- main → CECLAW 指揮官
+- ceclaw-legal → 法律小幫手
+- ceclaw-hr → 人資小幫手（原有）
+- ceclaw-finance → 財務小幫手
+- 修改位置：openclaw.json agents.list[].name
