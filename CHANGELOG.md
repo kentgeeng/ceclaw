@@ -28,3 +28,9 @@
 - SOUL.md 台灣合規版
 - Hermes 委派規則加入個資/合規關鍵字
 - call_openclaw_agent description 更新
+
+## 已知限制記錄（2026-04-14）
+- Hermes 自動路由在 GB10 單節點速度限制下，傾向使用 web search 而非 call_openclaw_agent
+- 直接 sessions_send 呼叫各 Agent 完全正常，品質驗證通過
+- 根本原因：GB10 ~15 tok/s，Agent 呼叫超時 Hermes 改走 web search
+- 解決時機：B70 到位後 ~140 tok/s，Agent 回應穩定
