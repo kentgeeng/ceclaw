@@ -22,3 +22,9 @@
 - ceclaw-hr → 人資小幫手（原有）
 - ceclaw-finance → 財務小幫手
 - 修改位置：openclaw.json agents.list[].name
+
+## ceclaw-compliance 完成（2026-04-14）
+- openclaw agents add ceclaw-compliance（合規小幫手）
+- SOUL.md 台灣合規版
+- Hermes 委派規則加入個資/合規關鍵字
+- call_openclaw_agent description 更新
