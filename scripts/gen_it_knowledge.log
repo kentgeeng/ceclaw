@@ -122,3 +122,684 @@
 2026-04-14 22:40:22,406 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
 2026-04-14 22:40:22,413 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
 2026-04-14 22:40:22,413 [30/200] ISO27001_ISMS導入 - ISO 27001 vs ISO 27002 差異
+2026-04-14 22:40:38,729 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:40:38,868 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:40:38,875 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:40:38,876 [31/200] ISO27001_ISMS導入 - ISMS 文件化要求
+2026-04-14 22:40:54,349 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:40:54,458 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:40:54,464 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:40:54,464 [32/200] ISO27001_ISMS導入 - 台灣取得 ISO 27001 認證流程
+2026-04-14 22:41:09,164 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:41:09,314 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:41:09,319 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:41:09,319 [33/200] ISO27001_ISMS導入 - ISMS 與個資法整合
+2026-04-14 22:41:23,741 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:41:23,853 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:41:23,860 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:41:23,860 [34/200] ISO27001_ISMS導入 - ISO 27001 Annex A 控制措施解說
+2026-04-14 22:41:37,755 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:41:37,877 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:41:37,886 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:41:37,886 [35/200] ISO27001_ISMS導入 - 持續改善 PDCA 循環
+2026-04-14 22:41:51,608 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:41:51,715 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:41:51,722 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:41:51,722 [36/200] ISO27001_ISMS導入 - ISO 27001 常見不符合項
+2026-04-14 22:42:05,205 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:42:05,338 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:42:05,346 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:42:05,346 [37/200] ISO27001_ISMS導入 - 資安政策撰寫要點
+2026-04-14 22:42:19,635 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:42:19,750 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:42:19,776 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:42:19,776 [38/200] ISO27001_ISMS導入 - ISO 27001 供應商管理條款
+2026-04-14 22:42:34,502 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:42:34,616 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:42:34,622 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:42:34,623 [39/200] ISO27001_ISMS導入 - 資安目標設定與量測
+2026-04-14 22:42:50,513 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:42:50,645 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:42:50,672 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:42:50,672 [40/200] ISO27001_ISMS導入 - ISO 27001 導入 ROI 計算
+2026-04-14 22:43:06,209 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:43:06,355 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:43:06,381 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:43:06,382 [41/200] 資安事件應變SOP - 資安事件分級定義
+2026-04-14 22:43:20,616 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:43:20,780 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:43:20,786 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:43:20,786 [42/200] 資安事件應變SOP - 事件應變小組組建
+2026-04-14 22:43:34,879 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:43:35,025 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:43:35,054 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:43:35,055 [43/200] 資安事件應變SOP - 資安事件通報流程
+2026-04-14 22:43:47,737 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:43:47,862 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:43:47,868 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:43:47,868 [44/200] 資安事件應變SOP - 勒索病毒應變 SOP
+2026-04-14 22:44:01,782 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:44:01,930 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:44:01,937 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:44:01,937 [45/200] 資安事件應變SOP - 個資外洩應變流程
+2026-04-14 22:44:15,682 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:44:15,811 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:44:15,817 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:44:15,817 [46/200] 資安事件應變SOP - DDoS 攻擊應變
+2026-04-14 22:44:29,395 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:44:29,505 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:44:29,530 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:44:29,530 [47/200] 資安事件應變SOP - 內部人員資料竊取處理
+2026-04-14 22:44:45,467 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:44:45,610 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:44:45,615 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:44:45,616 [48/200] 資安事件應變SOP - 資安事件證據保全
+2026-04-14 22:45:00,160 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:45:00,295 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:45:00,301 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:45:00,301 [49/200] 資安事件應變SOP - 事後檢討報告撰寫
+2026-04-14 22:45:15,710 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:45:15,822 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:45:15,827 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:45:15,827 [50/200] 資安事件應變SOP - 資安事件演練設計
+2026-04-14 22:45:30,222 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:45:30,369 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:45:30,395 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:45:30,396 [51/200] 資安事件應變SOP - 台灣資安法通報義務
+2026-04-14 22:45:45,772 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:45:45,891 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:45:45,921 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:45:45,921 [52/200] 資安事件應變SOP - 事件應變工具清單
+2026-04-14 22:46:01,028 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:46:01,155 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:46:01,162 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:46:01,162 [53/200] 資安事件應變SOP - BCP 與資安事件的關係
+2026-04-14 22:46:17,732 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:46:17,860 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:46:17,867 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:46:17,867 [54/200] 資安事件應變SOP - 雲端服務中斷應變
+2026-04-14 22:46:32,955 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:46:33,079 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:46:33,085 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:46:33,085 [55/200] 資安事件應變SOP - 供應商資安事件處理
+2026-04-14 22:46:46,718 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:46:46,864 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:46:46,871 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:46:46,871 [56/200] 資安事件應變SOP - APT 攻擊應變流程
+2026-04-14 22:47:02,585 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:47:02,727 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:47:02,733 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:47:02,733 [57/200] 資安事件應變SOP - 社交工程事件處理
+2026-04-14 22:47:17,970 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:47:18,113 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:47:18,120 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:47:18,120 [58/200] 資安事件應變SOP - 勒索金支付決策
+2026-04-14 22:47:30,932 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:47:31,075 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:47:31,081 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:47:31,081 [59/200] 資安事件應變SOP - 資安事件公關處理
+2026-04-14 22:47:46,804 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:47:46,946 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:47:46,953 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:47:46,953 [60/200] 資安事件應變SOP - 事件應變委外評估
+2026-04-14 22:47:59,778 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:47:59,876 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:47:59,885 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:47:59,885 [61/200] 端點安全 - EDR vs 傳統防毒比較
+2026-04-14 22:48:14,461 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:48:14,582 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:48:14,590 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:48:14,590 [62/200] 端點安全 - EDR 廠商評選標準
+2026-04-14 22:48:29,356 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:48:29,463 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:48:29,467 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:48:29,467 [63/200] 端點安全 - 端點加密策略
+2026-04-14 22:48:42,460 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:48:42,602 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:48:42,608 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:48:42,609 [64/200] 端點安全 - USB 裝置管控政策
+2026-04-14 22:48:58,550 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:48:58,656 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:48:58,665 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:48:58,665 [65/200] 端點安全 - 防毒軟體集中管理
+2026-04-14 22:49:11,803 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:49:11,904 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:49:11,934 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:49:11,934 [66/200] 端點安全 - 端點安全基準設定
+2026-04-14 22:49:24,615 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:49:24,735 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:49:24,765 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:49:24,765 [67/200] 端點安全 - Windows 更新管理策略
+2026-04-14 22:49:39,656 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:49:39,759 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:49:39,767 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:49:39,767 [68/200] 端點安全 - Mac 端點安全設定
+2026-04-14 22:49:52,810 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:49:52,939 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:49:52,947 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:49:52,947 [69/200] 端點安全 - Linux 伺服器強化
+2026-04-14 22:50:08,831 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:50:08,951 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:50:08,959 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:50:08,959 [70/200] 端點安全 - 端點 DLP 部署
+2026-04-14 22:50:24,158 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:50:24,290 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:50:24,297 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:50:24,297 [71/200] 端點安全 - VPN 選型評估
+2026-04-14 22:50:36,364 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:50:36,506 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:50:36,512 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:50:36,512 [72/200] 端點安全 - 零信任端點存取
+2026-04-14 22:50:51,528 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:50:51,673 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:50:51,681 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:50:51,681 [73/200] 端點安全 - 端點安全稽核
+2026-04-14 22:51:05,946 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:51:06,067 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:51:06,096 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:51:06,096 [74/200] 端點安全 - BYOD 端點安全風險
+2026-04-14 22:51:18,746 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:51:18,876 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:51:18,883 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:51:18,883 [75/200] 端點安全 - 端點安全效能影響
+2026-04-14 22:51:34,055 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:51:34,200 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:51:34,206 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:51:34,206 [76/200] 端點安全 - 端點威脅獵捕
+2026-04-14 22:51:49,477 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:51:49,615 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:51:49,620 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:51:49,620 [77/200] 端點安全 - 端點安全事件調查
+2026-04-14 22:52:04,894 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:52:05,022 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:52:05,050 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:52:05,050 [78/200] 端點安全 - 端點安全 KPI
+2026-04-14 22:52:20,377 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:52:20,497 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:52:20,504 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:52:20,504 [79/200] 端點安全 - 遠端工作端點安全
+2026-04-14 22:52:34,274 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:52:34,412 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:52:34,417 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:52:34,418 [80/200] 端點安全 - 端點安全成本優化
+2026-04-14 22:52:47,807 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:52:47,920 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:52:47,927 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:52:47,927 [81/200] 備份與災難復原 - 3-2-1 備份原則實作
+2026-04-14 22:53:02,922 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:53:03,042 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:53:03,051 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:53:03,051 [82/200] 備份與災難復原 - RTO/RPO 定義與設定
+2026-04-14 22:53:17,802 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:53:17,927 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:53:17,934 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:53:17,934 [83/200] 備份與災難復原 - 備份媒體選擇
+2026-04-14 22:53:32,691 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:53:32,827 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:53:32,835 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:53:32,835 [84/200] 備份與災難復原 - 雲端備份策略
+2026-04-14 22:53:46,888 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:53:47,029 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:53:47,034 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:53:47,035 [85/200] 備份與災難復原 - 備份加密要求
+2026-04-14 22:54:00,564 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:54:00,696 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:54:00,704 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:54:00,704 [86/200] 備份與災難復原 - 備份驗證測試
+2026-04-14 22:54:15,682 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:54:15,795 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:54:15,802 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:54:15,802 [87/200] 備份與災難復原 - DR 站台規劃
+2026-04-14 22:54:28,637 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:54:28,769 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:54:28,774 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:54:28,774 [88/200] 備份與災難復原 - BCP 文件撰寫
+2026-04-14 22:54:42,664 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:54:42,779 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:54:42,789 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:54:42,789 [89/200] 備份與災難復原 - 備份監控告警
+2026-04-14 22:54:56,118 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:54:56,237 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:54:56,245 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:54:56,245 [90/200] 備份與災難復原 - 勒索病毒備份保護
+2026-04-14 22:55:11,102 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:55:11,204 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:55:11,212 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:55:11,212 [91/200] 備份與災難復原 - 不可變備份（Immutable Backup）
+2026-04-14 22:55:25,500 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:55:25,601 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:55:25,609 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:55:25,609 [92/200] 備份與災難復原 - 備份保留期限政策
+2026-04-14 22:55:40,157 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:55:40,278 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:55:40,283 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:55:40,284 [93/200] 備份與災難復原 - 跨地備份架構
+2026-04-14 22:55:55,605 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:55:55,722 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:55:55,729 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:55:55,729 [94/200] 備份與災難復原 - 備份成本優化
+2026-04-14 22:56:10,360 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:56:10,487 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:56:10,493 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:56:10,494 [95/200] 備份與災難復原 - 資料庫備份策略
+2026-04-14 22:56:24,822 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:56:24,940 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:56:24,948 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:56:24,948 [96/200] 備份與災難復原 - 虛擬機備份方案
+2026-04-14 22:56:39,238 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:56:39,345 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:56:39,352 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:56:39,353 [97/200] 備份與災難復原 - 備份頻率設定
+2026-04-14 22:56:54,557 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:56:54,701 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:56:54,708 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:56:54,708 [98/200] 備份與災難復原 - DR 演練規劃
+2026-04-14 22:57:07,935 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:57:08,059 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:57:08,088 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:57:08,088 [99/200] 備份與災難復原 - 備份軟體比較
+2026-04-14 22:57:22,991 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:57:23,096 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:57:23,108 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:57:23,108 [100/200] 備份與災難復原 - 備份委外服務評估
+2026-04-14 22:57:36,606 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:57:36,726 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:57:36,755 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:57:36,756 [101/200] IT採購與廠商評選 - 伺服器採購規格制定
+2026-04-14 22:57:51,852 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:57:51,978 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:57:51,986 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:57:51,987 [102/200] IT採購與廠商評選 - 廠商評比矩陣設計
+2026-04-14 22:58:05,138 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:58:05,256 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:58:05,265 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:58:05,265 [103/200] IT採購與廠商評選 - IT 採購 RFP 撰寫
+2026-04-14 22:58:17,251 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:58:17,367 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:58:17,399 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:58:17,400 [104/200] IT採購與廠商評選 - 硬體驗收流程
+2026-04-14 22:58:34,204 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:58:34,335 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:58:34,344 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:58:34,344 [105/200] IT採購與廠商評選 - 軟體授權管理
+2026-04-14 22:58:50,214 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:58:50,333 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:58:50,341 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:58:50,341 [106/200] IT採購與廠商評選 - 雲端服務採購評估
+2026-04-14 22:59:05,465 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:59:05,601 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:59:05,609 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:59:05,609 [107/200] IT採購與廠商評選 - IT 預算規劃
+2026-04-14 22:59:20,873 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:59:20,993 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:59:21,005 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:59:21,005 [108/200] IT採購與廠商評選 - TCO 總擁有成本計算
+2026-04-14 22:59:35,986 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:59:36,098 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:59:36,128 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:59:36,128 [109/200] IT採購與廠商評選 - 廠商合約條款重點
+2026-04-14 22:59:49,106 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 22:59:49,251 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 22:59:49,256 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 22:59:49,257 [110/200] IT採購與廠商評選 - 政府標案 IT 採購規範
+2026-04-14 23:00:02,248 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:00:02,388 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:00:02,395 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:00:02,396 [111/200] IT採購與廠商評選 - 資訊安全廠商評選
+2026-04-14 23:00:17,074 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:00:17,207 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:00:17,235 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:00:17,235 [112/200] IT採購與廠商評選 - IT 採購舞弊防範
+2026-04-14 23:00:32,189 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:00:32,294 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:00:32,322 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:00:32,323 [113/200] IT採購與廠商評選 - 二手設備採購注意事項
+2026-04-14 23:00:45,912 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:00:46,033 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:00:46,063 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:00:46,063 [114/200] IT採購與廠商評選 - 採購週期管理
+2026-04-14 23:01:00,753 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:01:00,859 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:01:00,866 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:01:00,866 [115/200] IT採購與廠商評選 - 廠商 SLA 談判
+2026-04-14 23:01:11,979 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:01:12,128 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:01:12,134 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:01:12,134 [116/200] IT採購與廠商評選 - IT 委外廠商管理
+2026-04-14 23:01:26,441 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:01:26,548 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:01:26,577 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:01:26,577 [117/200] IT採購與廠商評選 - 硬體折舊計算
+2026-04-14 23:01:40,905 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:01:41,050 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:01:41,076 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:01:41,076 [118/200] IT採購與廠商評選 - 採購驗收測試
+2026-04-14 23:01:56,103 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:01:56,245 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:01:56,276 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:01:56,276 [119/200] IT採購與廠商評選 - 供應商風險評估
+2026-04-14 23:02:08,413 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:02:08,533 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:02:08,561 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:02:08,561 [120/200] IT採購與廠商評選 - 綠色採購標準
+2026-04-14 23:02:23,656 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:02:23,793 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:02:23,800 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:02:23,800 [121/200] 存取控制與MFA - 最小權限原則實作
+2026-04-14 23:02:39,634 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:02:39,767 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:02:39,773 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:02:39,773 [122/200] 存取控制與MFA - RBAC 角色設計
+2026-04-14 23:02:54,299 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:02:54,424 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:02:54,430 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:02:54,430 [123/200] 存取控制與MFA - AD 群組策略設定
+2026-04-14 23:03:08,478 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:03:08,613 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:03:08,619 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:03:08,619 [124/200] 存取控制與MFA - MFA 導入策略
+2026-04-14 23:03:25,369 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:03:25,824 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:03:25,855 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:03:25,855 [125/200] 存取控制與MFA - 特權帳號管理（PAM）
+2026-04-14 23:03:41,446 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:03:41,558 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:03:41,566 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:03:41,567 [126/200] 存取控制與MFA - 單一登入（SSO）架構
+2026-04-14 23:03:56,097 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:03:56,200 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:03:56,208 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:03:56,208 [127/200] 存取控制與MFA - 帳號生命週期管理
+2026-04-14 23:04:09,646 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:04:09,743 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:04:09,750 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:04:09,750 [128/200] 存取控制與MFA - 密碼政策設定
+2026-04-14 23:04:25,480 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:04:25,591 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:04:25,600 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:04:25,600 [129/200] 存取控制與MFA - 存取稽核日誌
+2026-04-14 23:04:38,972 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:04:39,107 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:04:39,114 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:04:39,114 [130/200] 存取控制與MFA - 零信任存取模型
+2026-04-14 23:04:51,846 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:04:51,945 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:04:51,974 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:04:51,974 [131/200] 存取控制與MFA - API 存取控制
+2026-04-14 23:05:08,118 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:05:08,231 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:05:08,237 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:05:08,238 [132/200] 存取控制與MFA - 資料庫存取控制
+2026-04-14 23:05:21,357 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:05:21,466 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:05:21,472 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:05:21,472 [133/200] 存取控制與MFA - 遠端存取安全
+2026-04-14 23:05:35,098 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:05:35,220 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:05:35,227 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:05:35,227 [134/200] 存取控制與MFA - 共用帳號管理
+2026-04-14 23:05:48,905 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:05:49,021 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:05:49,051 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:05:49,051 [135/200] 存取控制與MFA - 存取審查流程
+2026-04-14 23:06:04,670 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:06:04,793 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:06:04,798 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:06:04,798 [136/200] 存取控制與MFA - MFA 廠商比較
+2026-04-14 23:06:19,040 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:06:19,181 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:06:19,207 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:06:19,207 [137/200] 存取控制與MFA - 生物辨識存取
+2026-04-14 23:06:33,265 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:06:33,378 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:06:33,389 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:06:33,390 [138/200] 存取控制與MFA - 條件式存取政策
+2026-04-14 23:06:51,259 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:06:51,669 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:06:51,677 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:06:51,677 [139/200] 存取控制與MFA - 離職人員存取撤銷
+2026-04-14 23:07:05,972 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:07:06,104 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:07:06,110 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:07:06,110 [140/200] 存取控制與MFA - 存取控制稽核
+2026-04-14 23:07:19,362 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:07:19,497 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:07:19,502 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:07:19,502 [141/200] 雲端安全評估 - 雲端資安責任共擔模型
+2026-04-14 23:07:35,546 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:07:35,681 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:07:35,689 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:07:35,689 [142/200] 雲端安全評估 - AWS 安全最佳實務
+2026-04-14 23:07:51,099 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:07:51,201 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:07:51,208 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:07:51,208 [143/200] 雲端安全評估 - Azure 安全設定
+2026-04-14 23:08:03,884 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:08:04,011 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:08:04,022 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:08:04,022 [144/200] 雲端安全評估 - GCP 安全評估
+2026-04-14 23:08:17,430 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:08:17,549 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:08:17,579 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:08:17,579 [145/200] 雲端安全評估 - 多雲安全策略
+2026-04-14 23:08:32,988 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:08:33,112 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:08:33,120 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:08:33,120 [146/200] 雲端安全評估 - 雲端 CASB 部署
+2026-04-14 23:08:48,445 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:08:48,575 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:08:48,604 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:08:48,604 [147/200] 雲端安全評估 - 雲端資料分類與保護
+2026-04-14 23:09:04,112 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:09:04,258 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:09:04,265 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:09:04,265 [148/200] 雲端安全評估 - 雲端身份管理（IAM）
+2026-04-14 23:09:18,959 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:09:19,086 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:09:19,114 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:09:19,114 [149/200] 雲端安全評估 - 雲端網路安全設計
+2026-04-14 23:09:34,362 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:09:34,488 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:09:34,516 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:09:34,516 [150/200] 雲端安全評估 - 雲端合規評估
+2026-04-14 23:09:50,771 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:09:50,922 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:09:50,930 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:09:50,931 [151/200] 雲端安全評估 - 雲端成本與安全平衡
+2026-04-14 23:10:03,098 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:10:03,229 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:10:03,236 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:10:03,236 [152/200] 雲端安全評估 - 容器安全（Docker/K8s）
+2026-04-14 23:10:18,405 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:10:18,525 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:10:18,531 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:10:18,531 [153/200] 雲端安全評估 - 無伺服器安全
+2026-04-14 23:10:35,493 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:10:35,611 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:10:35,622 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:10:35,622 [154/200] 雲端安全評估 - 雲端監控與日誌
+2026-04-14 23:10:49,991 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:10:50,104 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:10:50,113 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:10:50,113 [155/200] 雲端安全評估 - 雲端 DR 架構
+2026-04-14 23:11:03,278 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:11:03,381 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:11:03,388 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:11:03,389 [156/200] 雲端安全評估 - 私有雲 vs 公有雲安全比較
+2026-04-14 23:11:18,073 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:11:18,216 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:11:18,224 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:11:18,224 [157/200] 雲端安全評估 - 雲端資料主權
+2026-04-14 23:11:31,525 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:11:31,625 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:11:31,633 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:11:31,633 [158/200] 雲端安全評估 - 雲端供應商評估
+2026-04-14 23:11:45,390 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:11:45,504 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:11:45,512 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:11:45,512 [159/200] 雲端安全評估 - 雲端安全事件應變
+2026-04-14 23:11:59,471 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:11:59,606 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:11:59,635 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:11:59,635 [160/200] 雲端安全評估 - 雲端安全成熟度評估
+2026-04-14 23:12:12,654 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:12:12,778 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:12:12,787 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:12:12,787 [161/200] 員工資安意識訓練 - 資安訓練課程設計
+2026-04-14 23:12:26,079 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:12:26,214 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:12:26,220 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:12:26,220 [162/200] 員工資安意識訓練 - 釣魚郵件演練規劃
+2026-04-14 23:12:40,720 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:12:40,843 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:12:40,849 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:12:40,850 [163/200] 員工資安意識訓練 - 社交工程防範教育
+2026-04-14 23:12:53,370 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:12:53,507 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:12:53,518 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:12:53,518 [164/200] 員工資安意識訓練 - 資安意識測驗設計
+2026-04-14 23:13:07,421 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:13:07,539 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:13:07,568 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:13:07,568 [165/200] 員工資安意識訓練 - 資安文化建立
+2026-04-14 23:13:21,882 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:13:22,000 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:13:22,008 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:13:22,008 [166/200] 員工資安意識訓練 - 新進員工資安訓練
+2026-04-14 23:13:36,676 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:13:36,796 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:13:36,804 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:13:36,804 [167/200] 員工資安意識訓練 - 主管資安責任意識
+2026-04-14 23:13:51,280 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:13:51,383 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:13:51,388 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:13:51,389 [168/200] 員工資安意識訓練 - 資安海報與宣導
+2026-04-14 23:14:05,890 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:14:06,018 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:14:06,024 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:14:06,024 [169/200] 員工資安意識訓練 - 資安事件通報管道
+2026-04-14 23:14:18,529 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:14:18,641 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:14:18,670 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:14:18,670 [170/200] 員工資安意識訓練 - 個資保護教育訓練
+2026-04-14 23:14:32,096 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:14:32,220 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:14:32,226 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:14:32,226 [171/200] 員工資安意識訓練 - 行動裝置安全意識
+2026-04-14 23:14:45,964 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:14:46,076 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:14:46,082 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:14:46,083 [172/200] 員工資安意識訓練 - 密碼安全訓練
+2026-04-14 23:14:57,702 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:14:57,831 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:14:57,838 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:14:57,839 [173/200] 員工資安意識訓練 - 公共場所資安意識
+2026-04-14 23:15:12,792 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:15:12,896 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:15:12,902 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:15:12,902 [174/200] 員工資安意識訓練 - 遠端工作資安訓練
+2026-04-14 23:15:27,521 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:15:27,665 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:15:27,672 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:15:27,672 [175/200] 員工資安意識訓練 - 資安意識成效評估
+2026-04-14 23:15:41,656 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:15:41,789 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:15:41,795 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:15:41,795 [176/200] 員工資安意識訓練 - 訓練頻率與方式
+2026-04-14 23:15:56,755 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:15:56,881 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:15:56,888 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:15:56,888 [177/200] 員工資安意識訓練 - 第三方資安訓練平台
+2026-04-14 23:16:10,853 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:16:10,972 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:16:10,996 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:16:10,997 [178/200] 員工資安意識訓練 - 遊戲化資安訓練
+2026-04-14 23:16:27,022 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:16:27,155 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:16:27,163 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:16:27,164 [179/200] 員工資安意識訓練 - 資安訓練預算規劃
+2026-04-14 23:16:42,065 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:16:42,167 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:16:42,174 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:16:42,175 [180/200] 員工資安意識訓練 - 資安訓練紀錄管理
+2026-04-14 23:16:54,645 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:16:54,746 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:16:54,777 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:16:54,777 [181/200] 台灣資安法規實務 - 資通安全管理法適用範圍
+2026-04-14 23:17:08,043 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:17:08,151 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:17:08,159 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:17:08,159 [182/200] 台灣資安法規實務 - 關鍵基礎設施資安要求
+2026-04-14 23:17:21,656 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:17:21,776 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:17:21,783 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:17:21,783 [183/200] 台灣資安法規實務 - 資安長（CISO）設置規定
+2026-04-14 23:17:37,502 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:17:37,606 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:17:37,612 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:17:37,613 [184/200] 台灣資安法規實務 - 資安事件通報時限
+2026-04-14 23:17:52,179 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:17:52,303 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:17:52,311 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:17:52,311 [185/200] 台灣資安法規實務 - 資安稽核頻率要求
+2026-04-14 23:18:06,597 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:18:06,698 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:18:06,704 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:18:06,704 [186/200] 台灣資安法規實務 - 個資法與資安法整合
+2026-04-14 23:18:21,044 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:18:21,149 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:18:21,179 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:18:21,179 [187/200] 台灣資安法規實務 - 金融業資安規範
+2026-04-14 23:18:34,443 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:18:34,591 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:18:34,597 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:18:34,597 [188/200] 台灣資安法規實務 - 醫療業資安規範
+2026-04-14 23:18:47,449 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:18:47,549 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:18:47,556 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:18:47,556 [189/200] 台灣資安法規實務 - 政府機關資安等級
+2026-04-14 23:19:01,296 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:19:01,420 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:19:01,447 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:19:01,447 [190/200] 台灣資安法規實務 - 資安管理措施訂定
+2026-04-14 23:19:16,459 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:19:16,593 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:19:16,598 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:19:16,598 [191/200] 台灣資安法規實務 - 台灣資安成熟度模型
+2026-04-14 23:19:31,194 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:19:31,298 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:19:31,326 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:19:31,326 [192/200] 台灣資安法規實務 - 資安演練法規要求
+2026-04-14 23:19:46,210 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:19:46,328 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:19:46,364 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:19:46,365 [193/200] 台灣資安法規實務 - 供應鏈資安法規
+2026-04-14 23:20:00,317 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:20:00,444 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:20:00,470 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:20:00,470 [194/200] 台灣資安法規實務 - 個資保護影響評估
+2026-04-14 23:20:14,190 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:20:14,292 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:20:14,300 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:20:14,300 [195/200] 台灣資安法規實務 - 台灣資安主管機關
+2026-04-14 23:20:29,574 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:20:29,681 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:20:29,710 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:20:29,710 [196/200] 台灣資安法規實務 - 資安違規罰則
+2026-04-14 23:20:44,737 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:20:44,836 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:20:44,843 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:20:44,843 [197/200] 台灣資安法規實務 - 跨境資料傳輸規範
+2026-04-14 23:20:57,521 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:20:57,621 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:20:57,628 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:20:57,628 [198/200] 台灣資安法規實務 - 資安委外法規要求
+2026-04-14 23:21:10,748 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:21:10,861 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:21:10,890 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:21:10,891 [199/200] 台灣資安法規實務 - 資安保險法規
+2026-04-14 23:21:25,472 HTTP Request: POST http://192.168.1.91:8001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-14 23:21:25,587 HTTP Request: POST http://192.168.1.91:11434/api/embeddings "HTTP/1.1 200 OK"
+2026-04-14 23:21:25,616 HTTP Request: PUT http://192.168.1.91:6333/collections/ceclaw_it_knowledge/points?wait=true "HTTP/1.1 200 OK"
+2026-04-14 23:21:25,616 [200/200] 台灣資安法規實務 - 台灣資安最新修法動態
+2026-04-14 23:21:26,621 完成！共生成 200 筆
