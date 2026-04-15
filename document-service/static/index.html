@@ -124,6 +124,7 @@ body{display:flex;font-family:'Noto Sans TC','Inter',sans-serif;color:var(--text
 .i-docx{background:rgba(96,165,250,0.1);color:#60a5fa;}
 .i-xlsx{background:rgba(74,222,128,0.1);color:#4ade80;}
 .i-analyze{background:rgba(251,146,60,0.1);color:#fb923c;}
+.i-extract{background:rgba(167,139,250,0.1);color:#a78bfa;}
 .i-ocr{background:rgba(148,163,184,0.1);color:#94a3b8;}
 .i-search{background:var(--hover);color:var(--muted);}
 
@@ -443,6 +444,9 @@ body{display:flex;font-family:'Noto Sans TC','Inter',sans-serif;color:var(--text
       <button class="cmd-btn" onclick="triggerUpload('analyze')">
         <span class="cmd-icon i-analyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>分析文件
       </button>
+      <button class="cmd-btn" onclick="triggerUpload('extract')">
+        <span class="cmd-icon i-extract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>結構化萃取
+      </button>
       <button class="cmd-btn" onclick="triggerUpload('ocr')">
         <span class="cmd-icon i-ocr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7z"/><path d="M14 7h3v3h-3z"/><path d="M7 14h3v3H7z"/></svg></span>OCR 辨識
       </button>
@@ -579,7 +583,7 @@ function removeTyping(){document.getElementById('typing')?.remove();}
 function onFileSelect(input){
   pendingFiles=Array.from(input.files);renderFileTags();
   if(pendingIntent){
-    document.getElementById('input').value=pendingIntent==='ocr'?'OCR 辨識這些檔案':'分析這些文件';
+    document.getElementById('input').value=pendingIntent==='ocr'?'OCR 辨識這些檔案':pendingIntent==='extract'?'結構化萃取這些文件':'分析這些文件';
   }
 }
 function renderFileTags(){
@@ -618,9 +622,9 @@ async function send(){
   addMsg('user',displayHtml);addTyping();
 
   try{
-    if(pendingFiles.length&&(intent==='analyze'||intent==='ocr'||!intent)){
+    if(pendingFiles.length&&(intent==='analyze'||intent==='ocr'||intent==='extract'||!intent)){
       const isBatch=pendingFiles.length>1;
-      const ep=intent==='ocr'?'ocr':(isBatch?'analyze/batch':'analyze');
+      const ep=intent==='ocr'?'ocr':intent==='extract'?'extract':(isBatch?'analyze/batch':'analyze');
       const fd=new FormData();
       if(isBatch)pendingFiles.forEach(f=>fd.append('files',f));
       else fd.append('file',pendingFiles[0]);
@@ -629,6 +633,13 @@ async function send(){
       removeTyping();
       if(ep==='analyze/batch'){
         addMsg('bot',`<strong>${data.count} 份文件</strong>分析完成，已存入知識庫。<br><small style="color:var(--muted)">${data.filenames.join('、')}</small><br><br>${data.summary}`);
+      } else if(ep==='extract'){
+        let rows='';
+        for(const[k,v]of Object.entries(data.extracted_data||{})){
+          const val=Array.isArray(v)?v.join('<br>'):v??'—';
+          rows+=`<tr><td style="color:#94a3b8;padding:4px 8px;white-space:nowrap">${k}</td><td style="padding:4px 8px">${val}</td></tr>`;
+        }
+        addMsg('assistant',`<div style="margin-bottom:8px">📄 <b>${data.filename}</b> &nbsp;<span style="background:rgba(167,139,250,0.2);color:#a78bfa;padding:2px 8px;border-radius:4px;font-size:12px">${data.doc_type}</span></div><table style="border-collapse:collapse;width:100%;font-size:13px">${rows}</table>`);
       } else if(ep==='analyze'){
         addMsg('bot',`<strong>${data.filename}</strong> 分析完成，已存入知識庫（${data.chunks_stored} 個片段）。<br><br>${data.summary}`);
       } else {
