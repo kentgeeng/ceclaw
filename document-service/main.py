@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from config import LLM_URL, LLM_MODEL, PORT
 from knowledge import store_document, search_documents
+from extract_gen import classify, extract as extract_fields
 from generators.pptx_gen import generate_pptx
 from generators.docx_gen import generate_docx
 from generators.xlsx_gen import generate_xlsx
@@ -97,6 +98,25 @@ async def analyze(file: UploadFile = File(...)):
     return JSONResponse({"filename": filename, "summary": summary,
                          "chunks_stored": chunks_count, "text_length": len(text)})
 
+
+@app.post("/extract")
+async def extract_endpoint(file: UploadFile = File(...)):
+    content = await file.read()
+    filename = file.filename or "unknown"
+    ext = filename.lower().split(".")[-1]
+    from ocr import read_document_async
+    text = await read_document_async(content, ext)
+    doc_type = await classify(text)
+    extracted_data = await extract_fields(text, doc_type)
+    chunks_count = await store_document(filename, text, doc_type,
+                                        metadata={"extracted": extracted_data})
+    return JSONResponse({
+        "filename": filename,
+        "doc_type": doc_type,
+        "extracted_data": extracted_data,
+        "chunks_stored": chunks_count,
+        "text_length": len(text)
+    })
 
 @app.post("/analyze/batch")
 async def analyze_batch(files: list[UploadFile] = File(...)):
