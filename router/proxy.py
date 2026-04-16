@@ -434,11 +434,24 @@ async def handle_inference(
                 logger.info(f"RAG: injected {len(_rag_hits)} chunks")
         except Exception as _e:
             logger.warning(f"RAG query failed: {_e}")
+    # RAG bypass：偵測到 Agent 關鍵字 → 跳過 tw_laws 注入，讓 Hermes 路由給 Agent
+    _messages = json.loads(body).get("messages", [])
+    _last_msg = next((m.get("content", "") for m in reversed(_messages) if m.get("role") == "user"), "")
+    _AGENT_ROUTE_KEYWORDS = [
+        "勞基法", "勞動基準法", "合約", "契約", "競業禁止", "公司法", "訴訟", "法院",
+        "試用期", "資遣", "特休", "薪資結構", "人資", "招募", "離職",
+        "發票", "稅務", "會計", "財報", "費用認列", "扣抵",
+        "個資法", "合規", "內控", "稽核", "反洗錢", "公司治理",
+    ]
+    _skip_law_rag = any(kw in _last_msg for kw in _AGENT_ROUTE_KEYWORDS)
+    if _skip_law_rag:
+        logger.info(f"RAG bypass: skip tw_laws, matched: {_last_msg[:60]}")
     # 法律小顧問 RAG
-    _law_context = await _get_law_rag(json.loads(body).get("messages", []))
-    if _law_context:
-        logger.info("law_rag: injected law context")
-        _rag_context = (_rag_context + "\n\n" + _law_context).strip()
+    if not _skip_law_rag:
+        _law_context = await _get_law_rag(json.loads(body).get("messages", []))
+        if _law_context:
+            logger.info("law_rag: injected law context")
+            _rag_context = (_rag_context + "\n\n" + _law_context).strip()
     # 台灣知識庫 RAG
     try:
         _messages = json.loads(body).get("messages", [])
