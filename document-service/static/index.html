@@ -122,6 +122,7 @@ body{display:flex;font-family:'Noto Sans TC','Inter',sans-serif;color:var(--text
 .i-pptx{background:var(--glow-accent2);color:var(--accent2);}
 .i-pdf{background:var(--glow-accent);color:var(--accent);}
 .i-docx{background:rgba(96,165,250,0.1);color:#60a5fa;}
+.i-design{background:rgba(34,197,94,0.1);color:#22c55e;}
 .i-xlsx{background:rgba(74,222,128,0.1);color:#4ade80;}
 .i-analyze{background:rgba(251,146,60,0.1);color:#fb923c;}
 .i-extract{background:rgba(167,139,250,0.1);color:#a78bfa;}
@@ -435,6 +436,9 @@ body{display:flex;font-family:'Noto Sans TC','Inter',sans-serif;color:var(--text
       <button class="cmd-btn" onclick="quickCmd('建立試算表，主題是')">
         <span class="cmd-icon i-xlsx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></span>XLSX 表格
       </button>
+      <button class="cmd-btn" onclick="handleDesign()">
+        <span class="cmd-icon i-design"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>設計稿生成
+      </button>
     </div>
 
     <div class="sidebar-divider"></div>
@@ -727,6 +731,14 @@ function addWelcome(){
   });
 }
 addWelcome();
+    async function handleDesign(){
+      const p=document.getElementById('input')?.value?.trim()||window.prompt('輸入設計需求（如：幫我設計ColdElectric公司Logo）');
+      if(!p)return;
+      try{
+        const r=await fetch(`${API}/design`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:p})});
+        if(r.ok){const html=await r.text();const b=new Blob([html],{type:'text/html'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.target='_blank';a.click();}
+      }catch(e){console.error(e);}
+    }
 </script>
 </body>
 </html>

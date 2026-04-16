@@ -35,6 +35,7 @@ async def generate_design_html(prompt: str) -> str:
     if svg_match:
         svg_code = svg_match.group(1)
         desc_part = content[content.rfind('</svg>')+6:].strip()[:200]
+        desc_part = desc_part.replace('```', '').strip()
         return f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
