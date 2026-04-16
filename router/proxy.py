@@ -476,6 +476,12 @@ async def handle_inference(
     except Exception as _tw_e:
         logger.warning(f"tw_knowledge RAG 失敗：{_tw_e}")
 
+    # Faith bypass：具體聖經章節查詢 → 強制路由 ceclaw-faith
+    import re as _re
+    _faith_pattern = _re.compile(r'(約翰|詩篇|創世|出埃及|申命|馬太|馬可|路加|使徒|羅馬|哥林多|以弗所|腓立比|歌羅西|啟示錄).{0,6}[第\d一二三四五六七八九十百]+.{0,3}[章節篇]')
+    if _faith_pattern.search(_last_msg):
+        logger.info(f"Faith bypass: 聖經章節查詢，強制路由 ceclaw-faith: {_last_msg[:60]}")
+        _soul_md = _soul_md + "\n\n用戶詢問聖經章節，必須呼叫 call_openclaw_agent，agent_id=ceclaw-faith。"
     body = inject_system_prompt(body, soul_md=_soul_md, rag_context=_rag_context)
     headers = {
         "Content-Type": request.headers.get("Content-Type", "application/json"),
