@@ -554,6 +554,7 @@ const INTENTS = [
   {re:/分析|摘要|解析/i, type:'analyze'},
   {re:/表格|excel|xlsx|試算表/i, type:'xlsx'},
   {re:/搜尋|查詢|search/i, type:'search'},
+  {re:/logo|設計稿|流程圖|組織圖|視覺設計|svg|排版/i, type:'design'},
 ];
 
 function detectIntent(t){for(const i of INTENTS)if(i.re.test(t))return i.type;return null;}
@@ -677,6 +678,10 @@ async function send(){
       const blob=await r.blob();const url=URL.createObjectURL(blob);
       removeTyping();
       addMsg('bot',`✓ 已生成 <strong>${topic}</strong> 試算表<div class="dl-row">${dlBtn(url,`${topic}.xlsx`,'dl-xlsx')}</div>`);
+    } else if(intent==='design'){
+      const r=await fetch(`${API}/design`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:text})});
+      if(r.ok){const html=await r.text();const b=new Blob([html],{type:'text/html'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.target='_blank';a.click();addMsg('assistant','✅ 設計稿已在新分頁開啟');}
+      else{addMsg('assistant','❌ 設計稿生成失敗');}
     } else if(intent==='search'){
       const q=text.replace(/搜尋|查詢|search|找/gi,'').trim()||text;
       const r=await fetch(`${API}/search?q=${encodeURIComponent(q)}&limit=5`);
