@@ -16,6 +16,8 @@ from generators.pptx_gen import generate_pptx
 from generators.docx_gen import generate_docx
 from generators.xlsx_gen import generate_xlsx
 from generators.pdf_gen import generate_pdf
+from generators.design_gen import generate_design_html
+from generators.design_gen import generate_design_html
 
 OUTPUT_DIR = "/tmp/ceclaw-docs"
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -41,6 +43,22 @@ class GenerateRequest(BaseModel):
 async def health():
     return {"status": "ok", "service": "ceclaw-document-service"}
 
+
+class DesignRequest(BaseModel):
+    prompt: str
+
+@app.post("/design", response_class=HTMLResponse)
+async def gen_design(req: DesignRequest):
+    html = await generate_design_html(req.prompt)
+    return html
+
+class DesignRequest(BaseModel):
+    prompt: str
+
+@app.post("/design", response_class=HTMLResponse)
+async def gen_design(req: DesignRequest):
+    html = await generate_design_html(req.prompt)
+    return html
 
 @app.post("/generate/pptx")
 async def gen_pptx(req: GenerateRequest):
