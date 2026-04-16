@@ -436,7 +436,8 @@ async def handle_inference(
             logger.warning(f"RAG query failed: {_e}")
     # RAG bypass：偵測到 Agent 關鍵字 → 跳過 tw_laws 注入，讓 Hermes 路由給 Agent
     _messages = json.loads(body).get("messages", [])
-    _last_msg = next((m.get("content", "") for m in reversed(_messages) if m.get("role") == "user"), "")
+    _raw = next((m.get("content", "") for m in reversed(_messages) if m.get("role") == "user"), "")
+    _last_msg = _raw if isinstance(_raw, str) else ((_raw[0].get("text","") if isinstance(_raw, list) and _raw else ""))
     _AGENT_ROUTE_KEYWORDS = [
         "勞基法", "勞動基準法", "合約", "契約", "競業禁止", "公司法", "訴訟", "法院",
         "試用期", "資遣", "特休", "薪資結構", "人資", "招募", "離職",
@@ -455,7 +456,8 @@ async def handle_inference(
     # 台灣知識庫 RAG
     try:
         _messages = json.loads(body).get("messages", [])
-        _last_msg = next((m.get("content","") for m in reversed(_messages) if m.get("role")=="user"), "")
+        _raw2 = next((m.get("content","") for m in reversed(_messages) if m.get("role")=="user"), "")
+        _last_msg = _raw2 if isinstance(_raw2, str) else ((_raw2[0].get("text","") if isinstance(_raw2, list) and _raw2 else ""))
         if _last_msg:
             import httpx as _httpx
             async with _httpx.AsyncClient() as _tw_client:
